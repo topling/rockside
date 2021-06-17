@@ -608,15 +608,15 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
       prop = __iter.value().get<decltype(prop)>(); \
     } catch (const std::exception& ex) {     \
       THROW_InvalidArgument( \
-        std::string("\"" #prop "\": ") + ex.what()); \
+        "\"" #prop "\": js = " + js.dump() + " => " + ex.what()); \
     }
 
 // _REQ_ means 'required'
 // _OPT_ means 'optional'
 #define ROCKSDB_JSON_REQ_PROP(js, prop) do { \
     ROCKSDB_JSON_XXX_PROP(js, prop)          \
-    else throw Status::InvalidArgument(      \
-      ROCKSDB_FUNC, "missing required param \"" #prop "\""); \
+    else THROW_InvalidArgument(             \
+      "missing required param \"" #prop "\", js = " + js.dump()); \
   } while (0)
 #define ROCKSDB_JSON_OPT_PROP(js, prop) do { \
     ROCKSDB_JSON_XXX_PROP(js, prop)          \
@@ -629,12 +629,10 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
     auto __iter = js.find(#prop); \
     if (js.end() != __iter) {                \
       if (!__iter.value().is_string())       \
-        throw Status::InvalidArgument(       \
-          ROCKSDB_FUNC, "enum \"" #prop "\" must be json string"); \
-      const std::string& val = __iter.value().get_ref<const std::string&>(); \
-      if (!enum_value(val, &prop)) \
-        throw Status::InvalidArgument( \
-            ROCKSDB_FUNC, "bad " #prop "=" + val); \
+        THROW_InvalidArgument("enum \"" #prop "\" must be json string"); \
+      const auto& __val = __iter.value().get_ref<const std::string&>(); \
+      if (!enum_value(__val, &prop)) \
+        THROW_InvalidArgument("bad " #prop " = " + __val); \
   }} while (0)
 #define ROCKSDB_JSON_OPT_NEST(js, prop) \
   do try { \
@@ -642,8 +640,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
     if (js.end() != __iter) \
       prop = decltype(NestForBase(prop))(__iter.value()); \
   } catch (const std::exception& ex) { \
-    THROW_InvalidArgument( \
-       std::string(#prop ": ") + ex.what()); \
+    THROW_InvalidArgument(std::string(#prop ": ") + ex.what()); \
   } while (0)
 
 #define ROCKSDB_JSON_OPT_FACT_INNER(js, prop) \
