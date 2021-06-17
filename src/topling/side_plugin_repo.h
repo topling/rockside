@@ -82,10 +82,12 @@ class SidePluginRepo {
  public:
   SidePluginRepo() noexcept;
   ~SidePluginRepo();
-  SidePluginRepo(const SidePluginRepo&) noexcept;
-  SidePluginRepo(SidePluginRepo&&) noexcept;
-  SidePluginRepo& operator=(const SidePluginRepo&) noexcept;
-  SidePluginRepo& operator=(SidePluginRepo&&) noexcept;
+  void CleanResetRepo();
+
+  SidePluginRepo(const SidePluginRepo&) = delete;
+  SidePluginRepo(SidePluginRepo&&) = delete;
+  SidePluginRepo& operator=(const SidePluginRepo&) = delete;
+  SidePluginRepo& operator=(SidePluginRepo&&) = delete;
 
   Status ImportJsonFile(const Slice& fname);
   Status Import(const std::string& json_str);
@@ -265,6 +267,7 @@ class SidePluginRepo {
 // also public
   struct Impl;
   std::shared_ptr<Impl> m_impl;
+
  private:
   template<class DBType>
   Status OpenDB_tpl(const nlohmann::json&, DBType**);

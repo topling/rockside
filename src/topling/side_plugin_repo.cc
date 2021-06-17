@@ -161,14 +161,13 @@ static void Impl_ImportOptions(SidePluginRepo::Impl::ObjMap<Ptr>& field,
   }
 }
 
+void SidePluginRepo::CleanResetRepo() {
+  m_impl.reset(new Impl);
+}
 SidePluginRepo::SidePluginRepo() noexcept {
   m_impl.reset(new Impl);
 }
 SidePluginRepo::~SidePluginRepo() = default;
-SidePluginRepo::SidePluginRepo(const SidePluginRepo&) noexcept = default;
-SidePluginRepo::SidePluginRepo(SidePluginRepo&&) noexcept = default;
-SidePluginRepo& SidePluginRepo::operator=(const SidePluginRepo&) noexcept = default;
-SidePluginRepo& SidePluginRepo::operator=(SidePluginRepo&&) noexcept = default;
 
 Status SidePluginRepo::ImportJsonFile(const Slice& fname) {
   std::string json_str;
