@@ -107,7 +107,7 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   void AddOneCF_ToMap(const std::string& cfname, ColumnFamilyHandle*, const json&);
   void InitAddCF_ToMap(const json& js_cf_desc);
   SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*> m_cfhs;
-  SidePluginRepo m_repo;
+  const SidePluginRepo* m_repo;
   std::function<ColumnFamilyHandle*
     (DB*, const std::string& cfname, const ColumnFamilyOptions&, const json& extra_args)
    > m_create_cf;

@@ -54,7 +54,7 @@ Status DB_MultiCF_Impl::CreateColumnFamily(const std::string& cfname,
                                            ColumnFamilyHandle** cfh)
 try {
   auto js = json::parse(json_str);
-  auto cfo = ObtainOPT(m_repo.m_impl->cf_options, "CFOptions", js, m_repo);
+  auto cfo = ObtainOPT(m_repo->m_impl->cf_options, "CFOptions", js, *m_repo);
   if (!m_create_cf) {
     return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
   }

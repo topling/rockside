@@ -2259,7 +2259,7 @@ struct MultiCF_Open {
     auto& db_options_js = iter.value();
     db_opt = ROCKSDB_OBTAIN_OPT(db_options, db_options_js, repo);
     db.reset(new DB_MultiCF_Impl); // NOLINT
-    db->m_repo = repo;
+    db->m_repo = &repo;
     for (auto& kv : js_cf_desc->items()) {
       const std::string& cf_name = kv.key();
       auto& cf_js = kv.value();
