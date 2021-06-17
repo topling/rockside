@@ -96,7 +96,7 @@ void DB_MultiCF_Impl::AddOneCF_ToMap(const std::string& cfname,
                                      ColumnFamilyHandle* cfh,
                                      const json& js) {
   m_cfhs.name2p->emplace(cfname, cfh);
-  m_cfhs.p2name.emplace(cfh, JsonPluginRepo::Impl::ObjInfo{cfname, js});
+  m_cfhs.p2name.emplace(cfh, SidePluginRepo::Impl::ObjInfo{cfname, js});
 }
 
 void DB_MultiCF_Impl::InitAddCF_ToMap(const json& js_cf_desc) {

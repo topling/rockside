@@ -30,21 +30,21 @@ using std::string;
 
 /////////////////////////////////////////////////////////////////////////////
 template<class Ptr> // just for type deduction
-static Ptr RepoPtrType(const JsonPluginRepo::Impl::ObjMap<Ptr>&);
+static Ptr RepoPtrType(const SidePluginRepo::Impl::ObjMap<Ptr>&);
 template<class T> // just for type deduction
 static const shared_ptr<T>&
-RepoPtrCref(const JsonPluginRepo::Impl::ObjMap<shared_ptr<T> >&);
+RepoPtrCref(const SidePluginRepo::Impl::ObjMap<shared_ptr<T> >&);
 
 template<class T> // just for type deduction
-static T* RepoPtrCref(const JsonPluginRepo::Impl::ObjMap<T*>&);
-
-template<class T> // just for type deduction
-static const T*
-RepoConstRawPtr(const JsonPluginRepo::Impl::ObjMap<shared_ptr<T> >&);
+static T* RepoPtrCref(const SidePluginRepo::Impl::ObjMap<T*>&);
 
 template<class T> // just for type deduction
 static const T*
-RepoConstRawPtr(const JsonPluginRepo::Impl::ObjMap<T*>&);
+RepoConstRawPtr(const SidePluginRepo::Impl::ObjMap<shared_ptr<T> >&);
+
+template<class T> // just for type deduction
+static const T*
+RepoConstRawPtr(const SidePluginRepo::Impl::ObjMap<T*>&);
 
 std::string JsonGetClassName(const char* caller, const json& js) {
   if (js.is_string()) {
@@ -66,9 +66,9 @@ std::string JsonGetClassName(const char* caller, const json& js) {
 }
 
 template<class Ptr>
-static void Impl_Import(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
+static void Impl_Import(SidePluginRepo::Impl::ObjMap<Ptr>& field,
                    const std::string& name,
-                   const json& main_js, const JsonPluginRepo& repo) {
+                   const json& main_js, const SidePluginRepo& repo) {
   auto iter = main_js.find(name);
   if (main_js.end() == iter) {
       return;
@@ -119,14 +119,14 @@ static void Impl_Import(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
       value = json::object({{"class", value}, {"params", {}}});
     }
     field.p2name.emplace(GetRawPtr(p),
-        JsonPluginRepo::Impl::ObjInfo{inst_id, std::move(value)});
+        SidePluginRepo::Impl::ObjInfo{inst_id, std::move(value)});
   }
 }
 
 template<class Ptr>
-static void Impl_ImportOptions(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
+static void Impl_ImportOptions(SidePluginRepo::Impl::ObjMap<Ptr>& field,
                    const std::string& option_class_name,
-                   const json& main_js, const JsonPluginRepo& repo) {
+                   const json& main_js, const SidePluginRepo& repo) {
   auto iter = main_js.find(option_class_name);
   if (main_js.end() == iter) {
     return;
@@ -153,7 +153,7 @@ static void Impl_ImportOptions(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
       assert(Ptr(nullptr) != p);
       existing = p;
       field.p2name.emplace(GetRawPtr(p),
-          JsonPluginRepo::Impl::ObjInfo{option_name, json{
+          SidePluginRepo::Impl::ObjInfo{option_name, json{
               { "class", option_class_name},
               { "params", std::move(params_js)}
           }});
@@ -161,16 +161,16 @@ static void Impl_ImportOptions(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
   }
 }
 
-JsonPluginRepo::JsonPluginRepo() noexcept {
+SidePluginRepo::SidePluginRepo() noexcept {
   m_impl.reset(new Impl);
 }
-JsonPluginRepo::~JsonPluginRepo() = default;
-JsonPluginRepo::JsonPluginRepo(const JsonPluginRepo&) noexcept = default;
-JsonPluginRepo::JsonPluginRepo(JsonPluginRepo&&) noexcept = default;
-JsonPluginRepo& JsonPluginRepo::operator=(const JsonPluginRepo&) noexcept = default;
-JsonPluginRepo& JsonPluginRepo::operator=(JsonPluginRepo&&) noexcept = default;
+SidePluginRepo::~SidePluginRepo() = default;
+SidePluginRepo::SidePluginRepo(const SidePluginRepo&) noexcept = default;
+SidePluginRepo::SidePluginRepo(SidePluginRepo&&) noexcept = default;
+SidePluginRepo& SidePluginRepo::operator=(const SidePluginRepo&) noexcept = default;
+SidePluginRepo& SidePluginRepo::operator=(SidePluginRepo&&) noexcept = default;
 
-Status JsonPluginRepo::ImportJsonFile(const Slice& fname) {
+Status SidePluginRepo::ImportJsonFile(const Slice& fname) {
   std::string json_str;
   {
     std::ifstream ifs(fname.data());
@@ -184,7 +184,7 @@ Status JsonPluginRepo::ImportJsonFile(const Slice& fname) {
   return Import(json_str);
 }
 
-Status JsonPluginRepo::Import(const string& json_str)
+Status SidePluginRepo::Import(const string& json_str)
 #if defined(NDEBUG)
 try
 #endif
@@ -240,7 +240,7 @@ static void JS_setenv(const nlohmann::json& main_js) {
     if (val.is_object() || val.is_array()) {
       THROW_InvalidArgument("main_js[\"setenv\"] must not be object or array");
     }
-    if (JsonPluginRepo::DebugLevel() >= 3) {
+    if (SidePluginRepo::DebugLevel() >= 3) {
       const std::string& valstr = val.dump();
       fprintf(stderr, "JS_setenv: %s = %s\n", name.c_str(), valstr.c_str());
     }
@@ -257,7 +257,7 @@ static void JS_setenv(const nlohmann::json& main_js) {
   }
 }
 
-Status JsonPluginRepo::Import(const nlohmann::json& main_js)
+Status SidePluginRepo::Import(const nlohmann::json& main_js)
 #if defined(NDEBUG)
 try
 #endif
@@ -297,7 +297,7 @@ try
   JSON_IMPORT_REPO(TableFactory            , table_factory);
   JSON_IMPORT_REPO(TransactionDBMutexFactory, txn_db_mutex_factory);
 
-  extern void DispatcherTableBackPatch(TableFactory*, const JsonPluginRepo&);
+  extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
   for (auto& kv : *m_impl->table_factory.name2p) {
     if (Slice(kv.second->Name()) == "DispatcherTable") {
       auto tf = kv.second.get();
@@ -320,7 +320,7 @@ catch (const Status& s) {
 #endif
 
 template<class Ptr>
-static void Impl_Export(const JsonPluginRepo::Impl::ObjMap<Ptr>& field,
+static void Impl_Export(const SidePluginRepo::Impl::ObjMap<Ptr>& field,
                    const char* name, json& main_js) {
   auto& field_js = main_js[name];
   for (auto& kv: field.p2name) {
@@ -328,7 +328,7 @@ static void Impl_Export(const JsonPluginRepo::Impl::ObjMap<Ptr>& field,
     params_js = kv.second.params;
   }
 }
-Status JsonPluginRepo::Export(nlohmann::json* main_js) const
+Status SidePluginRepo::Export(nlohmann::json* main_js) const
 #if defined(NDEBUG)
 try
 #endif
@@ -372,7 +372,7 @@ catch (const std::exception& ex) {
 }
 #endif
 
-Status JsonPluginRepo::Export(string* json_str, bool pretty) const {
+Status SidePluginRepo::Export(string* json_str, bool pretty) const {
   assert(NULL != json_str);
   nlohmann::json js;
   Status s = Export(&js);
@@ -432,15 +432,15 @@ Impl_GetConsParams(const Map& map, const Ptr& p) {
 }
 
 #define JSON_REPO_TYPE_IMPL(field) \
-void JsonPluginRepo::Put(const string& name, \
+void SidePluginRepo::Put(const string& name, \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
   Impl_Put(name, m_impl->field, p); \
 } \
-bool JsonPluginRepo::Get(const string& name, \
+bool SidePluginRepo::Get(const string& name, \
                 decltype(RepoPtrType(((Impl*)0)->field))* pp) const { \
   return Impl_Get(name, m_impl->field, pp); \
 } \
-const json* JsonPluginRepo::GetConsParams( \
+const json* SidePluginRepo::GetConsParams( \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) const { \
   return Impl_GetConsParams(m_impl->field, p); \
 }
@@ -476,7 +476,7 @@ JSON_REPO_TYPE_IMPL(db_options)
 JSON_REPO_TYPE_IMPL(cf_options)
 
 #define JSON_GetConsParams(field) \
-const json* JsonPluginRepo::GetConsParams( \
+const json* SidePluginRepo::GetConsParams( \
                 decltype((RepoConstRawPtr(((Impl*)0)->field))) p) const { \
   return Impl_GetConsParams(m_impl->field, p); \
 }
@@ -511,13 +511,13 @@ JSON_GetConsParams(options)
 JSON_GetConsParams(db_options)
 JSON_GetConsParams(cf_options)
 
-void JsonPluginRepo::Put(const std::string& name, DB* db) {
+void SidePluginRepo::Put(const std::string& name, DB* db) {
   Impl_Put(name, m_impl->db, DB_Ptr(db));
 }
-void JsonPluginRepo::Put(const std::string& name, DB_MultiCF* db) {
+void SidePluginRepo::Put(const std::string& name, DB_MultiCF* db) {
   Impl_Put(name, m_impl->db, DB_Ptr(db));
 }
-bool JsonPluginRepo::Get(const std::string& name, DB** db, Status* s) const {
+bool SidePluginRepo::Get(const std::string& name, DB** db, Status* s) const {
   DB_Ptr dbp(nullptr);
   if (Impl_Get(name, m_impl->db, &dbp)) {
     if (!dbp.dbm) {
@@ -533,7 +533,7 @@ bool JsonPluginRepo::Get(const std::string& name, DB** db, Status* s) const {
   }
   return false;
 }
-bool JsonPluginRepo::Get(const std::string& name, DB_MultiCF** db, Status* s) const {
+bool SidePluginRepo::Get(const std::string& name, DB_MultiCF** db, Status* s) const {
   DB_Ptr dbp(nullptr);
   if (Impl_Get(name, m_impl->db, &dbp)) {
     if (dbp.dbm) {
@@ -580,14 +580,14 @@ bool JsonPluginRepo::Get(const std::string& name, DB_MultiCF** db, Status* s) co
  *       }
  *     }
  */
-Status JsonPluginRepo::OpenDB(const nlohmann::json& js, DB** dbp) {
+Status SidePluginRepo::OpenDB(const nlohmann::json& js, DB** dbp) {
   return OpenDB_tpl<DB>(js, dbp);
 }
-Status JsonPluginRepo::OpenDB(const nlohmann::json& js, DB_MultiCF** dbp) {
+Status SidePluginRepo::OpenDB(const nlohmann::json& js, DB_MultiCF** dbp) {
   return OpenDB_tpl<DB_MultiCF>(js, dbp);
 }
 
-Status JsonPluginRepo::OpenDB(const std::string& js, DB** dbp)
+Status SidePluginRepo::OpenDB(const std::string& js, DB** dbp)
 #if defined(NDEBUG)
 try
 #endif
@@ -599,7 +599,7 @@ catch (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, "bad json object");
 }
 #endif
-Status JsonPluginRepo::OpenDB(const std::string& js, DB_MultiCF** dbp)
+Status SidePluginRepo::OpenDB(const std::string& js, DB_MultiCF** dbp)
 #if defined(NDEBUG)
 try
 #endif
@@ -618,7 +618,7 @@ inline DB* GetDB(DB_MultiCF* db) { return db->db; }
 template<class DBT>
 static void Impl_OpenDB_tpl(const std::string& dbname,
                             const json& db_open_js,
-                            JsonPluginRepo& repo,
+                            SidePluginRepo& repo,
                             DBT** dbp) {
   auto iter = db_open_js.find("method");
   if (db_open_js.end() == iter) {
@@ -655,7 +655,7 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
   if (!ib.second) {
     THROW_InvalidArgument("dup dbname = " + dbname);
   }
-  if (JsonPluginRepo::DebugLevel() >= 2) {
+  if (SidePluginRepo::DebugLevel() >= 2) {
     fprintf(stderr, "%s:%d: Impl_OpenDB_tpl(): dbname = %s, params = %s\n",
             __FILE__, __LINE__, dbname.c_str(), params_js.dump(4).c_str());
   }
@@ -676,7 +676,7 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
 }
 
 template<class DBT>
-Status JsonPluginRepo::OpenDB_tpl(const nlohmann::json& js, DBT** dbp)
+Status SidePluginRepo::OpenDB_tpl(const nlohmann::json& js, DBT** dbp)
 #if defined(NDEBUG)
 try
 #endif
@@ -724,7 +724,7 @@ catch (const Status& s) {
 }
 #endif
 
-Status JsonPluginRepo::OpenAllDB()
+Status SidePluginRepo::OpenAllDB()
 #if defined(NDEBUG)
 try
 #endif
@@ -778,15 +778,15 @@ catch (const Status& s) {
 #endif
 
 std::shared_ptr<std::map<std::string, DB_Ptr> >
-JsonPluginRepo::GetAllDB() const {
+SidePluginRepo::GetAllDB() const {
   return m_impl->db.name2p;
 }
 
 /**
  * @param json_str sub object "open" is used as json_obj in
- *                 JsonPluginRepo::OpenDB
+ *                 SidePluginRepo::OpenDB
  */
-Status JsonPluginRepo::OpenDB(DB** db) {
+Status SidePluginRepo::OpenDB(DB** db) {
   const auto& open_js = m_impl->open_js;
   if (open_js.is_string() || open_js.is_object())
     return OpenDB(m_impl->open_js, db);
@@ -794,7 +794,7 @@ Status JsonPluginRepo::OpenDB(DB** db) {
     return Status::InvalidArgument(
         ROCKSDB_FUNC, "bad json[\"open\"] = " + open_js.dump());
 }
-Status JsonPluginRepo::OpenDB(DB_MultiCF** db) {
+Status SidePluginRepo::OpenDB(DB_MultiCF** db) {
   const auto& open_js = m_impl->open_js;
   if (open_js.is_string() || open_js.is_object())
     return OpenDB(open_js, db);
@@ -803,13 +803,13 @@ Status JsonPluginRepo::OpenDB(DB_MultiCF** db) {
         ROCKSDB_FUNC, "bad json[\"open\"] = " + open_js.dump());
 }
 
-Status JsonPluginRepo::StartHttpServer()
+Status SidePluginRepo::StartHttpServer()
 #if defined(NDEBUG)
 try
 #endif
 {
   const auto& http_js = m_impl->http_js;
-  if (JsonPluginRepo::DebugLevel() >= 2) {
+  if (SidePluginRepo::DebugLevel() >= 2) {
     fprintf(stderr, "INFO: http_js = %s\n", http_js.dump().c_str());
   }
   if (http_js.is_object()) {
@@ -834,26 +834,26 @@ catch (const Status& s) {
 }
 #endif
 
-void JsonPluginRepo::CloseHttpServer() {
-  if (JsonPluginRepo::DebugLevel() >= 2) {
+void SidePluginRepo::CloseHttpServer() {
+  if (SidePluginRepo::DebugLevel() >= 2) {
     fprintf(stderr, "INFO: CloseHttpServer(): http_js = %s\n",
             m_impl->http_js.dump().c_str());
   }
   m_impl->http.Close();
 }
 
-JsonPluginRepo::Impl::Impl() {
+SidePluginRepo::Impl::Impl() {
 }
-JsonPluginRepo::Impl::~Impl() {
+SidePluginRepo::Impl::~Impl() {
 }
 
 void AnyPluginManip::Update(AnyPlugin* p, const json& js,
-                            const JsonPluginRepo& repo) const {
+                            const SidePluginRepo& repo) const {
   p->Update(js, repo);
 }
 std::string AnyPluginManip::ToString(const AnyPlugin& ap,
                                      const json& dump_options,
-                                     const JsonPluginRepo& repo) const {
+                                     const SidePluginRepo& repo) const {
   return ap.ToString(dump_options, repo);
 }
 
@@ -950,7 +950,7 @@ static int InitOnceDebugLevel() {
   return 0;
 }
 
-int JsonPluginRepo::DebugLevel() {
+int SidePluginRepo::DebugLevel() {
   static int d = InitOnceDebugLevel();
   return d;
 }
@@ -1225,8 +1225,8 @@ std::string JsonToString(const json& obj, const json& options) {
 
 std::string
 PluginToString(const DB_Ptr& dbp,
-               const JsonPluginRepo::Impl::ObjMap<DB_Ptr>& map,
-               const json& js, const JsonPluginRepo& repo) {
+               const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
+               const json& js, const SidePluginRepo& repo) {
   auto iter = map.p2name.find(dbp.db);
   if (map.p2name.end() != iter) {
     if (dbp.dbm) {

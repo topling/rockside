@@ -12,7 +12,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 static std::shared_ptr<const FilterPolicy>
-NewBloomFilterPolicyJson(const json& js, const JsonPluginRepo&) {
+NewBloomFilterPolicyJson(const json& js, const SidePluginRepo&) {
   double bits_per_key = 10;
   bool use_block_based_builder = false;
   ROCKSDB_JSON_OPT_PROP(js, bits_per_key);
@@ -23,10 +23,10 @@ NewBloomFilterPolicyJson(const json& js, const JsonPluginRepo&) {
 ROCKSDB_FACTORY_REG("BloomFilter", NewBloomFilterPolicyJson);
 
 struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
-  BlockBasedTableOptions_Json(const json& js, const JsonPluginRepo& repo) {
+  BlockBasedTableOptions_Json(const json& js, const SidePluginRepo& repo) {
     Update(js, repo);
   }
-  void Update(const json& js, const JsonPluginRepo& repo) {
+  void Update(const json& js, const SidePluginRepo& repo) {
     if (!IsCompactionWorker())
       ROCKSDB_JSON_OPT_FACT(js, flush_block_policy_factory);
     ROCKSDB_JSON_OPT_PROP(js, cache_index_and_filter_blocks);
@@ -63,7 +63,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     }
   }
 
-  json ToJsonObj(const json& dump_options, const JsonPluginRepo& repo) const {
+  json ToJsonObj(const json& dump_options, const SidePluginRepo& repo) const {
     bool html = JsonSmartBool(dump_options, "html");
     json js;
     if (!IsCompactionWorker())
@@ -103,7 +103,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     return js;
   }
   std::string ToJsonStr(const json& dump_options,
-                        const JsonPluginRepo& repo) const {
+                        const SidePluginRepo& repo) const {
     auto js = ToJsonObj(dump_options, repo);
     return JsonToString(js, dump_options);
   }
@@ -241,7 +241,7 @@ std::string BlockBasedTableFactory::GetOptionJson() const {
 #endif
 
 static std::shared_ptr<TableFactory>
-NewBlockBasedTableFactoryFromJson(const json& js, const JsonPluginRepo& repo) {
+NewBlockBasedTableFactoryFromJson(const json& js, const SidePluginRepo& repo) {
   BlockBasedTableOptions_Json _table_options(js, repo);
   return std::make_shared<BlockBasedTableFactory>(_table_options);
 }
@@ -250,7 +250,7 @@ ROCKSDB_FACTORY_REG("BlockBased", NewBlockBasedTableFactoryFromJson);
 
 struct BlockBasedTableFactory_Manip : PluginManipFunc<TableFactory> {
   void Update(TableFactory* p, const json& js,
-              const JsonPluginRepo& repo) const final {
+              const SidePluginRepo& repo) const final {
     if (auto t = dynamic_cast<BlockBasedTableFactory*>(p)) {
       auto o = static_cast<const BlockBasedTableOptions_Json&>(t->table_options());
       auto mo = const_cast<BlockBasedTableOptions_Json&>(o);
@@ -261,7 +261,7 @@ struct BlockBasedTableFactory_Manip : PluginManipFunc<TableFactory> {
     THROW_InvalidArgument("Is not DispatcherTable, but is: " + name);
   }
   std::string ToString(const TableFactory& fac, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     if (auto t = dynamic_cast<const BlockBasedTableFactory*>(&fac)) {
       auto o = static_cast<const BlockBasedTableOptions_Json&>(t->table_options());
       return o.ToJsonStr(dump_options, repo);
@@ -272,7 +272,7 @@ struct BlockBasedTableFactory_Manip : PluginManipFunc<TableFactory> {
 };
 
 static const PluginManipFunc<TableFactory>*
-JS_BlockBasedTableFactoryManip(const json&, const JsonPluginRepo&) {
+JS_BlockBasedTableFactoryManip(const json&, const SidePluginRepo&) {
   static const BlockBasedTableFactory_Manip manip;
   return &manip;
 }
@@ -292,7 +292,7 @@ struct PlainTableOptions_Json : PlainTableOptions {
   }
 };
 static std::shared_ptr<TableFactory>
-NewPlainTableFactoryFromJson(const json& js, const JsonPluginRepo&) {
+NewPlainTableFactoryFromJson(const json& js, const SidePluginRepo&) {
   PlainTableOptions_Json options(js);
   return std::make_shared<PlainTableFactory>(options);
 }
@@ -310,7 +310,7 @@ struct CuckooTableOptions_Json : CuckooTableOptions {
   }
 };
 static std::shared_ptr<TableFactory>
-NewCuckooTableFactoryJson(const json& js, const JsonPluginRepo&) {
+NewCuckooTableFactoryJson(const json& js, const SidePluginRepo&) {
   CuckooTableOptions_Json options(js);
   return std::shared_ptr<TableFactory>(NewCuckooTableFactory(options));
 }
@@ -350,7 +350,7 @@ RegTableFactoryMagicNumber(uint64_t magic, const char* name) {
 
 ////////////////////////////////////////////////////////////////////////////
 static std::shared_ptr<SstPartitionerFactory>
-NewFixedPrefixPartitionerFactoryJson(const json& js, const JsonPluginRepo&) {
+NewFixedPrefixPartitionerFactoryJson(const json& js, const SidePluginRepo&) {
   size_t prefix_len = 0;
   ROCKSDB_JSON_REQ_PROP(js, prefix_len);
   return NewSstPartitionerFixedPrefixFactory(prefix_len);
@@ -398,7 +398,7 @@ class DispatcherTableBuilder : public TableBuilder {
 DispatcherTableFactory::~DispatcherTableFactory() {}
 
 DispatcherTableFactory::
-DispatcherTableFactory(const json& js, const JsonPluginRepo& repo) {
+DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   m_json_obj = js; // backup
   m_json_str = js.dump();
   m_is_back_patched = false;
@@ -450,7 +450,7 @@ Status DispatcherTableFactory::NewTableReader(
             "%s: not found factory: %016llX : %s, onfly create it.\n",
             func, magic, facname.c_str());
         json null_js;
-        JsonPluginRepo empty_repo;
+        SidePluginRepo empty_repo;
         auto factory = PluginFactorySP<TableFactory>::
                 AcquirePlugin(facname, null_js, empty_repo);
         return factory->NewTableReader(ro, table_reader_options,
@@ -487,7 +487,7 @@ const {
                        int(m_level_writers.size()-1));
   TableBuilder* builder;
   if (level >= 0) {
-    if (JsonPluginRepo::DebugLevel() >= 3) {
+    if (SidePluginRepo::DebugLevel() >= 3) {
       Info(info_log,
         "Dispatch::NewTableBuilder: level = %d, use level factory = %s\n",
         level, m_level_writers[level]->Name());
@@ -507,7 +507,7 @@ const {
     }
   }
   else {
-    if (JsonPluginRepo::DebugLevel() >= 3) {
+    if (SidePluginRepo::DebugLevel() >= 3) {
       Info(info_log,
         "Dispatch::NewTableBuilder: level = %d, use default factory = %s\n",
         level, m_default_writer->Name());
@@ -525,14 +525,14 @@ const {
   return Status::OK();
 }
 
-void DispatcherTableBackPatch(TableFactory* f, const JsonPluginRepo& repo) {
+void DispatcherTableBackPatch(TableFactory* f, const SidePluginRepo& repo) {
   auto dispatcher = dynamic_cast<DispatcherTableFactory*>(f);
   assert(nullptr != dispatcher);
   dispatcher->BackPatch(repo);
 }
 
 extern bool IsCompactionWorker();
-void DispatcherTableFactory::BackPatch(const JsonPluginRepo& repo) {
+void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   ROCKSDB_VERIFY_F(!m_is_back_patched, "BackPatch() was already called");
   ROCKSDB_VERIFY(m_all.get() == nullptr);
   m_all = repo.m_impl->table_factory.name2p;
@@ -608,11 +608,11 @@ void DispatcherTableFactory::BackPatch(const JsonPluginRepo& repo) {
       if (!ib.second) { // emplace fail
         const char* varname1 = ib.first->second.varname.c_str(); // existed
         const char* type = ib.first->second.is_user_defined ? "user" : "auto";
-        if (JsonPluginRepo::DebugLevel() >= 2)
+        if (SidePluginRepo::DebugLevel() >= 2)
           fprintf(stderr,
                 "INFO: Dispatch::BackPatch: dup factory: %016llX : %-20s : %s(%s) %s(auto)\n",
                 (long long)magic, facname, varname1, type, varname.c_str());
-      } else if (JsonPluginRepo::DebugLevel() >= 2) {
+      } else if (SidePluginRepo::DebugLevel() >= 2) {
         fprintf(stderr,
                 "INFO: Dispatch::BackPatch: reg factory: %016llX : %-20s : %s\n",
                 (long long)magic, facname, varname.c_str());
@@ -669,7 +669,7 @@ std::string DispatcherTableFactory::GetPrintableOptions() const {
   return m_json_str;
 }
 
-json DispatcherTableFactory::ToJsonObj(const json& dump_options, const JsonPluginRepo& repo) const {
+json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePluginRepo& repo) const {
   const bool html = JsonSmartBool(dump_options, "html");
   const bool nozero = JsonSmartBool(dump_options, "nozero");
   auto& p2name = repo.m_impl->table_factory.p2name;
@@ -770,7 +770,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const JsonPlugi
   return js;
 }
 std::string DispatcherTableFactory::ToJsonStr(const json& dump_options,
-                                              const JsonPluginRepo& repo) const {
+                                              const SidePluginRepo& repo) const {
   auto js = ToJsonObj(dump_options, repo);
   try {
     return JsonToString(js, dump_options);
@@ -780,7 +780,7 @@ std::string DispatcherTableFactory::ToJsonStr(const json& dump_options,
   }
 }
 
-void DispatcherTableFactory::UpdateOptions(const json& js, const JsonPluginRepo& repo) {
+void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo& repo) {
 
 }
 
@@ -829,7 +829,7 @@ void DispatcherTableBuilder::Add(const Slice& key, const Slice& value) {
 void DispatcherTableBuilder::UpdateStat() {
   st_sum.Add(st);
   const_cast<DispatcherTableFactory*>(dispatcher)->UpdateStat(level, st);
-  if (JsonPluginRepo::DebugLevel() >= 4) {
+  if (SidePluginRepo::DebugLevel() >= 4) {
     fprintf(stderr, "DBUG: entry_cnt = %zd\n", st_sum.entry_cnt);
   }
   st.Reset();
@@ -844,7 +844,7 @@ void DispatcherTableFactory::UpdateStat(size_t lev, const Stat& st) {
     assert(m_stats[i].size() == m_level_writers.size() + 1);
     assert(lev <= m_level_writers.size());
     auto& ts = m_stats[i][lev];
-    if (JsonPluginRepo::DebugLevel() >= 5) {
+    if (SidePluginRepo::DebugLevel() >= 5) {
       fprintf(stderr, "DBUG: tp-ts.time = %zd, g_durations[i] = %zd, (tp - ts.time > g_durations[i]) = %d\n",
               (size_t)duration_cast<seconds>(tp - ts.time).count(),
               (size_t)duration_cast<seconds>(g_durations[i]).count(),
@@ -859,13 +859,13 @@ void DispatcherTableFactory::UpdateStat(size_t lev, const Stat& st) {
 }
 
 static std::shared_ptr<TableFactory>
-NewDispatcherTableFactoryJson(const json& js, const JsonPluginRepo& repo) {
+NewDispatcherTableFactoryJson(const json& js, const SidePluginRepo& repo) {
   return std::make_shared<DispatcherTableFactory>(js, repo);
 }
 
 struct DispatcherTableFactory_Manip : PluginManipFunc<TableFactory> {
   void Update(TableFactory* p, const json& js,
-              const JsonPluginRepo& repo) const final {
+              const SidePluginRepo& repo) const final {
     if (auto t = dynamic_cast<DispatcherTableFactory*>(p)) {
       t->UpdateOptions(js, repo);
       return;
@@ -874,7 +874,7 @@ struct DispatcherTableFactory_Manip : PluginManipFunc<TableFactory> {
     THROW_InvalidArgument("Is not DispatcherTable, but is: " + name);
   }
   std::string ToString(const TableFactory& fac, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     if (auto t = dynamic_cast<const DispatcherTableFactory*>(&fac)) {
       return t->ToJsonStr(dump_options, repo);
     }

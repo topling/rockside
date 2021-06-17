@@ -39,7 +39,7 @@ struct CFPropertiesWebView {
   DB* db;
   ColumnFamilyHandle* cfh;
 };
-struct JsonPluginRepo::Impl {
+struct SidePluginRepo::Impl {
   Impl(const Impl&) = delete;
   Impl& operator=(const Impl&) = delete;
   Impl();
@@ -106,16 +106,16 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   Status DropColumnFamily(ColumnFamilyHandle*) override;
   void AddOneCF_ToMap(const std::string& cfname, ColumnFamilyHandle*, const json&);
   void InitAddCF_ToMap(const json& js_cf_desc);
-  JsonPluginRepo::Impl::ObjMap<ColumnFamilyHandle*> m_cfhs;
-  JsonPluginRepo m_repo;
+  SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*> m_cfhs;
+  SidePluginRepo m_repo;
   std::function<ColumnFamilyHandle*
     (DB*, const std::string& cfname, const ColumnFamilyOptions&, const json& extra_args)
    > m_create_cf;
 };
 template<class Ptr>
-Ptr ObtainOPT(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
+Ptr ObtainOPT(SidePluginRepo::Impl::ObjMap<Ptr>& field,
               const char* option_class, // "DBOptions" or "CFOptions"
-              const json& option_js, const JsonPluginRepo& repo);
+              const json& option_js, const SidePluginRepo& repo);
 
 ///@note on principle, the factory itself is stateless, but its product
 /// can has states, sometimes we need factory of factory, in this case,
@@ -129,28 +129,28 @@ public:
   // in some contexts Acquire means 'CreateNew'
   // in some contexts Acquire means 'GetExisting'
   static Ptr AcquirePlugin(const std::string& clazz, const json&,
-                           const JsonPluginRepo&);
+                           const SidePluginRepo&);
 
   // json is string class_name or
   // object{ class: "class_name", params: {...} }
   // throw if not found
-  static Ptr AcquirePlugin(const json&, const JsonPluginRepo&);
+  static Ptr AcquirePlugin(const json&, const SidePluginRepo&);
 
   // not throw if plugin does not exist
   static Ptr NullablePlugin(const std::string& clazz,
                             const json& = json(),
-                            const JsonPluginRepo& = JsonPluginRepo());
+                            const SidePluginRepo& = SidePluginRepo());
 
   static Ptr ObtainPlugin(const char* varname, const char* func_name,
-                          const json&, const JsonPluginRepo&);
+                          const json&, const SidePluginRepo&);
 
   static Ptr GetPlugin(const char* varname, const char* func_name,
-                       const json&, const JsonPluginRepo&);
+                       const json&, const SidePluginRepo&);
 
   static bool HasPlugin(const std::string& class_name);
   static bool SamePlugin(const std::string& clazz1, const std::string& clazz2);
 
-  typedef Ptr (*AcqFunc)(const json&,const JsonPluginRepo&);
+  typedef Ptr (*AcqFunc)(const json&,const SidePluginRepo&);
   struct Meta {
     AcqFunc acq;
     std::string base_class; // chain to base
@@ -173,13 +173,13 @@ using PluginFactorySP = PluginFactory<std::shared_ptr<Object> >;
 template<class Object>
 struct PluginManipFunc {
   virtual ~PluginManipFunc() {}
-  virtual void Update(Object*, const json&, const JsonPluginRepo&) const = 0;
-  virtual std::string ToString(const Object&, const json&, const JsonPluginRepo&) const = 0;
+  virtual void Update(Object*, const json&, const SidePluginRepo&) const = 0;
+  virtual std::string ToString(const Object&, const json&, const SidePluginRepo&) const = 0;
   using InterfaceType = PluginManipFunc;
 };
 template<class ManipClass>
 static const typename ManipClass::InterfaceType*
-PluginManipSingleton(const json&, const JsonPluginRepo&) {
+PluginManipSingleton(const json&, const SidePluginRepo&) {
   static const ManipClass manip;
   return &manip;
 }
@@ -191,8 +191,8 @@ PluginManipSingleton(const json&, const JsonPluginRepo&) {
 template<class Object>
 using PluginManip = PluginFactory<const PluginManipFunc<Object>*>;
 template<class Ptr>
-void PluginUpdate(const Ptr& p, const JsonPluginRepo::Impl::ObjMap<Ptr>& map,
-                  const json& js, const JsonPluginRepo& repo) {
+void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
+                  const json& js, const SidePluginRepo& repo) {
   using Object = RemovePtr<Ptr>;
   auto iter = map.p2name.find(GetRawPtr(p));
   if (map.p2name.end() != iter) {
@@ -202,8 +202,8 @@ void PluginUpdate(const Ptr& p, const JsonPluginRepo::Impl::ObjMap<Ptr>& map,
 }
 template<class Ptr>
 std::string
-PluginToString(const Ptr& p, const JsonPluginRepo::Impl::ObjMap<Ptr>& map,
-               const json& js, const JsonPluginRepo& repo) {
+PluginToString(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
+               const json& js, const SidePluginRepo& repo) {
   using Object = RemovePtr<Ptr>;
   auto iter = map.p2name.find(GetRawPtr(p));
   if (map.p2name.end() != iter) {
@@ -213,8 +213,8 @@ PluginToString(const Ptr& p, const JsonPluginRepo::Impl::ObjMap<Ptr>& map,
   THROW_NotFound("Ptr not found");
 }
 std::string
-PluginToString(const DB_Ptr&, const JsonPluginRepo::Impl::ObjMap<DB_Ptr>& map,
-               const json& js, const JsonPluginRepo& repo);
+PluginToString(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
+               const json& js, const SidePluginRepo& repo);
 
 // use SerDeFunc as plugin, register SerDeFunc as plugin
 template<class Object>
@@ -226,7 +226,7 @@ struct SerDeFunc {
 };
 template<class SerDeClass>
 static std::shared_ptr<typename SerDeClass::InterfaceType>
-PluginSerDeSingleton(const json&, const JsonPluginRepo&) {
+PluginSerDeSingleton(const json&, const SidePluginRepo&) {
   static auto singleton = std::make_shared<SerDeClass>();
   return singleton;
 }
@@ -242,7 +242,7 @@ using SerDeFactory = PluginFactory<std::shared_ptr<SerDeFunc<Object> > >;
 template<class Object>
 void SerDe_SerializeReq(FILE* fp, const std::string& clazz, const Object* obj,
                         const json& js = json{},
-                        const JsonPluginRepo& repo = *(JsonPluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
   assert(nullptr != obj);
   auto serde = SerDeFactory<Object>::AcquirePlugin(clazz, js, repo);
   serde->Serialize(fp, *obj);
@@ -251,7 +251,7 @@ template<class Object>
 void SerDe_SerializeReq(FILE* fp, const std::string& clazz,
                         const std::shared_ptr<Object>& obj,
                         const json& js = json{},
-                        const JsonPluginRepo& repo = *(JsonPluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
   return SerDe_SerializeReq(fp, clazz, obj.get(), js, repo);
 }
 
@@ -261,7 +261,7 @@ void SerDe_SerializeReq(FILE* fp, const std::string& clazz,
 template<class Object>
 void SerDe_SerializeOpt(FILE* fp, const std::string& clazz, const Object* obj,
                         const json& js = json{},
-                        const JsonPluginRepo& repo = *(JsonPluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
   auto serde = SerDeFactory<Object>::NullablePlugin(clazz, js, repo);
   if (serde) {
     assert(nullptr != obj);
@@ -272,14 +272,14 @@ template<class Object>
 void SerDe_SerializeOpt(FILE* fp, const std::string& clazz,
                         const std::shared_ptr<Object>& obj,
                         const json& js = json{},
-                        const JsonPluginRepo& repo = *(JsonPluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
   return SerDe_SerializeOpt(fp, clazz, obj.get(), js, repo);
 }
 
 template<class Object>
 void SerDe_DeSerialize(FILE* fp, const std::string& clazz, Object* obj,
                        const json& js = json{},
-                       const JsonPluginRepo& repo = *(JsonPluginRepo*)nullptr) {
+                       const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
   auto serde = SerDeFactory<Object>::NullablePlugin(clazz, js, repo);
   if (serde) {
     assert(nullptr != obj);
@@ -290,13 +290,13 @@ template<class Object>
 void SerDe_DeSerialize(FILE* fp, const std::string& clazz,
                        const std::shared_ptr<Object>& obj,
                        const json& js = json{},
-                       const JsonPluginRepo& repo = *(JsonPluginRepo*)nullptr) {
+                       const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
   SerDe_DeSerialize(fp, clazz, obj.get(), js, repo);
 }
 template<class Ptr>
 void SerDe_DeSerialize(FILE* fp, const Ptr& p,
                        const json& js = json{},
-                       const JsonPluginRepo& repo = *(JsonPluginRepo*)nullptr) {
+                       const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
   if (p)
     SerDe_DeSerialize(fp, p->Name(), p, js, repo);
 }
@@ -310,9 +310,9 @@ template<class Object, class Extra>
 using ExtraBinder = PluginFactory<const ExtraBinderFunc<Object, Extra>*>;
 
 struct AnyPluginManip : public PluginManipFunc<AnyPlugin> {
-  void Update(AnyPlugin*, const json&, const JsonPluginRepo&) const final;
+  void Update(AnyPlugin*, const json&, const SidePluginRepo&) const final;
   std::string ToString(const AnyPlugin&, const json& dump_options,
-                       const JsonPluginRepo&) const final;
+                       const SidePluginRepo&) const final;
 };
 #define ROCKSDB_REG_AnyPluginManip(ClassName) \
   PluginFactory<const PluginManipFunc<AnyPlugin>*>::Reg \
@@ -323,13 +323,13 @@ struct AnyPluginManip : public PluginManipFunc<AnyPlugin> {
 /// EasyProxyManip is a proxy which forward Update() & ToString() to Concrete
 template<class Concrete, class Interface>
 struct EasyProxyManip : public PluginManipFunc<Interface> {
-  void Update(Interface* x, const json& j, const JsonPluginRepo& r)
+  void Update(Interface* x, const json& j, const SidePluginRepo& r)
   const final {
     assert(dynamic_cast<Concrete*>(x) != nullptr);
     return static_cast<Concrete*>(x)->Update(j, r);
   }
   std::string ToString(const Interface& x, const json& dump_options,
-                       const JsonPluginRepo& r) const final {
+                       const SidePluginRepo& r) const final {
     assert(dynamic_cast<const Concrete*>(&x) != nullptr);
     return static_cast<const Concrete&>(x).ToString(dump_options, r);
   }
@@ -357,7 +357,7 @@ PluginFactory<Ptr>::Reg::Reg(Slice class_name, AcqFunc acq, Slice base_class) no
   Meta meta{acq, std::string(base_class.data(), base_class.size())};
   auto ib = imp.func_map.insert(std::make_pair(class_name.ToString(), std::move(meta)));
   ROCKSDB_VERIFY_F(ib.second, "duplicate class_name = %s", class_name.data());
-  if (JsonPluginRepo::DebugLevel() >= 1) {
+  if (SidePluginRepo::DebugLevel() >= 1) {
     fprintf(stderr, "INFO: %s: class = %s\n", ROCKSDB_FUNC, class_name.data());
   }
   this->ipos = ib.first;
@@ -372,7 +372,7 @@ PluginFactory<Ptr>::Reg::~Reg() {
 template<class Ptr>
 Ptr
 PluginFactory<Ptr>::AcquirePlugin(const std::string& clazz, const json& js,
-                                  const JsonPluginRepo& repo) {
+                                  const SidePluginRepo& repo) {
   auto& imp = Reg::Impl::s_singleton();
   auto iter = imp.func_map.find(clazz);
   if (imp.func_map.end() != iter) {
@@ -389,7 +389,7 @@ PluginFactory<Ptr>::AcquirePlugin(const std::string& clazz, const json& js,
 template<class Ptr>
 Ptr
 PluginFactory<Ptr>::NullablePlugin(const std::string& clazz, const json& js,
-                                   const JsonPluginRepo& repo) {
+                                   const SidePluginRepo& repo) {
   auto& imp = Reg::Impl::s_singleton();
   auto iter = imp.func_map.find(clazz);
   if (imp.func_map.end() != iter) {
@@ -406,7 +406,7 @@ template<class Ptr>
 Ptr
 PluginFactory<Ptr>::
 GetPlugin(const char* varname, const char* func_name,
-          const json& js, const JsonPluginRepo& repo) {
+          const json& js, const SidePluginRepo& repo) {
   if (js.is_string()) {
     const auto& str_val = js.get_ref<const std::string&>();
     if (str_val.empty()) {
@@ -452,7 +452,7 @@ template<class Ptr>
 Ptr
 PluginFactory<Ptr>::
 ObtainPlugin(const char* varname, const char* func_name,
-             const json& js, const JsonPluginRepo& repo) {
+             const json& js, const SidePluginRepo& repo) {
   if (js.is_string()) {
     const auto& str_val = js.get_ref<const std::string&>();
     if (str_val.empty()) {
@@ -506,7 +506,7 @@ ObtainPlugin(const char* varname, const char* func_name,
 template<class Ptr>
 Ptr
 PluginFactory<Ptr>::
-AcquirePlugin(const json& js, const JsonPluginRepo& repo) {
+AcquirePlugin(const json& js, const SidePluginRepo& repo) {
   if (js.is_string()) {
     const auto& str_val = js.get_ref<const std::string&>();
     if (str_val.empty()) {
@@ -561,7 +561,7 @@ bool PluginFactory<Ptr>::SamePlugin(const std::string& clazz1,
 }
 
 const json& jsonRefType();
-const JsonPluginRepo& repoRefType();
+const SidePluginRepo& repoRefType();
 
 ///@param Name     string of factory class_name
 ///@param Acquire  must return base class ptr
@@ -571,12 +571,12 @@ const JsonPluginRepo& repoRefType();
 
 template<class ConcretClass, class Interface>
 std::shared_ptr<Interface>
-JS_NewDefaultConsObject(const json& js, const JsonPluginRepo&) {
+JS_NewDefaultConsObject(const json& js, const SidePluginRepo&) {
   return std::make_shared<ConcretClass>();
 }
 template<class ConcretClass, class Interface>
 std::shared_ptr<Interface>
-JS_NewJsonRepoConsObject(const json& js, const JsonPluginRepo& repo) {
+JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
   return std::make_shared<ConcretClass>(js, repo);
 }
 #define ROCKSDB_REG_DEFAULT_CONS_3(Name, ConcretClass, Interface) \

@@ -17,7 +17,7 @@ struct RegTableFactoryMagicNumber {
 #define ROCKSDB_RegTableFactoryMagicNumber(magic,name) \
   RegTableFactoryMagicNumber g_AutoRegTF_##magic(magic, name)
 
-void DispatcherTableBackPatch(TableFactory* f, const JsonPluginRepo& repo);
+void DispatcherTableBackPatch(TableFactory* f, const SidePluginRepo& repo);
 
 } // ROCKSDB_NAMESPACE
 

@@ -87,19 +87,19 @@ void mg_print_cur_time(mg_connection *conn) {
 template<class Ptr>
 class RepoHandler : public CivetHandler {
 public:
-  JsonPluginRepo* m_repo;
-  JsonPluginRepo::Impl::ObjMap<Ptr>* m_map;
+  SidePluginRepo* m_repo;
+  SidePluginRepo::Impl::ObjMap<Ptr>* m_map;
   Slice m_ns;
   //std::string m_clazz;
 
   RepoHandler(const char* clazz,
-              JsonPluginRepo* repo,
-              JsonPluginRepo::Impl::ObjMap<Ptr>* map) {
+              SidePluginRepo* repo,
+              SidePluginRepo::Impl::ObjMap<Ptr>* map) {
     m_repo = repo;
     //m_clazz = clazz;
     m_ns = clazz;
     m_map = map;
-    if (JsonPluginRepo::DebugLevel() >= 2) {
+    if (SidePluginRepo::DebugLevel() >= 2) {
       fprintf(stderr, "INFO: http: clazz: %s\n", clazz);
     }
   }
@@ -111,7 +111,7 @@ public:
 
     const mg_request_info* req = mg_get_request_info(conn);
     json query = from_query_string(req->query_string);
-//    if (JsonPluginRepo::DebugLevel() >= 2) {
+//    if (SidePluginRepo::DebugLevel() >= 2) {
 //      fprintf(stderr, "INFO: query = %s\n", query.dump().c_str());
 //    }
     const char* uri = req->local_uri;
@@ -195,8 +195,8 @@ public:
 
 template<class Ptr>
 RepoHandler<Ptr>*
-NewRepoHandler(const char* clazz, JsonPluginRepo* repo,
-               JsonPluginRepo::Impl::ObjMap<Ptr>* map) {
+NewRepoHandler(const char* clazz, SidePluginRepo* repo,
+               SidePluginRepo::Impl::ObjMap<Ptr>* map) {
   return new RepoHandler<Ptr>(clazz, repo, map);
 }
 
@@ -212,7 +212,7 @@ public:
   std::unique_ptr<CivetServer> m_server;
   std::vector<std::function<void()> > m_clean;
 
-  Impl(const json& conf, JsonPluginRepo* repo);
+  Impl(const json& conf, SidePluginRepo* repo);
   ~Impl() {
     for (auto& clean: m_clean) {
       clean();
@@ -220,7 +220,7 @@ public:
   }
 };
 
-JsonCivetServer::Impl::Impl(const json& conf, JsonPluginRepo* repo) {
+JsonCivetServer::Impl::Impl(const json& conf, SidePluginRepo* repo) {
   mg_init_library(0);
   if (!conf.is_object()) {
     THROW_InvalidArgument(
@@ -237,7 +237,7 @@ JsonCivetServer::Impl::Impl(const json& conf, JsonPluginRepo* repo) {
     options.push_back(std::move(key));
     options.push_back(value.get_ref<const std::string&>());
   }
-  if (JsonPluginRepo::DebugLevel() >= 2) {
+  if (SidePluginRepo::DebugLevel() >= 2) {
     for (const auto& val : options) {
       fprintf(stderr, "INFO: JsonCivetServer::Impl::Impl(): len=%02zd: %s\n", val.size(), val.c_str());
     }
@@ -280,7 +280,7 @@ JsonCivetServer::Impl::Impl(const json& conf, JsonPluginRepo* repo) {
   ADD_HANDLER(DataBase, db);
 }
 
-void JsonCivetServer::Init(const json& conf, JsonPluginRepo* repo) {
+void JsonCivetServer::Init(const json& conf, SidePluginRepo* repo) {
   if (!m_impl)
     m_impl = new Impl(conf, repo);
 }

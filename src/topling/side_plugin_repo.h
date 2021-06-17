@@ -62,14 +62,14 @@ struct DB_MultiCF {
   std::vector<ColumnFamilyHandle*> cf_handles;
 };
 
-class JsonPluginRepo;
+class SidePluginRepo;
 struct AnyPlugin {
   AnyPlugin(const AnyPlugin&) = delete;
   AnyPlugin& operator=(const AnyPlugin&) = delete;
   AnyPlugin() {}
   virtual ~AnyPlugin();
-  virtual void Update(const json&, const JsonPluginRepo&) = 0;
-  virtual std::string ToString(const json&, const JsonPluginRepo&) const = 0;
+  virtual void Update(const json&, const SidePluginRepo&) = 0;
+  virtual std::string ToString(const json&, const SidePluginRepo&) const = 0;
 };
 struct UserKeyCoder : public AnyPlugin {
   virtual void Encode(Slice, std::string*) const = 0;
@@ -78,14 +78,14 @@ struct UserKeyCoder : public AnyPlugin {
   std::string Decode(Slice y) const { std::string x; Decode(y, &x); return x; }
 };
 
-class JsonPluginRepo {
+class SidePluginRepo {
  public:
-  JsonPluginRepo() noexcept;
-  ~JsonPluginRepo();
-  JsonPluginRepo(const JsonPluginRepo&) noexcept;
-  JsonPluginRepo(JsonPluginRepo&&) noexcept;
-  JsonPluginRepo& operator=(const JsonPluginRepo&) noexcept;
-  JsonPluginRepo& operator=(JsonPluginRepo&&) noexcept;
+  SidePluginRepo() noexcept;
+  ~SidePluginRepo();
+  SidePluginRepo(const SidePluginRepo&) noexcept;
+  SidePluginRepo(SidePluginRepo&&) noexcept;
+  SidePluginRepo& operator=(const SidePluginRepo&) noexcept;
+  SidePluginRepo& operator=(SidePluginRepo&&) noexcept;
 
   Status ImportJsonFile(const Slice& fname);
   Status Import(const std::string& json_str);
@@ -121,7 +121,7 @@ class JsonPluginRepo {
   void Put(const std::string& name, const std::shared_ptr<DBOptions>&);
   void Put(const std::string& name, const std::shared_ptr<ColumnFamilyOptions>&);
 
-  // The caller should ensure DB handle's life time is longer than JsonPluginRepo
+  // The caller should ensure DB handle's life time is longer than SidePluginRepo
   void Put(const std::string& name, DB*);
   void Put(const std::string& name, DB_MultiCF*);
 
@@ -187,10 +187,10 @@ class JsonPluginRepo {
   bool Get(const std::string& name, std::shared_ptr<TransactionDBMutexFactory>*) const;
 
   class Auto {
-    friend class JsonPluginRepo;
-    const JsonPluginRepo& m_repo;
+    friend class SidePluginRepo;
+    const SidePluginRepo& m_repo;
     const std::string&    m_name;
-    Auto(const JsonPluginRepo& repo, const std::string& name)
+    Auto(const SidePluginRepo& repo, const std::string& name)
         : m_repo(repo), m_name(name) {}
     Auto(const Auto&) = default;
     Auto(Auto&&) = default;

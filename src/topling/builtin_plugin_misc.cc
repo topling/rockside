@@ -48,7 +48,7 @@ using std::vector;
 using std::string;
 
 static std::shared_ptr<FileSystem>
-DefaultFileSystemForJson(const json&, const JsonPluginRepo&) {
+DefaultFileSystemForJson(const json&, const SidePluginRepo&) {
   return FileSystem::Default();
 }
 ROCKSDB_FACTORY_REG("posix", DefaultFileSystemForJson);
@@ -114,7 +114,7 @@ static void Json_DbPathVec(const json& js, std::vector<DbPath>& db_paths) {
   }
 }
 
-static Status Json_EventListenerVec(const json& js, const JsonPluginRepo& repo,
+static Status Json_EventListenerVec(const json& js, const SidePluginRepo& repo,
                                     std::vector<shared_ptr<EventListener>>& listeners) {
   listeners.clear();
   if (js.is_string()) {
@@ -133,11 +133,11 @@ static Status Json_EventListenerVec(const json& js, const JsonPluginRepo& repo,
 }
 
 struct DBOptions_Json : DBOptions {
-  DBOptions_Json(const json& js, const JsonPluginRepo& repo) {
+  DBOptions_Json(const json& js, const SidePluginRepo& repo) {
     write_dbid_to_manifest = true;
     Update(js, repo);
   }
-  void Update(const json& js, const JsonPluginRepo& repo) {
+  void Update(const json& js, const SidePluginRepo& repo) {
     this->plugin_repo = &repo;
     ROCKSDB_JSON_OPT_PROP(js, create_if_missing);
     ROCKSDB_JSON_OPT_PROP(js, create_missing_column_families);
@@ -251,7 +251,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, db_host_id);
   }
 
-  void SaveToJson(json& js, const JsonPluginRepo& repo, bool html) const {
+  void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
     ROCKSDB_JSON_SET_PROP(js, paranoid_checks);
     ROCKSDB_JSON_SET_FACT(js, env);
     ROCKSDB_JSON_SET_FACT(js, rate_limiter);
@@ -357,12 +357,12 @@ struct DBOptions_Json : DBOptions {
   }
 };
 static shared_ptr<DBOptions>
-NewDBOptionsJS(const json& js, const JsonPluginRepo& repo) {
+NewDBOptionsJS(const json& js, const SidePluginRepo& repo) {
   return std::make_shared<DBOptions_Json>(js, repo);
 }
 ROCKSDB_FACTORY_REG("DBOptions", NewDBOptionsJS);
 struct DBOptions_Manip : PluginManipFunc<DBOptions> {
-  void Update(DBOptions* p, const json& js, const JsonPluginRepo& repo)
+  void Update(DBOptions* p, const json& js, const SidePluginRepo& repo)
   const final {
     auto iter = js.find("objname");
     if (js.end() == iter) {
@@ -374,7 +374,7 @@ struct DBOptions_Manip : PluginManipFunc<DBOptions> {
     static_cast<DBOptions_Json*>(p)->Update(js, repo);
   }
   std::string ToString(const DBOptions& x, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     json djs;
     bool html = JsonSmartBool(dump_options, "html");
     static_cast<const DBOptions_Json&>(x).SaveToJson(djs, repo, html);
@@ -458,10 +458,10 @@ struct CompressionOptions_Json : CompressionOptions {
 CompressionOptions_Json NestForBase(const CompressionOptions&);
 
 struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
-  ColumnFamilyOptions_Json(const json& js, const JsonPluginRepo& repo) {
+  ColumnFamilyOptions_Json(const json& js, const SidePluginRepo& repo) {
     Update(js, repo);
   }
-  void Update(const json& js, const JsonPluginRepo& repo) {
+  void Update(const json& js, const SidePluginRepo& repo) {
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number);
     ROCKSDB_JSON_OPT_PROP(js, min_write_buffer_number_to_merge);
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number_to_maintain);
@@ -569,7 +569,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_FACT(js, compaction_executor_factory);
   }
 
-  void SaveToJson(json& js, const JsonPluginRepo& repo, bool html) const {
+  void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
     ROCKSDB_JSON_SET_PROP(js, max_write_buffer_number);
     ROCKSDB_JSON_SET_PROP(js, min_write_buffer_number_to_merge);
     ROCKSDB_JSON_SET_PROP(js, max_write_buffer_number_to_maintain);
@@ -655,18 +655,18 @@ using CFOptions = ColumnFamilyOptions;
 using CFOptions_Json = ColumnFamilyOptions_Json;
 
 static shared_ptr<ColumnFamilyOptions>
-NewCFOptionsJS(const json& js, const JsonPluginRepo& repo) {
+NewCFOptionsJS(const json& js, const SidePluginRepo& repo) {
   return std::make_shared<ColumnFamilyOptions_Json>(js, repo);
 }
 ROCKSDB_FACTORY_REG("ColumnFamilyOptions", NewCFOptionsJS);
 ROCKSDB_FACTORY_REG("CFOptions", NewCFOptionsJS);
 struct CFOptions_Manip : PluginManipFunc<ColumnFamilyOptions> {
   void Update(ColumnFamilyOptions* p, const json& js,
-              const JsonPluginRepo& repo) const final {
+              const SidePluginRepo& repo) const final {
     static_cast<ColumnFamilyOptions_Json*>(p)->Update(js, repo); // NOLINT
   }
   std::string ToString(const ColumnFamilyOptions& x, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     json djs;
     bool html = JsonSmartBool(dump_options, "html");
     // NOLINTNEXTLINE
@@ -680,7 +680,7 @@ ROCKSDB_REG_PluginManip("CFOptions", CFOptions_Manip);
 //////////////////////////////////////////////////////////////////////////////
 
 static shared_ptr<TablePropertiesCollectorFactory>
-JS_NewCompactOnDeletionCollectorFactory(const json& js, const JsonPluginRepo&) {
+JS_NewCompactOnDeletionCollectorFactory(const json& js, const SidePluginRepo&) {
   size_t sliding_window_size = 0;
   size_t deletion_trigger = 0;
   double deletion_ratio = 0;
@@ -696,7 +696,7 @@ ROCKSDB_FACTORY_REG("CompactOnDeletionCollector",
 //////////////////////////////////////////////////////////////////////////////
 
 static shared_ptr<RateLimiter>
-JS_NewGenericRateLimiter(const json& js, const JsonPluginRepo& repo) {
+JS_NewGenericRateLimiter(const json& js, const SidePluginRepo& repo) {
   int64_t rate_bytes_per_sec = 0;
   int64_t refill_period_us = 100 * 1000;
   int32_t fairness = 10;
@@ -733,7 +733,7 @@ ROCKSDB_FACTORY_REG("GenericRateLimiter", JS_NewGenericRateLimiter);
 //////////////////////////////////////////////////////////////////////////////
 
 static shared_ptr<Statistics>
-JS_NewStatistics(const json&, const JsonPluginRepo&) {
+JS_NewStatistics(const json&, const SidePluginRepo&) {
   return CreateDBStatistics();
 }
 ROCKSDB_FACTORY_REG("default", JS_NewStatistics);
@@ -742,12 +742,12 @@ ROCKSDB_FACTORY_REG("Statistics", JS_NewStatistics);
 
 //////////////////////////////////////////////////////////////////////////////
 struct JemallocAllocatorOptions_Json : JemallocAllocatorOptions {
-  JemallocAllocatorOptions_Json(const json& js, const JsonPluginRepo&) {
+  JemallocAllocatorOptions_Json(const json& js, const SidePluginRepo&) {
     ROCKSDB_JSON_OPT_PROP(js, limit_tcache_size);
     ROCKSDB_JSON_OPT_SIZE(js, tcache_size_lower_bound);
     ROCKSDB_JSON_OPT_SIZE(js, tcache_size_upper_bound);
   }
-  json ToJson(const JsonPluginRepo&) {
+  json ToJson(const SidePluginRepo&) {
     json js;
     ROCKSDB_JSON_SET_PROP(js, limit_tcache_size);
     ROCKSDB_JSON_SET_SIZE(js, tcache_size_lower_bound);
@@ -756,7 +756,7 @@ struct JemallocAllocatorOptions_Json : JemallocAllocatorOptions {
   }
 };
 std::shared_ptr<MemoryAllocator>
-JS_NewJemallocNodumpAllocator(const json& js, const JsonPluginRepo& repo) {
+JS_NewJemallocNodumpAllocator(const json& js, const SidePluginRepo& repo) {
   JemallocAllocatorOptions_Json opt(js, repo);
   std::shared_ptr<MemoryAllocator> p;
   Status s = NewJemallocNodumpAllocator(opt, &p);
@@ -771,7 +771,7 @@ ROCKSDB_REG_DEFAULT_CONS(MemkindKmemAllocator, MemoryAllocator);
 #endif
 
 struct LRUCacheOptions_Json : LRUCacheOptions {
-  LRUCacheOptions_Json(const json& js, const JsonPluginRepo& repo) {
+  LRUCacheOptions_Json(const json& js, const SidePluginRepo& repo) {
     ROCKSDB_JSON_REQ_SIZE(js, capacity);
     ROCKSDB_JSON_OPT_PROP(js, num_shard_bits);
     ROCKSDB_JSON_OPT_PROP(js, strict_capacity_limit);
@@ -780,7 +780,7 @@ struct LRUCacheOptions_Json : LRUCacheOptions {
     ROCKSDB_JSON_OPT_PROP(js, use_adaptive_mutex);
     ROCKSDB_JSON_OPT_ENUM(js, metadata_charge_policy);
   }
-  json ToJson(const JsonPluginRepo& repo, bool html) const {
+  json ToJson(const SidePluginRepo& repo, bool html) const {
     json js;
     ROCKSDB_JSON_SET_SIZE(js, capacity);
     ROCKSDB_JSON_SET_PROP(js, num_shard_bits);
@@ -793,18 +793,18 @@ struct LRUCacheOptions_Json : LRUCacheOptions {
   }
 };
 static std::shared_ptr<Cache>
-JS_NewLRUCache(const json& js, const JsonPluginRepo& repo) {
+JS_NewLRUCache(const json& js, const SidePluginRepo& repo) {
   return NewLRUCache(LRUCacheOptions_Json(js, repo));
 }
 ROCKSDB_FACTORY_REG("LRUCache", JS_NewLRUCache);
 
 struct LRUCache_Manip : PluginManipFunc<Cache> {
-  void Update(Cache* p, const json& js, const JsonPluginRepo& repo)
+  void Update(Cache* p, const json& js, const SidePluginRepo& repo)
   const override {
 
   }
 
-  string ToString(const Cache& r, const json& dump_options, const JsonPluginRepo& repo)
+  string ToString(const Cache& r, const json& dump_options, const SidePluginRepo& repo)
   const override {
     bool html = JsonSmartBool(dump_options, "html");
     auto& p2name = repo.m_impl->cache.p2name;
@@ -839,7 +839,7 @@ ROCKSDB_REG_PluginManip("LRUCache", LRUCache_Manip);
 
 //////////////////////////////////////////////////////////////////////////////
 static std::shared_ptr<Cache>
-JS_NewClockCache(const json& js, const JsonPluginRepo& repo) {
+JS_NewClockCache(const json& js, const SidePluginRepo& repo) {
 #ifdef SUPPORT_CLOCK_CACHE
   LRUCacheOptions_Json opt(js, repo); // similar with ClockCache param
   auto p = NewClockCache(opt.capacity, opt.num_shard_bits,
@@ -861,7 +861,7 @@ ROCKSDB_FACTORY_REG("ClockCache", JS_NewClockCache);
 
 //////////////////////////////////////////////////////////////////////////////
 static std::shared_ptr<const SliceTransform>
-JS_NewFixedPrefixTransform(const json& js, const JsonPluginRepo&) {
+JS_NewFixedPrefixTransform(const json& js, const SidePluginRepo&) {
   size_t prefix_len = 0;
   ROCKSDB_JSON_REQ_PROP(js, prefix_len);
   return std::shared_ptr<const SliceTransform>(
@@ -871,7 +871,7 @@ ROCKSDB_FACTORY_REG("FixedPrefixTransform", JS_NewFixedPrefixTransform);
 
 //////////////////////////////////////////////////////////////////////////////
 static std::shared_ptr<const SliceTransform>
-JS_NewCappedPrefixTransform(const json& js, const JsonPluginRepo&) {
+JS_NewCappedPrefixTransform(const json& js, const SidePluginRepo&) {
   size_t cap_len = 0;
   ROCKSDB_JSON_REQ_PROP(js, cap_len);
   return std::shared_ptr<const SliceTransform>(
@@ -881,11 +881,11 @@ ROCKSDB_FACTORY_REG("CappedPrefixTransform", JS_NewCappedPrefixTransform);
 
 //////////////////////////////////////////////////////////////////////////////
 static const Comparator*
-BytewiseComp(const json&, const JsonPluginRepo&) {
+BytewiseComp(const json&, const SidePluginRepo&) {
   return BytewiseComparator();
 }
 static const Comparator*
-RevBytewiseComp(const json&, const JsonPluginRepo&) {
+RevBytewiseComp(const json&, const SidePluginRepo&) {
   return ReverseBytewiseComparator();
 }
 ROCKSDB_FACTORY_REG(                   "default", BytewiseComp);
@@ -899,7 +899,7 @@ ROCKSDB_FACTORY_REG(        "ReverseBytewiseComparator", RevBytewiseComp);
 ROCKSDB_FACTORY_REG("leveldb.ReverseBytewiseComparator", RevBytewiseComp);
 
 //////////////////////////////////////////////////////////////////////////////
-static Env* DefaultEnv(const json&, const JsonPluginRepo&) {
+static Env* DefaultEnv(const json&, const SidePluginRepo&) {
   return Env::Default();
 }
 ROCKSDB_FACTORY_REG("default", DefaultEnv);
@@ -910,7 +910,7 @@ ROCKSDB_REG_DEFAULT_CONS(FlushBlockBySizePolicyFactory,FlushBlockPolicyFactory);
 /////////////////////////////////////////////////////////////////////////////
 static shared_ptr<FileChecksumGenFactory>
 GetFileChecksumGenCrc32cFactoryJson(const json&,
-                                    const JsonPluginRepo&) {
+                                    const SidePluginRepo&) {
   return GetFileChecksumGenCrc32cFactory();
 }
 ROCKSDB_FACTORY_REG("Crc32c", GetFileChecksumGenCrc32cFactoryJson);
@@ -918,7 +918,7 @@ ROCKSDB_FACTORY_REG("crc32c", GetFileChecksumGenCrc32cFactoryJson);
 
 /////////////////////////////////////////////////////////////////////////////
 static shared_ptr<MemTableRepFactory>
-NewSkipListMemTableRepFactoryJson(const json& js, const JsonPluginRepo&) {
+NewSkipListMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
   size_t lookahead = 0;
   ROCKSDB_JSON_OPT_PROP(js, lookahead);
   return std::make_shared<SkipListFactory>(lookahead);
@@ -928,7 +928,7 @@ ROCKSDB_FACTORY_REG("SkipList", NewSkipListMemTableRepFactoryJson);
 ROCKSDB_FACTORY_REG("skiplist", NewSkipListMemTableRepFactoryJson);
 
 static shared_ptr<MemTableRepFactory>
-NewVectorMemTableRepFactoryJson(const json& js, const JsonPluginRepo&) {
+NewVectorMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
   size_t count = 0;
   ROCKSDB_JSON_OPT_PROP(js, count);
   return std::make_shared<VectorRepFactory>(count);
@@ -938,7 +938,7 @@ ROCKSDB_FACTORY_REG("Vector", NewVectorMemTableRepFactoryJson);
 ROCKSDB_FACTORY_REG("vector", NewVectorMemTableRepFactoryJson);
 
 static shared_ptr<MemTableRepFactory>
-NewHashSkipListMemTableRepFactoryJson(const json& js, const JsonPluginRepo&) {
+NewHashSkipListMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
   size_t bucket_count = 1000000;
   int32_t height = 4;
   int32_t branching_factor = 4;
@@ -952,7 +952,7 @@ ROCKSDB_FACTORY_REG("HashSkipListRep", NewHashSkipListMemTableRepFactoryJson);
 ROCKSDB_FACTORY_REG("HashSkipList", NewHashSkipListMemTableRepFactoryJson);
 
 static shared_ptr<MemTableRepFactory>
-NewHashLinkListMemTableRepFactoryJson(const json& js, const JsonPluginRepo&) {
+NewHashLinkListMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
   size_t bucket_count = 50000;
   size_t huge_page_tlb_size = 0;
   int bucket_entries_logging_threshold = 4096;
@@ -979,7 +979,7 @@ ROCKSDB_FACTORY_REG("HashLinkList", NewHashLinkListMemTableRepFactoryJson);
 
 template<class Ptr>
 typename std::map<std::string, Ptr>::iterator
-IterPluginFind(JsonPluginRepo::Impl::ObjMap<Ptr>& field, const std::string& str) {
+IterPluginFind(SidePluginRepo::Impl::ObjMap<Ptr>& field, const std::string& str) {
   if ('$' != str[0]) {
     auto iter = field.name2p->find(str);
     if (field.name2p->end() == iter) {
@@ -1000,9 +1000,9 @@ IterPluginFind(JsonPluginRepo::Impl::ObjMap<Ptr>& field, const std::string& str)
 const char* db_options_class = "DBOptions";
 const char* cf_options_class = "CFOptions";
 template<class Ptr>
-Ptr ObtainOPT(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
+Ptr ObtainOPT(SidePluginRepo::Impl::ObjMap<Ptr>& field,
               const char* option_class, // "DBOptions" or "CFOptions"
-              const json& option_js, const JsonPluginRepo& repo) {
+              const json& option_js, const SidePluginRepo& repo) {
   auto& name2p = *field.name2p;
   if (option_js.is_string()) {
     const std::string& option_name = option_js.get_ref<const std::string&>();
@@ -1033,7 +1033,7 @@ Ptr ObtainOPT(JsonPluginRepo::Impl::ObjMap<Ptr>& field,
 #define ROCKSDB_OBTAIN_OPT(field, option_js, repo) \
    ObtainOPT(repo.m_impl->field, field##_class, option_js, repo)
 
-Options JS_Options(const json& js, const JsonPluginRepo& repo,
+Options JS_Options(const json& js, const SidePluginRepo& repo,
                    string* name, string* path) {
   if (!js.is_object()) {
     THROW_InvalidArgument( "param json must be an object");
@@ -1115,10 +1115,10 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
 
 struct Statistics_Manip : PluginManipFunc<Statistics> {
   void Update(Statistics* db, const json& js,
-              const JsonPluginRepo& repo) const final {
+              const SidePluginRepo& repo) const final {
   }
   std::string ToString(const Statistics& db, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     bool html = JsonSmartBool(dump_options, "html");
     bool nozero = JsonSmartBool(dump_options, "nozero");
     json djs;
@@ -1366,7 +1366,7 @@ static void Html_AppendInternalKey(std::string& html, Slice ikey,
   }
 }
 
-std::string Json_dbname(const DB* db, const JsonPluginRepo& repo) {
+std::string Json_dbname(const DB* db, const SidePluginRepo& repo) {
   auto iter = repo.m_impl->db.p2name.find(db);
   if (repo.m_impl->db.p2name.end() == iter) {
     THROW_NotFound("db.p2name.find(), db.path = " + db->GetName());
@@ -1377,7 +1377,7 @@ std::string Json_dbname(const DB* db, const JsonPluginRepo& repo) {
 std::string AggregateNames(const std::map<std::string, int>& map, const char* delim);
 static std::string
 Json_DB_CF_SST_HtmlTable(const DB& db, ColumnFamilyHandle* cfh,
-                         const JsonPluginRepo& repo) {
+                         const SidePluginRepo& repo) {
   std::string html;
 try {
   char buf[128];
@@ -1726,7 +1726,7 @@ catch (const std::exception& ex) {
 static void
 Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
                     bool html, const json& dump_options,
-                    const JsonPluginRepo& repo) {
+                    const SidePluginRepo& repo) {
   static const std::string* aStrProps[] = {
     //&DB::Properties::kNumFilesAtLevelPrefix,
     //&DB::Properties::kCompressionRatioAtLevelPrefix,
@@ -1858,16 +1858,16 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
   }
   TableReader* tr = tc->GetTableReaderFromHandle(ch);
   const auto& zip_algo = tr->GetTableProperties()->compression_name;
-  auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), JsonPluginRepo());
-  return manip->ToString(*tr, dump_options, JsonPluginRepo());
+  auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), SidePluginRepo());
+  return manip->ToString(*tr, dump_options, SidePluginRepo());
 }
 
 struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   void Update(CFPropertiesWebView* cfp, const json& js,
-              const JsonPluginRepo& repo) const final {
+              const SidePluginRepo& repo) const final {
   }
   std::string ToString(const CFPropertiesWebView& cfp, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     bool html = JsonSmartBool(dump_options, "html");
     json djs;
     int file_num = JsonSmartInt(dump_options, "file", -1);
@@ -1888,23 +1888,23 @@ ROCKSDB_REG_PluginManip("builtin", CFPropertiesWebView_Manip);
 static void SetCFPropertiesWebView(DB* db, ColumnFamilyHandle* cfh,
                                   const std::string& dbname,
                                   const std::string& cfname,
-                                  const JsonPluginRepo& crepo) {
-  auto& repo = const_cast<JsonPluginRepo&>(crepo);
+                                  const SidePluginRepo& crepo) {
+  auto& repo = const_cast<SidePluginRepo&>(crepo);
   std::string varname = dbname + "/" + cfname;
   auto view = std::make_shared<CFPropertiesWebView>(
                                CFPropertiesWebView{db, cfh});
   repo.m_impl->props.p2name.emplace(
-      view.get(), JsonPluginRepo::Impl::ObjInfo{varname, json("builtin")});
+      view.get(), SidePluginRepo::Impl::ObjInfo{varname, json("builtin")});
   repo.m_impl->props.name2p->emplace(varname, view);
 }
 static void SetCFPropertiesWebView(DB* db, const std::string& dbname,
-                                   const JsonPluginRepo& crepo) {
+                                   const SidePluginRepo& crepo) {
   auto cfh = db->DefaultColumnFamily();
   SetCFPropertiesWebView(db, cfh, dbname, "default", crepo);
 }
 static void SetCFPropertiesWebView(DB_MultiCF* mcf, const std::string& dbname,
                                    const std::vector<ColumnFamilyDescriptor>& cfdvec,
-                                   const JsonPluginRepo& crepo) {
+                                   const SidePluginRepo& crepo) {
   assert(mcf->cf_handles.size() == cfdvec.size());
   DB* db = mcf->db;
   for (size_t i = 0; i < mcf->cf_handles.size(); i++) {
@@ -1916,7 +1916,7 @@ static void SetCFPropertiesWebView(DB_MultiCF* mcf, const std::string& dbname,
 
 static void
 JS_Add_CFPropertiesWebView_Link(json& djs, const DB& db, bool html,
-                                const JsonPluginRepo& repo) {
+                                const SidePluginRepo& repo) {
   auto i1 = repo.m_impl->db.p2name.find(&db);
   ROCKSDB_VERIFY(repo.m_impl->db.p2name.end() != i1);
   const std::string& db_varname = i1->second.name;
@@ -1930,7 +1930,7 @@ static void
 JS_Add_CFPropertiesWebView_Link(json& djs, bool html,
                                 const std::string& dbname,
                                 const std::string& cfname,
-                                const JsonPluginRepo& repo) {
+                                const SidePluginRepo& repo) {
   auto iter = repo.m_impl->props.name2p->find(dbname + "/" + cfname);
   assert(repo.m_impl->props.name2p->end() != iter);
   ROCKSDB_VERIFY(repo.m_impl->props.name2p->end() != iter);
@@ -1975,10 +1975,10 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
 
 struct DB_Manip : PluginManipFunc<DB> {
   void Update(DB* db, const json& js,
-              const JsonPluginRepo& repo) const final {
+              const SidePluginRepo& repo) const final {
   }
   std::string ToString(const DB& db, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     Options opt = db.GetOptions();
     auto& dbo = static_cast<DBOptions_Json&>(static_cast<DBOptions&>(opt));
     auto& cfo = static_cast<CFOptions_Json&>(static_cast<CFOptions&>(opt));
@@ -2035,11 +2035,11 @@ static constexpr auto JS_DB_Manip = &PluginManipSingleton<DB_Manip>;
 
 struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
   void Update(DB_MultiCF* db, const json& js,
-              const JsonPluginRepo& repo) const final {
+              const SidePluginRepo& repo) const final {
     THROW_NotSupported("");
   }
   std::string ToString(const DB_MultiCF& db, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo& repo) const final {
     json djs;
     auto dbo = static_cast<DBOptions_Json&&>(db.db->GetDBOptions());
     const auto& dbmap = repo.m_impl->db;
@@ -2177,7 +2177,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
 static constexpr auto JS_DB_MultiCF_Manip = &PluginManipSingleton<DB_MultiCF_Manip>;
 
 static
-DB* JS_DB_Open(const json& js, const JsonPluginRepo& repo) {
+DB* JS_DB_Open(const json& js, const SidePluginRepo& repo) {
   std::string name, path;
   Options options(JS_Options(js, repo, &name, &path));
   bool read_only = false; // default false
@@ -2197,7 +2197,7 @@ ROCKSDB_FACTORY_REG("DB::Open", JS_DB_Open);
 ROCKSDB_FACTORY_REG("DB::Open", JS_DB_Manip);
 
 static
-DB* JS_DB_OpenForReadOnly(const json& js, const JsonPluginRepo& repo) {
+DB* JS_DB_OpenForReadOnly(const json& js, const SidePluginRepo& repo) {
   std::string name, path;
   Options options(JS_Options(js, repo, &name, &path));
   bool error_if_log_file_exist = false; // default
@@ -2213,7 +2213,7 @@ ROCKSDB_FACTORY_REG("DB::OpenForReadOnly", JS_DB_OpenForReadOnly);
 ROCKSDB_FACTORY_REG("DB::OpenForReadOnly", JS_DB_Manip);
 
 static
-DB* JS_DB_OpenAsSecondary(const json& js, const JsonPluginRepo& repo) {
+DB* JS_DB_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
   std::string name, path, secondary_path;
   ROCKSDB_JSON_REQ_PROP(js, secondary_path);
   Options options(JS_Options(js, repo, &name, &path));
@@ -2233,7 +2233,7 @@ struct MultiCF_Open {
   std::string name, path;
   const json* js_cf_desc;
   std::unique_ptr<DB_MultiCF_Impl> db;
-  MultiCF_Open(const json& js, const JsonPluginRepo& repo) {
+  MultiCF_Open(const json& js, const SidePluginRepo& repo) {
     if (!js.is_object()) {
       THROW_InvalidArgument("param json must be an object");
     }
@@ -2284,9 +2284,9 @@ JS_CreateCF(DB* db, const std::string& cfname,
 }
 
 static
-DB_MultiCF* JS_DB_MultiCF_Open(const json& js, const JsonPluginRepo& repo) {
+DB_MultiCF* JS_DB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
-    X(const json& js, const JsonPluginRepo& repo) : MultiCF_Open(js, repo) {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       bool read_only = false; // default false
       ROCKSDB_JSON_OPT_PROP(js, read_only);
       Status s;
@@ -2313,9 +2313,9 @@ ROCKSDB_FACTORY_REG("DB::Open", JS_DB_MultiCF_Manip);
 
 static
 DB_MultiCF*
-JS_DB_MultiCF_OpenForReadOnly(const json& js, const JsonPluginRepo& repo) {
+JS_DB_MultiCF_OpenForReadOnly(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
-    X(const json& js, const JsonPluginRepo& repo) : MultiCF_Open(js, repo) {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       bool error_if_log_file_exist = false;  // default is false
       ROCKSDB_JSON_OPT_PROP(js, error_if_log_file_exist);
       Status s = DB::OpenForReadOnly(*db_opt, path, cfdvec, &db->cf_handles,
@@ -2335,9 +2335,9 @@ ROCKSDB_FACTORY_REG("DB::OpenForReadOnly", JS_DB_MultiCF_Manip);
 
 static
 DB_MultiCF*
-JS_DB_MultiCF_OpenAsSecondary(const json& js, const JsonPluginRepo& repo) {
+JS_DB_MultiCF_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
-    X(const json& js, const JsonPluginRepo& repo) : MultiCF_Open(js, repo) {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       std::string secondary_path;
       ROCKSDB_JSON_REQ_PROP(js, secondary_path);
       Status s = DB::OpenAsSecondary(*db_opt, path, secondary_path, cfdvec,
@@ -2360,7 +2360,7 @@ ROCKSDB_FACTORY_REG("DB::OpenAsSecondary", JS_DB_MultiCF_Manip);
 // DBWithTTL::Open
 
 static
-DB* JS_DBWithTTL_Open(const json& js, const JsonPluginRepo& repo) {
+DB* JS_DBWithTTL_Open(const json& js, const SidePluginRepo& repo) {
   std::string name, path;
   Options options(JS_Options(js, repo, &name, &path));
   int32_t ttl = 0; // default 0
@@ -2392,9 +2392,9 @@ JS_CreateCF_WithTTL(DB* db, const std::string& cfname,
 }
 static
 DB_MultiCF*
-JS_DBWithTTL_MultiCF_Open(const json& js, const JsonPluginRepo& repo) {
+JS_DBWithTTL_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
-    X(const json& js, const JsonPluginRepo& repo) : MultiCF_Open(js, repo) {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       std::vector<int32_t> ttls;
       bool read_only = false;
       ROCKSDB_JSON_OPT_PROP(js, read_only);
@@ -2427,7 +2427,7 @@ ROCKSDB_FACTORY_REG("DBWithTTL::Open", JS_DB_MultiCF_Manip);
 /////////////////////////////////////////////////////////////////////////////
 // TransactionDB::Open
 static std::shared_ptr<TransactionDBMutexFactory>
-JS_NewTransactionDBMutexFactoryImpl(const json&, const JsonPluginRepo&) {
+JS_NewTransactionDBMutexFactoryImpl(const json&, const SidePluginRepo&) {
   return std::make_shared<TransactionDBMutexFactoryImpl>();
 }
 ROCKSDB_FACTORY_REG("Default", JS_NewTransactionDBMutexFactoryImpl);
@@ -2435,7 +2435,7 @@ ROCKSDB_FACTORY_REG("default", JS_NewTransactionDBMutexFactoryImpl);
 ROCKSDB_FACTORY_REG("TransactionDBMutexFactoryImpl", JS_NewTransactionDBMutexFactoryImpl);
 
 struct TransactionDBOptions_Json : TransactionDBOptions {
-  TransactionDBOptions_Json(const json& js, const JsonPluginRepo& repo) {
+  TransactionDBOptions_Json(const json& js, const SidePluginRepo& repo) {
     ROCKSDB_JSON_OPT_PROP(js, max_num_locks);
     ROCKSDB_JSON_OPT_PROP(js, max_num_deadlocks);
     ROCKSDB_JSON_OPT_PROP(js, num_stripes);
@@ -2450,7 +2450,7 @@ struct TransactionDBOptions_Json : TransactionDBOptions {
 };
 
 TransactionDBOptions
-JS_TransactionDBOptions(const json& js, const JsonPluginRepo& repo) {
+JS_TransactionDBOptions(const json& js, const SidePluginRepo& repo) {
   auto iter = js.find("txn_db_options");
   if (js.end() == iter) {
     THROW_InvalidArgument("missing required param \"txn_db_options\"");
@@ -2459,7 +2459,7 @@ JS_TransactionDBOptions(const json& js, const JsonPluginRepo& repo) {
 }
 
 static
-DB* JS_TransactionDB_Open(const json& js, const JsonPluginRepo& repo) {
+DB* JS_TransactionDB_Open(const json& js, const SidePluginRepo& repo) {
   std::string name, path;
   Options options(JS_Options(js, repo, &name, &path));
   TransactionDBOptions trx_db_options(JS_TransactionDBOptions(js, repo));
@@ -2475,9 +2475,9 @@ ROCKSDB_FACTORY_REG("TransactionDB::Open", JS_DB_Manip);
 
 static
 DB_MultiCF*
-JS_TransactionDB_MultiCF_Open(const json& js, const JsonPluginRepo& repo) {
+JS_TransactionDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
-    X(const json& js, const JsonPluginRepo& repo) : MultiCF_Open(js, repo) {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       TransactionDBOptions trx_db_options(JS_TransactionDBOptions(js, repo));
       TransactionDB* dbptr = nullptr;
       Status s = TransactionDB::Open(*db_opt, trx_db_options, path, cfdvec,
@@ -2499,13 +2499,13 @@ ROCKSDB_FACTORY_REG("TransactionDB::Open", JS_DB_MultiCF_Manip);
 
 /////////////////////////////////////////////////////////////////////////////
 struct OptimisticTransactionDBOptions_Json: OptimisticTransactionDBOptions {
-  OptimisticTransactionDBOptions_Json(const json& js, const JsonPluginRepo&) {
+  OptimisticTransactionDBOptions_Json(const json& js, const SidePluginRepo&) {
     ROCKSDB_JSON_OPT_ENUM(js, validate_policy);
     ROCKSDB_JSON_OPT_PROP(js, occ_lock_buckets);
   }
 };
 static
-DB* JS_OccTransactionDB_Open(const json& js, const JsonPluginRepo& repo) {
+DB* JS_OccTransactionDB_Open(const json& js, const SidePluginRepo& repo) {
   std::string name, path;
   Options options(JS_Options(js, repo, &name, &path));
   OptimisticTransactionDB* db = nullptr;
@@ -2520,9 +2520,9 @@ ROCKSDB_FACTORY_REG("OptimisticTransactionDB::Open", JS_DB_Manip);
 
 static
 DB_MultiCF*
-JS_OccTransactionDB_MultiCF_Open(const json& js, const JsonPluginRepo& repo) {
+JS_OccTransactionDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
-    X(const json& js, const JsonPluginRepo& repo) : MultiCF_Open(js, repo) {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       OptimisticTransactionDB* dbptr = nullptr;
       auto iter = js.find("occ_options");
       if (js.end() == iter) {
@@ -2556,7 +2556,7 @@ ROCKSDB_FACTORY_REG("OptimisticTransactionDB::Open", JS_DB_MultiCF_Manip);
 namespace blob_db {
 
 struct BlobDBOptions_Json : BlobDBOptions {
-  BlobDBOptions_Json(const json& js, const JsonPluginRepo&) {
+  BlobDBOptions_Json(const json& js, const SidePluginRepo&) {
     ROCKSDB_JSON_OPT_PROP(js, blob_dir);
     ROCKSDB_JSON_OPT_PROP(js, path_relative);
     ROCKSDB_JSON_OPT_PROP(js, is_fifo);
@@ -2570,7 +2570,7 @@ struct BlobDBOptions_Json : BlobDBOptions {
     ROCKSDB_JSON_OPT_PROP(js, garbage_collection_cutoff);
     ROCKSDB_JSON_OPT_PROP(js, disable_background_tasks);
   }
-  json ToJson(const JsonPluginRepo&) const {
+  json ToJson(const SidePluginRepo&) const {
     json js;
     ROCKSDB_JSON_SET_PROP(js, blob_dir);
     ROCKSDB_JSON_SET_PROP(js, path_relative);
@@ -2589,7 +2589,7 @@ struct BlobDBOptions_Json : BlobDBOptions {
 };
 
 BlobDBOptions
-JS_BlobDBOptions(const json& js, const JsonPluginRepo& repo) {
+JS_BlobDBOptions(const json& js, const SidePluginRepo& repo) {
   auto iter = js.find("bdb_options");
   if (js.end() == iter) {
     THROW_InvalidArgument("missing required param \"bdb_options\"");
@@ -2598,7 +2598,7 @@ JS_BlobDBOptions(const json& js, const JsonPluginRepo& repo) {
 }
 
 static
-DB* JS_BlobDB_Open(const json& js, const JsonPluginRepo& repo) {
+DB* JS_BlobDB_Open(const json& js, const SidePluginRepo& repo) {
   std::string name, path;
   Options options(JS_Options(js, repo, &name, &path));
   BlobDBOptions bdb_options(JS_BlobDBOptions(js, repo));
@@ -2614,9 +2614,9 @@ ROCKSDB_FACTORY_REG("BlobDB::Open", JS_DB_Manip);
 
 static
 DB_MultiCF*
-JS_BlobDB_MultiCF_Open(const json& js, const JsonPluginRepo& repo) {
+JS_BlobDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
-    X(const json& js, const JsonPluginRepo& repo) : MultiCF_Open(js, repo) {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       BlobDBOptions bdb_options(JS_BlobDBOptions(js, repo));
       BlobDB* dbptr = nullptr;
       Status s = BlobDB::Open(*db_opt, bdb_options, path, cfdvec,
@@ -2655,9 +2655,9 @@ void HtmlAppendEscape(std::string* d, const char* s, size_t n) {
   }
 }
 struct HtmlTextUserKeyCoder : public UserKeyCoder {
-  void Update(const json&, const JsonPluginRepo&) override {
+  void Update(const json&, const SidePluginRepo&) override {
   }
-  std::string ToString(const json&, const JsonPluginRepo&) const override {
+  std::string ToString(const json&, const SidePluginRepo&) const override {
     return "";
   }
   void Encode(Slice, std::string*) const override {
@@ -2673,7 +2673,7 @@ struct HtmlTextUserKeyCoder : public UserKeyCoder {
 ROCKSDB_REG_DEFAULT_CONS(HtmlTextUserKeyCoder, AnyPlugin);
 
 // users should ensure databases are alive when calling this function
-void JsonPluginRepo::CloseAllDB(bool del_rocksdb_objs) {
+void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
   m_impl->http.Close();
   using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
   //using view_kv_ptr = const std::pair<const void* const, Impl::ObjInfo>*;

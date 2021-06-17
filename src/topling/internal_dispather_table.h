@@ -13,7 +13,7 @@ class DispatcherTableFactory : public TableFactory {
 public:
   ~DispatcherTableFactory() override;
   DispatcherTableFactory(const DispatcherTableFactory&) = delete;
-  DispatcherTableFactory(const json& js, const JsonPluginRepo& repo);
+  DispatcherTableFactory(const json& js, const SidePluginRepo& repo);
 
   const char* Name() const final;
 
@@ -34,11 +34,11 @@ public:
   std::string GetPrintableOptions() const override;
 
 // non TableFactory methods:
-  void BackPatch(const JsonPluginRepo& repo);
-  json ToJsonObj(const json& dump_options, const JsonPluginRepo& repo) const;
+  void BackPatch(const SidePluginRepo& repo);
+  json ToJsonObj(const json& dump_options, const SidePluginRepo& repo) const;
   std::string ToJsonStr(const json& dump_options,
-                        const JsonPluginRepo& repo) const;
-  void UpdateOptions(const json& js, const JsonPluginRepo& repo);
+                        const SidePluginRepo& repo) const;
+  void UpdateOptions(const json& js, const SidePluginRepo& repo);
 
 // should be protected, but use public for simple
   struct Stat {
