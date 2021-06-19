@@ -138,7 +138,6 @@ struct DBOptions_Json : DBOptions {
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
-    this->plugin_repo = &repo;
     ROCKSDB_JSON_OPT_PROP(js, create_if_missing);
     ROCKSDB_JSON_OPT_PROP(js, create_missing_column_families);
     ROCKSDB_JSON_OPT_PROP(js, error_if_exists);
