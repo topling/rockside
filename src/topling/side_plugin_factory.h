@@ -238,6 +238,11 @@ PluginSerDeSingleton(const json&, const SidePluginRepo&) {
 template<class Object>
 using SerDeFactory = PluginFactory<std::shared_ptr<SerDeFunc<Object> > >;
 
+template<class Object>
+SerDeFactory<Object>* SerDeFac(const Object*) { return nullptr; }
+template<class Object>
+SerDeFactory<Object>* SerDeFac(const std::shared_ptr<Object>&) { return nullptr; }
+
 // Suffix 'Req' means 'required'
 template<class Object>
 void SerDe_SerializeReq(FILE* fp, const std::string& clazz, const Object* obj,
