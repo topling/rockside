@@ -829,8 +829,10 @@ void DispatcherTableBuilder::Add(const Slice& key, const Slice& value) {
 void DispatcherTableBuilder::UpdateStat() {
   st_sum.Add(st);
   const_cast<DispatcherTableFactory*>(dispatcher)->UpdateStat(level, st);
-  if (SidePluginRepo::DebugLevel() >= 4) {
-    fprintf(stderr, "DBUG: entry_cnt = %zd\n", st_sum.entry_cnt);
+  if (SidePluginRepo::DebugLevel() >= 5) {
+    fprintf(stderr,
+            "DBUG: DispatcherTableBuilder::UpdateStat: ""entry_cnt = %zd\n",
+            st_sum.entry_cnt);
   }
   st.Reset();
 }
@@ -844,8 +846,9 @@ void DispatcherTableFactory::UpdateStat(size_t lev, const Stat& st) {
     assert(m_stats[i].size() == m_level_writers.size() + 1);
     assert(lev <= m_level_writers.size());
     auto& ts = m_stats[i][lev];
-    if (SidePluginRepo::DebugLevel() >= 5) {
-      fprintf(stderr, "DBUG: tp-ts.time = %zd, g_durations[i] = %zd, (tp - ts.time > g_durations[i]) = %d\n",
+    if (SidePluginRepo::DebugLevel() >= 6) {
+      fprintf(stderr, "DBUG: DispatcherTableBuilder::UpdateStat: "
+"tp-ts.time = %zd, g_durations[i] = %zd, (tp - ts.time > g_durations[i]) = %d\n",
               (size_t)duration_cast<seconds>(tp - ts.time).count(),
               (size_t)duration_cast<seconds>(g_durations[i]).count(),
               tp - ts.time > g_durations[i]);
