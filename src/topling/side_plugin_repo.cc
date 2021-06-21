@@ -524,7 +524,7 @@ bool SidePluginRepo::Get(const std::string& name, DB** db, Status* s) const {
       return true;
     }
     Status ss = Status::InvalidArgument(ROCKSDB_FUNC,
-        "database \"" + name + "\" mubst be DB, but is DB_MultiCF");
+        "database \"" + name + "\" must be DB, but is DB_MultiCF");
     if (s)
       *s = ss;
     else
@@ -540,7 +540,7 @@ bool SidePluginRepo::Get(const std::string& name, DB_MultiCF** db, Status* s) co
       return true;
     }
     Status ss = Status::InvalidArgument(ROCKSDB_FUNC,
-        "database \"" + name + "\" mubst be DB_MultiCF, but is DB");
+        "database \"" + name + "\" must be DB_MultiCF, but is DB");
     if (s)
       *s = ss;
     else
