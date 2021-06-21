@@ -549,6 +549,11 @@ bool SidePluginRepo::Get(const std::string& name, DB_MultiCF** db, Status* s) co
   return false;
 }
 
+bool SidePluginRepo::Get(const std::string& name, DB_Ptr* dbp) const {
+  std::lock_guard<std::mutex> lock(m_impl->db_mtx);
+  return Impl_Get(name, m_impl->db, dbp);
+}
+
 /**
  * @param js may be:
  *  1. string name ref to a db defined in 'this' repo
@@ -650,6 +655,10 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
     }
   }
   auto& dbmap = repo.m_impl->db;
+
+  // CompactionFilter ... may find db on opening
+  std::lock_guard<std::mutex> lock(repo.m_impl->db_mtx);
+
   auto ib = dbmap.name2p->emplace(dbname, DB_Ptr(nullptr));
   if (!ib.second) {
     THROW_InvalidArgument("dup dbname = " + dbname);

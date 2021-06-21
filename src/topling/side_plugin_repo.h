@@ -162,6 +162,11 @@ class SidePluginRepo {
   bool Get(const std::string& name, DB**, Status* = nullptr) const;
   bool Get(const std::string& name, DB_MultiCF**, Status* = nullptr) const;
 
+  // db may issue compact job during open, DB_Ptr exists in dbmap but
+  // value of DB_Ptr is null, this should be handled by CompactionFilter,
+  // especially for Distributed Compaction.
+  bool Get(const std::string& name, DB_Ptr*) const;
+
   bool Get(const std::string& name, std::shared_ptr<AnyPlugin>*) const;
   bool Get(const std::string& name, std::shared_ptr<Cache>*) const;
   bool Get(const std::string& name, std::shared_ptr<CompactionExecutorFactory>*) const;

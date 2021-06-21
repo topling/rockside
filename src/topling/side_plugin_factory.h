@@ -7,6 +7,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
 #include "side_plugin_repo.h"
 #include "web/json_civetweb.h"
@@ -90,6 +91,7 @@ struct SidePluginRepo::Impl {
 
   ObjRepo<CFPropertiesWebView> props;
   ObjMap<DB_Ptr> db;
+  std::mutex db_mtx;
 
   json db_js; // not evaluated during import
   json open_js;
