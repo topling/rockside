@@ -608,13 +608,13 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
       if (!ib.second) { // emplace fail
         const char* varname1 = ib.first->second.varname.c_str(); // existed
         const char* type = ib.first->second.is_user_defined ? "user" : "auto";
-        if (SidePluginRepo::DebugLevel() >= 2)
+        if (SidePluginRepo::DebugLevel() >= 4)
           fprintf(stderr,
-                "INFO: Dispatch::BackPatch: dup factory: %016llX : %-20s : %s(%s) %s(auto)\n",
+                "TRAC: Dispatch::BackPatch: dup factory: %016llX : %-20s : %s(%s) %s(auto)\n",
                 (long long)magic, facname, varname1, type, varname.c_str());
-      } else if (SidePluginRepo::DebugLevel() >= 2) {
+      } else if (SidePluginRepo::DebugLevel() >= 4) {
         fprintf(stderr,
-                "INFO: Dispatch::BackPatch: reg factory: %016llX : %-20s : %s\n",
+                "TRAC: Dispatch::BackPatch: reg factory: %016llX : %-20s : %s\n",
                 (long long)magic, facname, varname.c_str());
       }
     }
