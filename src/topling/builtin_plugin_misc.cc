@@ -147,6 +147,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, create_missing_column_families);
     ROCKSDB_JSON_OPT_PROP(js, error_if_exists);
     ROCKSDB_JSON_OPT_PROP(js, paranoid_checks);
+    ROCKSDB_JSON_OPT_PROP(js, track_and_verify_wals_in_manifest);
     ROCKSDB_JSON_OPT_FACT(js, env);
     ROCKSDB_JSON_OPT_FACT(js, rate_limiter);
     ROCKSDB_JSON_OPT_FACT(js, sst_file_manager);
@@ -253,10 +254,12 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, bgerror_resume_retry_interval);
     ROCKSDB_JSON_OPT_PROP(js, allow_data_in_errors);
     ROCKSDB_JSON_OPT_PROP(js, db_host_id);
+    //ROCKSDB_JSON_OPT_ESET(js, checksum_handoff_file_types); // EnumSet
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
     ROCKSDB_JSON_SET_PROP(js, paranoid_checks);
+    ROCKSDB_JSON_SET_PROP(js, track_and_verify_wals_in_manifest);
     ROCKSDB_JSON_SET_FACT(js, env);
     ROCKSDB_JSON_SET_FACT(js, rate_limiter);
     ROCKSDB_JSON_SET_FACT(js, sst_file_manager);
@@ -358,6 +361,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, bgerror_resume_retry_interval);
     ROCKSDB_JSON_SET_PROP(js, allow_data_in_errors);
     ROCKSDB_JSON_SET_PROP(js, db_host_id);
+    //ROCKSDB_JSON_SET_ESET(js, checksum_handoff_file_types); // EnumSet
   }
 };
 static shared_ptr<DBOptions>
