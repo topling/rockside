@@ -37,6 +37,11 @@
   #include "memory/memkind_kmem_allocator.h"
 #endif
 
+#if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
+  #define rocksdb_build_compile_date rocksdb_build_date
+  extern const char* rocksdb_build_git_tag;
+#endif
+
 extern const char* rocksdb_build_git_sha;
 extern const char* rocksdb_build_git_date;
 extern const char* rocksdb_build_compile_date;
@@ -725,7 +730,13 @@ JS_NewGenericRateLimiter(const json& js, const SidePluginRepo& repo) {
   }
   return std::make_shared<GenericRateLimiter>(
       rate_bytes_per_sec, refill_period_us, fairness,
-      mode, env, auto_tuned);
+      mode,
+#if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
+      env->GetSystemClock(),
+#else
+      env,
+#endif
+      auto_tuned);
 }
 ROCKSDB_FACTORY_REG("GenericRateLimiter", JS_NewGenericRateLimiter);
 
@@ -1942,8 +1953,14 @@ void JS_RokcsDB_AddVersion(json& djs) {
 #else
   djs["build_type"] = "debug";
 #endif
+#if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
+  djs["git_sha"] = rocksdb_build_git_sha;
+  djs["git_tag"] = rocksdb_build_git_date;
+  djs["git_date"] = rocksdb_build_git_date;
+#else
   djs["git_sha"] = strchr(rocksdb_build_git_sha, ':') + 1;
   djs["git_date"] = strchr(rocksdb_build_git_date, ':') + 1;
+#endif
   djs["compile_date"] = rocksdb_build_compile_date;
   char s[32];
   auto n = snprintf(s, sizeof(s), "%d.%d.%d",
