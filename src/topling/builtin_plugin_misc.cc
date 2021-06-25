@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <cinttypes>
+#include <chrono>
 
 #include "rocksdb/db.h"
 #include "cache/lru_cache.h"
@@ -2232,6 +2233,24 @@ DB* JS_DB_OpenForReadOnly(const json& js, const SidePluginRepo& repo) {
 ROCKSDB_FACTORY_REG("DB::OpenForReadOnly", JS_DB_OpenForReadOnly);
 ROCKSDB_FACTORY_REG("DB::OpenForReadOnly", JS_DB_Manip);
 
+static void AutoCatchUpThreadProc(DB_MultiCF_Impl* impl) {
+  DB* db = impl->db;
+  std::string dbname = db->GetName();
+  while (impl->m_catch_up_running) {
+    Status s = db->TryCatchUpWithPrimary();
+    if (!s.ok()) {
+      fprintf(stderr, "ERROR: TryCatchUpWithPrimary(dbname=%s) = %s\n",
+              dbname.c_str(), s.ToString().c_str());
+    }
+    using std::this_thread::sleep_for;
+    sleep_for(std::chrono::milliseconds(impl->m_catch_up_delay_ms));
+  }
+}
+static void CreateCatchUpThread(DB_MultiCF* mcf) {
+  auto p = static_cast<DB_MultiCF_Impl*>(mcf);
+  p->m_catch_up_thread.reset(new std::thread(&AutoCatchUpThreadProc, p));
+}
+
 static
 DB* JS_DB_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
   std::string name, path, secondary_path;
@@ -2359,7 +2378,9 @@ JS_DB_MultiCF_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
     X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       std::string secondary_path;
+      auto auto_catch_up_delay_ms = db->m_catch_up_delay_ms;
       ROCKSDB_JSON_REQ_PROP(js, secondary_path);
+      ROCKSDB_JSON_OPT_PROP(js, auto_catch_up_delay_ms);
       Status s = DB::OpenAsSecondary(*db_opt, path, secondary_path, cfdvec,
                                      &db->cf_handles, &db->db);
       if (!s.ok())
@@ -2369,6 +2390,11 @@ JS_DB_MultiCF_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       db->m_create_cf = &JS_CreateCF;
       db->InitAddCF_ToMap(*js_cf_desc);
+      db->m_catch_up_delay_ms = auto_catch_up_delay_ms;
+      if (auto_catch_up_delay_ms > 0) {
+        db->m_catch_up_running = true;
+        CreateCatchUpThread(db.get());
+      }
     }
   } p(js, repo);
   return p.db.release();
@@ -2720,6 +2746,12 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
     if (kv.second.dbm) {
       DB_MultiCF* dbm = kv.second.dbm;
       assert(kv.second.db == dbm->db);
+      auto idbm = static_cast<DB_MultiCF_Impl*>(dbm);
+      if (idbm->m_catch_up_thread) {
+        idbm->m_catch_up_running = false; // notify stop
+        idbm->m_catch_up_thread->join();
+        idbm->m_catch_up_thread.reset();
+      }
       for (auto cfh : dbm->cf_handles) {
         del_view(cfh);
         del_rocks(cfh);

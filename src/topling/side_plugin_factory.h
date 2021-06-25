@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <mutex>
+#include <thread>
 
 #include "side_plugin_repo.h"
 #include "web/json_civetweb.h"
@@ -113,6 +114,9 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   std::function<ColumnFamilyHandle*
     (DB*, const std::string& cfname, const ColumnFamilyOptions&, const json& extra_args)
    > m_create_cf;
+  std::unique_ptr<std::thread> m_catch_up_thread;
+  bool m_catch_up_running;
+  int m_catch_up_delay_ms;
 };
 template<class Ptr>
 Ptr ObtainOPT(SidePluginRepo::Impl::ObjMap<Ptr>& field,

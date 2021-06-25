@@ -38,8 +38,14 @@ using std::string;
 
 */
 
-DB_MultiCF_Impl::DB_MultiCF_Impl() = default;
-DB_MultiCF_Impl::~DB_MultiCF_Impl() = default;
+DB_MultiCF_Impl::DB_MultiCF_Impl() {
+  m_catch_up_running = false;
+  m_catch_up_delay_ms = 10;
+}
+DB_MultiCF_Impl::~DB_MultiCF_Impl() {
+  ROCKSDB_VERIFY_F(nullptr == m_catch_up_thread,
+                   "not closed: dbname = %s", db->GetName().c_str());
+}
 
 ColumnFamilyHandle* DB_MultiCF_Impl::Get(const std::string& cfname) const {
   auto iter = m_cfhs.name2p->find(cfname);
