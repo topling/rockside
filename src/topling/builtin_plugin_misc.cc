@@ -365,11 +365,7 @@ struct DBOptions_Json : DBOptions {
     //ROCKSDB_JSON_SET_ESET(js, checksum_handoff_file_types); // EnumSet
   }
 };
-static shared_ptr<DBOptions>
-NewDBOptionsJS(const json& js, const SidePluginRepo& repo) {
-  return std::make_shared<DBOptions_Json>(js, repo);
-}
-ROCKSDB_FACTORY_REG("DBOptions", NewDBOptionsJS);
+ROCKSDB_REG_JSON_REPO_CONS("DBOptions", DBOptions_Json, DBOptions);
 struct DBOptions_Manip : PluginManipFunc<DBOptions> {
   void Update(DBOptions* p, const json& js, const SidePluginRepo& repo)
   const final {
@@ -663,12 +659,8 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
 using CFOptions = ColumnFamilyOptions;
 using CFOptions_Json = ColumnFamilyOptions_Json;
 
-static shared_ptr<ColumnFamilyOptions>
-NewCFOptionsJS(const json& js, const SidePluginRepo& repo) {
-  return std::make_shared<ColumnFamilyOptions_Json>(js, repo);
-}
-ROCKSDB_FACTORY_REG("ColumnFamilyOptions", NewCFOptionsJS);
-ROCKSDB_FACTORY_REG("CFOptions", NewCFOptionsJS);
+ROCKSDB_REG_JSON_REPO_CONS("ColumnFamilyOptions", CFOptions_Json, CFOptions);
+ROCKSDB_REG_JSON_REPO_CONS("CFOptions", CFOptions_Json, CFOptions);
 struct CFOptions_Manip : PluginManipFunc<ColumnFamilyOptions> {
   void Update(ColumnFamilyOptions* p, const json& js,
               const SidePluginRepo& repo) const final {
