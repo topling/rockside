@@ -1281,4 +1281,25 @@ JsonRepoSetHtml_ahref(json& js, const char* mapname, const std::string& varname)
   js = JsonRepoGetHtml_ahref(mapname, varname);
 }
 
+void JsonRepoSet(json& js, const void* prop,
+                 const std::map<const void*, SidePluginRepo::Impl::ObjInfo>& p2name,
+                 const char* mapname, bool html) {
+  auto iter = p2name.find(prop);
+  if (p2name.end() != iter) {
+    ROCKSDB_VERIFY(nullptr != prop);
+    if (iter->second.name.empty())
+      js = iter->second.params;
+    else if (html)
+      JsonRepoSetHtml_ahref(js, mapname, iter->second.name);
+    else
+      js = "${" + iter->second.name + "}";
+  }
+  else if (nullptr == prop) {
+    js = "null";
+  }
+  else {
+    js = "$(BuiltinDefault)";
+  }
+}
+
 } // ROCKSDB_NAMESPACE

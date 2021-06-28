@@ -678,7 +678,8 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
         ROCKSDB_JSON_SET_FACT_INNER(js[#prop], prop, prop)
 
 #define ROCKSDB_JSON_SET_FACT_INNER(inner, prop, repo_field) \
-  JsonRepoSet(inner, prop, repo.m_impl->repo_field, #repo_field, html)
+  JsonRepoSet(inner, GetRawPtr(prop), \
+              repo.m_impl->repo_field.p2name, #repo_field, html)
 
 
 bool SameVarName(const std::string&, const std::string&);
@@ -692,22 +693,8 @@ JsonRepoGetHtml_ahref(const char* mapname, const std::string& varname);
 void
 JsonRepoSetHtml_ahref(json&, const char* mapname, const std::string& varname);
 
-template<class Ptr, class Map>
-void JsonRepoSet(json& js, const Ptr& prop, const Map& map,
-                 const char* mapname, bool html) {
-  auto& p2name = map.p2name;
-  auto iter = p2name.find(GetRawPtr(prop));
-  if (p2name.end() != iter) {
-    if (iter->second.name.empty())
-      js = iter->second.params;
-    else if (html)
-      JsonRepoSetHtml_ahref(js, mapname, iter->second.name);
-    else
-      js = "${" + iter->second.name + "}";
-  }
-  else {
-      js = "$(BuiltinDefault)";
-  }
-}
+void JsonRepoSet(json& js, const void* prop,
+                 const std::map<const void*, SidePluginRepo::Impl::ObjInfo>&,
+                 const char* mapname, bool html);
 
 } // ROCKSDB_NAMESPACE
