@@ -53,6 +53,9 @@ struct SidePluginRepo::Impl {
   };
   template<class Ptr>
   struct ObjMap {
+    ObjMap(const ObjMap&) = delete;
+    ObjMap& operator=(const ObjMap&) = delete;
+    ObjMap() = default;
     std::map<const void*, ObjInfo> p2name;
     std::shared_ptr<std::map<std::string, Ptr>> name2p =
         std::make_shared<std::map<std::string, Ptr>>();
@@ -131,6 +134,9 @@ Ptr ObtainOPT(SidePluginRepo::Impl::ObjMap<Ptr>& field,
 template<class Ptr>
 class PluginFactory {
 public:
+  PluginFactory(const PluginFactory&) = delete;
+  PluginFactory& operator=(const PluginFactory&) = delete;
+  PluginFactory() = default;
   virtual ~PluginFactory() = default;
   // in some contexts Acquire means 'CreateNew'
   // in some contexts Acquire means 'GetExisting'
@@ -178,6 +184,9 @@ using PluginFactorySP = PluginFactory<std::shared_ptr<Object> >;
 
 template<class Object>
 struct PluginManipFunc {
+  PluginManipFunc(const PluginManipFunc&) = delete;
+  PluginManipFunc& operator=(const PluginManipFunc&) = delete;
+  PluginManipFunc() = default;
   virtual ~PluginManipFunc() {}
   virtual void Update(Object*, const json&, const SidePluginRepo&) const = 0;
   virtual std::string ToString(const Object&, const json&, const SidePluginRepo&) const = 0;
@@ -225,6 +234,9 @@ PluginToString(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
 // use SerDeFunc as plugin, register SerDeFunc as plugin
 template<class Object>
 struct SerDeFunc {
+  SerDeFunc(const SerDeFunc&) = delete;
+  SerDeFunc& operator=(const SerDeFunc&) = delete;
+  SerDeFunc() = default;
   virtual ~SerDeFunc() {}
   virtual void Serialize(FILE*, const Object&) const = 0;
   virtual void DeSerialize(FILE*, Object*) const = 0;
@@ -357,6 +369,9 @@ struct EasyProxyManip : public PluginManipFunc<Interface> {
 
 template<class Ptr>
 struct PluginFactory<Ptr>::Reg::Impl {
+  Impl(const Impl&) = delete;
+  Impl& operator=(const Impl&) = delete;
+  Impl() = default;
   NameToFuncMap func_map;
   std::map<std::string, Ptr> inst_map;
   static Impl& s_singleton() { static Impl imp; return imp; }

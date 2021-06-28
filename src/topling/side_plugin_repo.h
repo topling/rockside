@@ -50,6 +50,8 @@ class TransactionDBMutexFactory;
 using nlohmann::json;
 
 struct DB_MultiCF {
+  DB_MultiCF(const DB_MultiCF&) = delete;
+  DB_MultiCF& operator=(const DB_MultiCF&) = delete;
   DB_MultiCF();
   virtual ~DB_MultiCF();
   virtual ColumnFamilyHandle* Get(const std::string& cfname) const = 0;
