@@ -231,8 +231,14 @@ JsonCivetServer::Impl::Impl(const json& conf, SidePluginRepo* repo) {
     std::string key = kv.key();
     const auto& value = kv.value();
     if (!value.is_string()) {
+    #if 0
       THROW_InvalidArgument(
         "conf[\"" + key + "\"] must be a string, but is: " + value.dump());
+    #else
+      options.push_back(std::move(key));
+      options.push_back(value.dump());
+      continue;
+    #endif
     }
     options.push_back(std::move(key));
     options.push_back(value.get_ref<const std::string&>());
