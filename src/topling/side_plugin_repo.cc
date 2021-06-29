@@ -554,6 +554,10 @@ bool SidePluginRepo::Get(const std::string& name, DB_Ptr* dbp) const {
   return Impl_Get(name, m_impl->db, dbp);
 }
 
+template<class DBT>
+static
+Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp);
+
 /**
  * @param js may be:
  *  1. string name ref to a db defined in 'this' repo
@@ -585,10 +589,10 @@ bool SidePluginRepo::Get(const std::string& name, DB_Ptr* dbp) const {
  *     }
  */
 Status SidePluginRepo::OpenDB(const nlohmann::json& js, DB** dbp) {
-  return OpenDB_tpl<DB>(js, dbp);
+  return OpenDB_tpl<DB>(*this, js, dbp);
 }
 Status SidePluginRepo::OpenDB(const nlohmann::json& js, DB_MultiCF** dbp) {
-  return OpenDB_tpl<DB_MultiCF>(js, dbp);
+  return OpenDB_tpl<DB_MultiCF>(*this, js, dbp);
 }
 
 Status SidePluginRepo::OpenDB(const std::string& js, DB** dbp)
@@ -596,7 +600,7 @@ Status SidePluginRepo::OpenDB(const std::string& js, DB** dbp)
 try
 #endif
 {
-  return OpenDB_tpl<DB>(js, dbp);
+  return OpenDB_tpl<DB>(*this, js, dbp);
 }
 #if defined(NDEBUG)
 catch (const std::exception& ex) {
@@ -608,7 +612,7 @@ Status SidePluginRepo::OpenDB(const std::string& js, DB_MultiCF** dbp)
 try
 #endif
 {
-  return OpenDB_tpl<DB_MultiCF>(js, dbp);
+  return OpenDB_tpl<DB_MultiCF>(*this, js, dbp);
 }
 #if defined(NDEBUG)
 catch (const std::exception& ex) {
@@ -684,18 +688,19 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
 }
 
 template<class DBT>
-Status SidePluginRepo::OpenDB_tpl(const nlohmann::json& js, DBT** dbp)
+static
+Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp)
 #if defined(NDEBUG)
 try
 #endif
 {
   *dbp = nullptr;
   auto open_defined_db = [&](const std::string& dbname) {
-      auto iter = m_impl->db_js.find(dbname);
-      if (m_impl->db_js.end() == iter) {
+      auto iter = repo.m_impl->db_js.find(dbname);
+      if (repo.m_impl->db_js.end() == iter) {
         THROW_NotFound("dbname = \"" + dbname + "\" is not found");
       }
-      Impl_OpenDB_tpl(dbname, iter.value(), *this, dbp);
+      Impl_OpenDB_tpl(dbname, iter.value(), repo, dbp);
   };
   if (js.is_string()) {
     const auto& str_val = js.get_ref<const std::string&>();
@@ -716,7 +721,7 @@ try
   } else if (js.is_object()) {
     // when name is empty, js["params"]["name"] must be defined
     std::string empty_name = ""; // NOLINT
-    Impl_OpenDB_tpl(empty_name, js, *this, dbp);
+    Impl_OpenDB_tpl(empty_name, js, repo, dbp);
   }
   else {
     THROW_InvalidArgument("bad js = " + js.dump());

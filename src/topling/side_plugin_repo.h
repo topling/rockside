@@ -274,10 +274,6 @@ class SidePluginRepo {
 // also public
   struct Impl;
   std::shared_ptr<Impl> m_impl;
-
- private:
-  template<class DBType>
-  Status OpenDB_tpl(const nlohmann::json&, DBType**);
 };
 
 ///@param obj json object to be dumped
