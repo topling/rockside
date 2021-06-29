@@ -46,6 +46,7 @@ class Statistics;
 class TableFactory;
 class TablePropertiesCollectorFactory;
 class TransactionDBMutexFactory;
+class WriteBufferManager;
 
 using nlohmann::json;
 
@@ -154,6 +155,7 @@ class SidePluginRepo {
   void Put(const std::string& name, const std::shared_ptr<TableFactory>&);
   void Put(const std::string& name, const std::shared_ptr<TablePropertiesCollectorFactory>&);
   void Put(const std::string& name, const std::shared_ptr<TransactionDBMutexFactory>&);
+  void Put(const std::string& name, const std::shared_ptr<WriteBufferManager>&);
   ///@}
 
   bool Get(const std::string& name, std::shared_ptr<Options>*) const;
@@ -194,6 +196,7 @@ class SidePluginRepo {
   bool Get(const std::string& name, std::shared_ptr<TableFactory>*) const;
   bool Get(const std::string& name, std::shared_ptr<TablePropertiesCollectorFactory>*) const;
   bool Get(const std::string& name, std::shared_ptr<TransactionDBMutexFactory>*) const;
+  bool Get(const std::string& name, std::shared_ptr<WriteBufferManager>*) const;
 
   class Auto {
     friend class SidePluginRepo;
@@ -240,6 +243,7 @@ class SidePluginRepo {
   const json* GetConsParams(const std::shared_ptr<TableFactory>&) const;
   const json* GetConsParams(const std::shared_ptr<TablePropertiesCollectorFactory>&) const;
   const json* GetConsParams(const std::shared_ptr<TransactionDBMutexFactory>&) const;
+  const json* GetConsParams(const std::shared_ptr<WriteBufferManager>&) const;
 
   const json* GetConsParams(const Options*) const;
   const json* GetConsParams(const DBOptions*) const;
@@ -267,6 +271,7 @@ class SidePluginRepo {
   const json* GetConsParams(const TableFactory*) const;
   const json* GetConsParams(const TablePropertiesCollectorFactory*) const;
   const json* GetConsParams(const TransactionDBMutexFactory*) const;
+  const json* GetConsParams(const WriteBufferManager*) const;
 
   static int DebugLevel();
 

@@ -138,9 +138,36 @@ static Status Json_EventListenerVec(const json& js, const SidePluginRepo& repo,
   return Status::OK();
 }
 
+static std::shared_ptr<WriteBufferManager>
+JS_NewWriteBufferManager(const json& js, const SidePluginRepo& repo) {
+  size_t buffer_size = 0;
+  shared_ptr<Cache> cache;
+  ROCKSDB_JSON_REQ_SIZE(js, buffer_size);
+  ROCKSDB_JSON_OPT_FACT(js, cache);
+  return std::make_shared<WriteBufferManager>(buffer_size, cache);
+}
+struct WriteBufferManager_Manip : PluginManipFunc<WriteBufferManager> {
+  void Update(WriteBufferManager*, const json&, const SidePluginRepo&) const final {
+    // TODO:
+  }
+  std::string ToString(const WriteBufferManager& wbm, const json& dump_options,
+                       const SidePluginRepo& repo) const final {
+    bool html = JsonSmartBool(dump_options, "html");
+    json js;
+    size_t buffer_size = wbm.buffer_size();
+    const shared_ptr<Cache>& cache = wbm.GetCache();
+    ROCKSDB_JSON_SET_SIZE(js, buffer_size);
+    ROCKSDB_JSON_SET_FACT(js, cache);
+    return JsonToString(js, dump_options);
+  }
+};
+ROCKSDB_FACTORY_REG("WriteBufferManager", JS_NewWriteBufferManager);
+ROCKSDB_REG_PluginManip("WriteBufferManager", WriteBufferManager_Manip);
+
 struct DBOptions_Json : DBOptions {
   DBOptions_Json(const json& js, const SidePluginRepo& repo) {
     write_dbid_to_manifest = true;
+    avoid_unnecessary_blocking_io = true;
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
@@ -196,18 +223,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_SIZE(js, stats_history_buffer_size);
     ROCKSDB_JSON_OPT_PROP(js, advise_random_on_open);
     ROCKSDB_JSON_OPT_SIZE(js, db_write_buffer_size);
-    {
-      auto iter = js.find("write_buffer_manager");
-      if (js.end() != iter) {
-        auto& wbm = iter.value();
-        size_t buffer_size = db_write_buffer_size;
-        shared_ptr<Cache> cache;
-        ROCKSDB_JSON_OPT_FACT(wbm, cache);
-        ROCKSDB_JSON_OPT_SIZE(wbm, buffer_size);
-        write_buffer_manager = std::make_shared<WriteBufferManager>(
-            buffer_size, cache);
-      }
-    }
+    ROCKSDB_JSON_OPT_FACT(js, write_buffer_manager);
     ROCKSDB_JSON_OPT_ENUM(js, access_hint_on_compaction_start);
     ROCKSDB_JSON_OPT_PROP(js, new_table_reader_for_compaction_inputs);
     ROCKSDB_JSON_OPT_SIZE(js, compaction_readahead_size);
@@ -306,15 +322,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_SIZE(js, stats_history_buffer_size);
     ROCKSDB_JSON_SET_PROP(js, advise_random_on_open);
     ROCKSDB_JSON_SET_SIZE(js, db_write_buffer_size);
-    {
-      // class WriteBufferManager is damaged, cache passed to
-      // its cons is not used, and there is no way to get its internal
-      // cache object
-      json& wbm = js["write_buffer_manager"];
-      shared_ptr<Cache> cache;
-      ROCKSDB_JSON_SET_FACT(wbm, cache);
-      wbm["buffer_size"] = SizeToString(db_write_buffer_size);
-    }
+    ROCKSDB_JSON_SET_FACT(js, write_buffer_manager);
     ROCKSDB_JSON_SET_ENUM(js, access_hint_on_compaction_start);
     ROCKSDB_JSON_SET_PROP(js, new_table_reader_for_compaction_inputs);
     ROCKSDB_JSON_SET_SIZE(js, compaction_readahead_size);

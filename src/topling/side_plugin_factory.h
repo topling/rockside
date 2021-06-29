@@ -87,6 +87,7 @@ struct SidePluginRepo::Impl {
   ObjRepo<TableFactory> table_factory;
   ObjRepo<TablePropertiesCollectorFactory> table_properties_collector_factory;
   ObjRepo<TransactionDBMutexFactory> txn_db_mutex_factory;
+  ObjRepo<WriteBufferManager> write_buffer_manager;
   ObjRepo<const SliceTransform> slice_transform;
 
   ObjRepo<Options> options;
