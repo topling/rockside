@@ -268,32 +268,32 @@ try
   const auto& repo = *this;
 #define JSON_IMPORT_REPO(Clazz, field) \
   Impl_Import(m_impl->field, #Clazz, main_js, repo)
-  JSON_IMPORT_REPO(AnyPlugin               , any_plugin);
-  JSON_IMPORT_REPO(Comparator              , comparator);
-  JSON_IMPORT_REPO(Env                     , env);
-  JSON_IMPORT_REPO(Logger                  , info_log);
-  JSON_IMPORT_REPO(SliceTransform          , slice_transform);
-  JSON_IMPORT_REPO(Cache                   , cache);
-  JSON_IMPORT_REPO(PersistentCache         , persistent_cache);
+  JSON_IMPORT_REPO(AnyPlugin                , any_plugin);
+  JSON_IMPORT_REPO(Comparator               , comparator);
+  JSON_IMPORT_REPO(Env                      , env);
+  JSON_IMPORT_REPO(Logger                   , info_log);
+  JSON_IMPORT_REPO(SliceTransform           , slice_transform);
+  JSON_IMPORT_REPO(Cache                    , cache);
+  JSON_IMPORT_REPO(PersistentCache          , persistent_cache);
   JSON_IMPORT_REPO(CompactionExecutorFactory, compaction_executor_factory);
-  JSON_IMPORT_REPO(CompactionFilterFactory , compaction_filter_factory);
-  JSON_IMPORT_REPO(ConcurrentTaskLimiter   , compaction_thread_limiter);
-  JSON_IMPORT_REPO(EventListener           , event_listener);
-  JSON_IMPORT_REPO(FileChecksumGenFactory  , file_checksum_gen_factory);
-  JSON_IMPORT_REPO(FileSystem              , file_system);
-  JSON_IMPORT_REPO(FilterPolicy            , filter_policy);
-  JSON_IMPORT_REPO(FlushBlockPolicyFactory , flush_block_policy_factory);
-  JSON_IMPORT_REPO(MergeOperator           , merge_operator);
-  JSON_IMPORT_REPO(RateLimiter             , rate_limiter);
-  JSON_IMPORT_REPO(SstFileManager          , sst_file_manager);
-  JSON_IMPORT_REPO(SstPartitionerFactory   , sst_partitioner_factory);
-  JSON_IMPORT_REPO(Statistics              , statistics);
+  JSON_IMPORT_REPO(CompactionFilterFactory  , compaction_filter_factory);
+  JSON_IMPORT_REPO(ConcurrentTaskLimiter    , compaction_thread_limiter);
+  JSON_IMPORT_REPO(EventListener            , event_listener);
+  JSON_IMPORT_REPO(FileChecksumGenFactory   , file_checksum_gen_factory);
+  JSON_IMPORT_REPO(FileSystem               , file_system);
+  JSON_IMPORT_REPO(FilterPolicy             , filter_policy);
+  JSON_IMPORT_REPO(FlushBlockPolicyFactory  , flush_block_policy_factory);
+  JSON_IMPORT_REPO(MergeOperator            , merge_operator);
+  JSON_IMPORT_REPO(RateLimiter              , rate_limiter);
+  JSON_IMPORT_REPO(SstFileManager           , sst_file_manager);
+  JSON_IMPORT_REPO(SstPartitionerFactory    , sst_partitioner_factory);
+  JSON_IMPORT_REPO(Statistics               , statistics);
   JSON_IMPORT_REPO(TablePropertiesCollectorFactory,
                    table_properties_collector_factory);
 
-  JSON_IMPORT_REPO(MemoryAllocator         , memory_allocator);
-  JSON_IMPORT_REPO(MemTableRepFactory      , memtable_factory);
-  JSON_IMPORT_REPO(TableFactory            , table_factory);
+  JSON_IMPORT_REPO(MemoryAllocator          , memory_allocator);
+  JSON_IMPORT_REPO(MemTableRepFactory       , memtable_factory);
+  JSON_IMPORT_REPO(TableFactory             , table_factory);
   JSON_IMPORT_REPO(TransactionDBMutexFactory, txn_db_mutex_factory);
   JSON_IMPORT_REPO(WriteBufferManager       , write_buffer_manager);
 
@@ -336,32 +336,32 @@ try
   assert(NULL != main_js);
 #define JSON_EXPORT_REPO(Clazz, field) \
   Impl_Export(m_impl->field, #Clazz, *main_js)
-  JSON_EXPORT_REPO(AnyPlugin               , any_plugin);
-  JSON_EXPORT_REPO(Comparator              , comparator);
-  JSON_EXPORT_REPO(Env                     , env);
-  JSON_EXPORT_REPO(Logger                  , info_log);
-  JSON_EXPORT_REPO(SliceTransform          , slice_transform);
-  JSON_EXPORT_REPO(Cache                   , cache);
-  JSON_EXPORT_REPO(PersistentCache         , persistent_cache);
+  JSON_EXPORT_REPO(AnyPlugin                , any_plugin);
+  JSON_EXPORT_REPO(Comparator               , comparator);
+  JSON_EXPORT_REPO(Env                      , env);
+  JSON_EXPORT_REPO(Logger                   , info_log);
+  JSON_EXPORT_REPO(SliceTransform           , slice_transform);
+  JSON_EXPORT_REPO(Cache                    , cache);
+  JSON_EXPORT_REPO(PersistentCache          , persistent_cache);
   JSON_EXPORT_REPO(CompactionExecutorFactory, compaction_executor_factory);
-  JSON_EXPORT_REPO(CompactionFilterFactory , compaction_filter_factory);
-  JSON_EXPORT_REPO(ConcurrentTaskLimiter   , compaction_thread_limiter);
-  JSON_EXPORT_REPO(EventListener           , event_listener);
-  JSON_EXPORT_REPO(FileChecksumGenFactory  , file_checksum_gen_factory);
-  JSON_EXPORT_REPO(FileSystem              , file_system);
-  JSON_EXPORT_REPO(FilterPolicy            , filter_policy);
-  JSON_EXPORT_REPO(FlushBlockPolicyFactory , flush_block_policy_factory);
-  JSON_EXPORT_REPO(MergeOperator           , merge_operator);
-  JSON_EXPORT_REPO(RateLimiter             , rate_limiter);
-  JSON_EXPORT_REPO(SstFileManager          , sst_file_manager);
-  JSON_EXPORT_REPO(SstPartitionerFactory   , sst_partitioner_factory);
-  JSON_EXPORT_REPO(Statistics              , statistics);
+  JSON_EXPORT_REPO(CompactionFilterFactory  , compaction_filter_factory);
+  JSON_EXPORT_REPO(ConcurrentTaskLimiter    , compaction_thread_limiter);
+  JSON_EXPORT_REPO(EventListener            , event_listener);
+  JSON_EXPORT_REPO(FileChecksumGenFactory   , file_checksum_gen_factory);
+  JSON_EXPORT_REPO(FileSystem               , file_system);
+  JSON_EXPORT_REPO(FilterPolicy             , filter_policy);
+  JSON_EXPORT_REPO(FlushBlockPolicyFactory  , flush_block_policy_factory);
+  JSON_EXPORT_REPO(MergeOperator            , merge_operator);
+  JSON_EXPORT_REPO(RateLimiter              , rate_limiter);
+  JSON_EXPORT_REPO(SstFileManager           , sst_file_manager);
+  JSON_EXPORT_REPO(SstPartitionerFactory    , sst_partitioner_factory);
+  JSON_EXPORT_REPO(Statistics               , statistics);
   JSON_EXPORT_REPO(TablePropertiesCollectorFactory,
                    table_properties_collector_factory);
 
-  JSON_EXPORT_REPO(MemoryAllocator         , memory_allocator);
-  JSON_EXPORT_REPO(MemTableRepFactory      , memtable_factory);
-  JSON_EXPORT_REPO(TableFactory            , table_factory);
+  JSON_EXPORT_REPO(MemoryAllocator          , memory_allocator);
+  JSON_EXPORT_REPO(MemTableRepFactory       , memtable_factory);
+  JSON_EXPORT_REPO(TableFactory             , table_factory);
   JSON_EXPORT_REPO(TransactionDBMutexFactory, txn_db_mutex_factory);
   JSON_EXPORT_REPO(WriteBufferManager       , write_buffer_manager);
 
