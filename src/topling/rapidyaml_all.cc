@@ -1,3 +1,5 @@
+#include <rocksdb/slice.h>
+
 #ifdef SIDE_PLUGIN_WITH_YAML
 #include <ryml.hpp>
 #include <c4/std/string.hpp>
@@ -15,8 +17,24 @@
 #include <src/c4/yml/preprocess.cpp>
 #include <src/c4/yml/tree.cpp>
 
-#endif
+#include <sstream>
 
-void rapidyaml_all_sig() {
-    // do nothing
+namespace ROCKSDB_NAMESPACE {
+std::string YamlToJson(std::string& yaml_str) {
+  ryml::Tree yt = ryml::parse(c4::to_substr(yaml_str));
+  std::stringstream ss;
+  ss << ryml::as_json(yt);
+  return ss.str();
 }
+} // namespace ROCKSDB_NAMESPACE
+
+#else // SIDE_PLUGIN_WITH_YAML
+
+namespace ROCKSDB_NAMESPACE {
+std::string YamlToJson(std::string& yaml_str) {
+    throw std::invalid_argument(rocksdb::Slice(ROCKSDB_FUNC) +
+        ": yaml is not compiled: SIDE_PLUGIN_WITH_YAML is not defined");
+}
+} // namespace ROCKSDB_NAMESPACE
+
+#endif // SIDE_PLUGIN_WITH_YAML

@@ -92,10 +92,9 @@ class SidePluginRepo {
   SidePluginRepo& operator=(const SidePluginRepo&) = delete;
   SidePluginRepo& operator=(SidePluginRepo&&) = delete;
 
+  Status ImportAutoFile(const Slice& fname);
   Status ImportJsonFile(const Slice& fname);
-#ifdef SIDE_PLUGIN_WITH_YAML
   Status ImportYamlFile(const Slice& fname);
-#endif
 
   Status Import(const std::string& json_str);
   Status Import(const nlohmann::json&);

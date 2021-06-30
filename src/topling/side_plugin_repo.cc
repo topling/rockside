@@ -22,12 +22,6 @@
 #include "json.h"
 #include "side_plugin_factory.h"
 
-#ifdef SIDE_PLUGIN_WITH_YAML
-#include <ryml.hpp>
-#include <c4/std/string.hpp>
-#endif
-
-
 namespace ROCKSDB_NAMESPACE {
 
 using std::shared_ptr;
@@ -175,29 +169,50 @@ SidePluginRepo::SidePluginRepo() noexcept {
 }
 SidePluginRepo::~SidePluginRepo() = default;
 
+// yaml or json
+Status SidePluginRepo::ImportAutoFile(const Slice& fname) {
+  if (fname.ends_with(".json") || fname.ends_with(".js")) {
+    return ImportJsonFile(fname);
+  }
+  if (fname.ends_with(".yaml") || fname.ends_with(".yml")) {
+    return ImportYamlFile(fname);
+  }
+  return Status::InvalidArgument(ROCKSDB_FUNC,
+              fname + " is unsupported file type");
+}
+
 std::string ReadWholeFile(const Slice& fname) {
   std::ifstream ifs(fname.data());
   if (!ifs.is_open()) {
-    THROW_InvalidArgument("open file fail: " + fname);
+    throw std::logic_error("open file failed: " + fname);
   }
   std::stringstream ss;
   ss << ifs.rdbuf();
   return ss.str();
 }
 
-Status SidePluginRepo::ImportJsonFile(const Slice& fname) {
+Status SidePluginRepo::ImportJsonFile(const Slice& fname)
+#if defined(NDEBUG)
+try
+#endif
+{
   std::string json_str = ReadWholeFile(fname);
   return Import(json_str);
 }
-
-#ifdef SIDE_PLUGIN_WITH_YAML
-std::string YamlToJson(std::string& yaml_str) {
-  ryml::Tree yt = ryml::parse(c4::to_substr(yaml_str));
-  std::stringstream ss;
-  ss << ryml::as_json(yt);
-  return ss.str();
+#if defined(NDEBUG)
+catch (const std::exception& ex) {
+  return Status::InvalidArgument(std::string(__FILE__)
+                       + ":" ROCKSDB_PP_STR(__LINE__) ": "
+                       + ROCKSDB_FUNC + ": file = " + fname, ex.what());
 }
-Status SidePluginRepo::ImportYamlFile(const Slice& fname) {
+#endif
+
+std::string YamlToJson(std::string& yaml_str);
+Status SidePluginRepo::ImportYamlFile(const Slice& fname)
+#if defined(NDEBUG)
+try
+#endif
+{
   std::string json_str;
   {
     std::string yaml_str = ReadWholeFile(fname);
@@ -205,7 +220,13 @@ Status SidePluginRepo::ImportYamlFile(const Slice& fname) {
   }
   return Import(json_str);
 }
-#endif // #ifdef SIDE_PLUGIN_WITH_YAML
+#if defined(NDEBUG)
+catch (const std::exception& ex) {
+  return Status::InvalidArgument(std::string(__FILE__)
+                       + ":" ROCKSDB_PP_STR(__LINE__) ": "
+                       + ROCKSDB_FUNC + ": file = " + fname, ex.what());
+}
+#endif
 
 Status SidePluginRepo::Import(const string& json_str)
 #if defined(NDEBUG)
