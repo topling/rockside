@@ -295,6 +295,7 @@ try
   JSON_IMPORT_REPO(MemTableRepFactory      , memtable_factory);
   JSON_IMPORT_REPO(TableFactory            , table_factory);
   JSON_IMPORT_REPO(TransactionDBMutexFactory, txn_db_mutex_factory);
+  JSON_IMPORT_REPO(WriteBufferManager       , write_buffer_manager);
 
   extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
   for (auto& kv : *m_impl->table_factory.name2p) {
@@ -362,6 +363,7 @@ try
   JSON_EXPORT_REPO(MemTableRepFactory      , memtable_factory);
   JSON_EXPORT_REPO(TableFactory            , table_factory);
   JSON_EXPORT_REPO(TransactionDBMutexFactory, txn_db_mutex_factory);
+  JSON_EXPORT_REPO(WriteBufferManager       , write_buffer_manager);
 
   return Status::OK();
 }
