@@ -6,3 +6,12 @@ file(GLOB rockside_src RELATIVE ${PROJECT_SOURCE_DIR}
      sideplugin/rockside/src/topling/web/*.cc
      sideplugin/rockside/src/topling/*.h
      sideplugin/rockside/src/topling/*.cc)
+
+if (EXISTS ${PROJECT_SOURCE_DIR}/../rapidyaml/CMakeLists.txt)
+  get_filename_component(rapidyaml_abs_dir ${PROJECT_SOURCE_DIR}/../rapidyaml ABSOLUTE)
+  message(STATUS "found ${rapidyaml_abs_dir}/CMakeLists.txt")
+  #add_subdirectory(${rapidyaml_abs_dir} ${CMAKE_BINARY_DIR}/rapidyaml)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIDE_PLUGIN_WITH_YAML -I${rapidyaml_abs_dir}/src")
+else()
+  message(STATUS "not found ${PROJECT_SOURCE_DIR}/../rapidyaml/CMakeLists.txt")
+endif()

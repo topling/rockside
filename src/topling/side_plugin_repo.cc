@@ -22,6 +22,12 @@
 #include "json.h"
 #include "side_plugin_factory.h"
 
+#ifdef SIDE_PLUGIN_WITH_YAML
+#include <ryml.hpp>
+#include <c4/std/string.hpp>
+#endif
+
+
 namespace ROCKSDB_NAMESPACE {
 
 using std::shared_ptr;
@@ -169,19 +175,37 @@ SidePluginRepo::SidePluginRepo() noexcept {
 }
 SidePluginRepo::~SidePluginRepo() = default;
 
+std::string ReadWholeFile(const Slice& fname) {
+  std::ifstream ifs(fname.data());
+  if (!ifs.is_open()) {
+    THROW_InvalidArgument("open file fail: " + fname);
+  }
+  std::stringstream ss;
+  ss << ifs.rdbuf();
+  return ss.str();
+}
+
 Status SidePluginRepo::ImportJsonFile(const Slice& fname) {
+  std::string json_str = ReadWholeFile(fname);
+  return Import(json_str);
+}
+
+#ifdef SIDE_PLUGIN_WITH_YAML
+std::string YamlToJson(std::string& yaml_str) {
+  ryml::Tree yt = ryml::parse(c4::to_substr(yaml_str));
+  std::stringstream ss;
+  ss << ryml::as_json(yt);
+  return ss.str();
+}
+Status SidePluginRepo::ImportYamlFile(const Slice& fname) {
   std::string json_str;
   {
-    std::ifstream ifs(fname.data());
-    if (!ifs.is_open()) {
-      return Status::InvalidArgument("open json file fail", fname);
-    }
-    std::stringstream ss;
-    ss << ifs.rdbuf();
-    json_str = ss.str();
+    std::string yaml_str = ReadWholeFile(fname);
+    json_str = YamlToJson(yaml_str);
   }
   return Import(json_str);
 }
+#endif // #ifdef SIDE_PLUGIN_WITH_YAML
 
 Status SidePluginRepo::Import(const string& json_str)
 #if defined(NDEBUG)
