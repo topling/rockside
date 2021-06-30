@@ -483,8 +483,15 @@ ObtainPlugin(const char* varname, const char* func_name,
   if (js.is_string()) {
     const auto& str_val = js.get_ref<const std::string&>();
     if (str_val.empty()) {
+    #if 1
+      // treat empty string json as null, because json convert to yaml
+      // may convert json null into empty string, convert such yaml back
+      // to json yield an empty string ""
+      return Ptr(nullptr);
+    #else
       throw Status::InvalidArgument(func_name, std::string(varname) +
                " inst_id/class_name is empty");
+    #endif
     }
     if ('$' == str_val[0]) {
       if (str_val.size() < 3) {
