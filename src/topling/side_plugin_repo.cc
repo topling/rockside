@@ -619,6 +619,7 @@ Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp);
  *         method : "DB::Open",
  *         params : {
  *           name : "some-name",
+ *           path : "some-path",
  *           options: { ... }
  *         }
  *       },
@@ -626,6 +627,7 @@ Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp);
  *         method : "SomeStackableDB::Open",
  *         params : {
  *           name : "some-name",
+ *           path : "some-path",
  *           options: { ... }
  *         }
  *       }
@@ -633,6 +635,7 @@ Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp);
  *         method : "DB::OpenReadOnly",
  *         params : {
  *           name : "some-name",
+ *           path : "some-path",
  *           options: { ... }
  *         }
  *       }
@@ -770,6 +773,22 @@ try
     }
   } else if (js.is_object()) {
     // when name is empty, js["params"]["name"] must be defined
+    // this happens on OpenDB with a json
+    auto i1 = js.find("params");
+    if (js.end() == i1) {
+      THROW_InvalidArgument(R"(missing "params": )" + js.dump());
+    }
+    auto i2 = i1.value().find("name");
+    if (js.end() == i2) {
+      THROW_InvalidArgument("missing params.name: " + js.dump());
+    }
+    if (!i2.value().is_string()) {
+      THROW_InvalidArgument("params.name must be string: " + js.dump());
+    }
+    const auto& name = i2.value().get_ref<const std::string&>();
+    if (name.empty()) {
+      THROW_InvalidArgument("params.name must not be empty: " + js.dump());
+    }
     std::string empty_name = ""; // NOLINT
     Impl_OpenDB_tpl(empty_name, js, repo, dbp);
   }
