@@ -7,7 +7,7 @@
 #include <string> // string
 #include <vector> // vector
 
-#ifndef JSON_USE_STD_MAP
+#ifdef JSON_USE_GOLD_HASH_MAP
 #include <terark/gold_hash_map.hpp>
 
 namespace terark {
@@ -33,7 +33,7 @@ public:
 };
 } // namespace terark
 
-#endif // #ifndef JSON_USE_STD_MAP
+#endif // #ifdef JSON_USE_GOLD_HASH_MAP
 
 /*!
 @brief namespace for Niels Lohmann
@@ -53,10 +53,10 @@ template<typename T = void, typename SFINAE = void>
 struct adl_serializer;
 
 template<template<typename U, typename V, typename... Args> class ObjectType =
-#ifdef JSON_USE_STD_MAP
-         std::map,
-#else
+#ifdef JSON_USE_GOLD_HASH_MAP
          terark::JsonStrMap,
+#else
+         std::map,
 #endif
          template<typename U, typename... Args> class ArrayType = std::vector,
          class StringType = std::string, class BooleanType = bool,
@@ -91,9 +91,7 @@ uses the standard template types.
 
 @since version 1.0.0
 */
-#ifdef JSON_USE_STD_MAP
-using json = basic_json<>;
-#else
+#ifdef JSON_USE_GOLD_HASH_MAP
 typedef basic_json<terark::JsonStrMap> json;
 /*
 typedef basic_json<terark::JsonStrMap> JsonBase;
@@ -102,6 +100,8 @@ public:
     using JsonBase::JsonBase;
 };
 */
+#else
+using json = basic_json<>;
 #endif
 
 }  // namespace nlohmann
