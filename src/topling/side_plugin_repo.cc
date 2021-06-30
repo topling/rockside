@@ -241,7 +241,8 @@ catch (const std::exception& ex) {
   // just parse error
   return Status::InvalidArgument(std::string(__FILE__)
                        + ":" ROCKSDB_PP_STR(__LINE__) ": "
-                       + ROCKSDB_FUNC, ex.what());
+                       + ROCKSDB_FUNC,
+         Slice(ex.what()) + ": json_str is :\n" + json_str);
 }
 #endif
 
