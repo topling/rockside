@@ -37,6 +37,11 @@ template<class T> T* GetRawPtr(T* p){ return p; }
 template<class T> T* GetRawPtr(const std::shared_ptr<T>& p){ return p.get(); }
 inline DB* GetRawPtr(const DB_Ptr& p){ return p.db; }
 
+inline const SidePluginRepo& null_repo_ref() {
+   SidePluginRepo* p = nullptr;
+   return *p;
+}
+
 struct CFPropertiesWebView {
   DB* db;
   ColumnFamilyHandle* cfh;
@@ -266,7 +271,7 @@ SerDeFactory<Object>* SerDeFac(const std::shared_ptr<Object>&) { return nullptr;
 template<class Object>
 void SerDe_SerializeReq(FILE* fp, const std::string& clazz, const Object* obj,
                         const json& js = json{},
-                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = null_repo_ref()) {
   assert(nullptr != obj);
   auto serde = SerDeFactory<Object>::AcquirePlugin(clazz, js, repo);
   serde->Serialize(fp, *obj);
@@ -275,7 +280,7 @@ template<class Object>
 void SerDe_SerializeReq(FILE* fp, const std::string& clazz,
                         const std::shared_ptr<Object>& obj,
                         const json& js = json{},
-                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = null_repo_ref()) {
   return SerDe_SerializeReq(fp, clazz, obj.get(), js, repo);
 }
 
@@ -285,7 +290,7 @@ void SerDe_SerializeReq(FILE* fp, const std::string& clazz,
 template<class Object>
 void SerDe_SerializeOpt(FILE* fp, const std::string& clazz, const Object* obj,
                         const json& js = json{},
-                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = null_repo_ref()) {
   auto serde = SerDeFactory<Object>::NullablePlugin(clazz, js, repo);
   if (serde) {
     assert(nullptr != obj);
@@ -296,14 +301,14 @@ template<class Object>
 void SerDe_SerializeOpt(FILE* fp, const std::string& clazz,
                         const std::shared_ptr<Object>& obj,
                         const json& js = json{},
-                        const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
+                        const SidePluginRepo& repo = null_repo_ref()) {
   return SerDe_SerializeOpt(fp, clazz, obj.get(), js, repo);
 }
 
 template<class Object>
 void SerDe_DeSerialize(FILE* fp, const std::string& clazz, Object* obj,
                        const json& js = json{},
-                       const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
+                       const SidePluginRepo& repo = null_repo_ref()) {
   auto serde = SerDeFactory<Object>::NullablePlugin(clazz, js, repo);
   if (serde) {
     assert(nullptr != obj);
@@ -314,13 +319,13 @@ template<class Object>
 void SerDe_DeSerialize(FILE* fp, const std::string& clazz,
                        const std::shared_ptr<Object>& obj,
                        const json& js = json{},
-                       const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
+                       const SidePluginRepo& repo = null_repo_ref()) {
   SerDe_DeSerialize(fp, clazz, obj.get(), js, repo);
 }
 template<class Ptr>
 void SerDe_DeSerialize(FILE* fp, const Ptr& p,
                        const json& js = json{},
-                       const SidePluginRepo& repo = *(SidePluginRepo*)nullptr) {
+                       const SidePluginRepo& repo = null_repo_ref()) {
   if (p)
     SerDe_DeSerialize(fp, p->Name(), p, js, repo);
 }
