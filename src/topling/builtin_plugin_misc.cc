@@ -2694,6 +2694,7 @@ void HtmlAppendEscape(std::string* d, const char* s, size_t n) {
     const char c = s[i];
     switch (c) {
       default : d->push_back(c);    break;
+      case  0 : return; // stop at zero byte
       case '<': d->append("&lt;" ); break;
       case '>': d->append("&gt;" ); break;
       case '&': d->append("&amp;"); break;
