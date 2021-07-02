@@ -2717,7 +2717,12 @@ struct HtmlTextUserKeyCoder : public UserKeyCoder {
     HtmlAppendEscape(de, coded.data_, coded.size_);
   }
 };
-ROCKSDB_REG_DEFAULT_CONS(HtmlTextUserKeyCoder, AnyPlugin);
+std::shared_ptr<AnyPlugin>
+JS_NewHtmlTextUserKeyCoder(const json&, const SidePluginRepo&) {
+  static const auto single = std::make_shared<HtmlTextUserKeyCoder>();
+  return single;
+}
+ROCKSDB_FACTORY_REG("HtmlTextUserKeyCoder", JS_NewHtmlTextUserKeyCoder);
 
 // users should ensure databases are alive when calling this function
 void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
