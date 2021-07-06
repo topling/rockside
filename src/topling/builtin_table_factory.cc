@@ -4,6 +4,7 @@
 #include "table/block_based/block_based_table_factory.h"
 #include "table/plain/plain_table_factory.h"
 #include "table/table_builder.h"
+#include "db/compaction/compaction.h"
 #include "json.h"
 #include "side_plugin_factory.h"
 #include "builtin_table_factory.h"
@@ -529,6 +530,45 @@ const {
 Status DispatcherTableFactory::ValidateOptions(const DBOptions&, const ColumnFamilyOptions&)
 const {
   return Status::OK();
+}
+
+static std::string str_input_levels(const Compaction* c) {
+  ROCKSDB_VERIFY(!c->inputs()->empty());
+  std::string s;
+  char buf[32];
+  for (auto& each_input : *c->inputs()) {
+    s.append(buf, sprintf(buf, "%d,", each_input.level));
+  }
+  s.pop_back();
+  return s;
+}
+
+bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) const {
+  auto get_fac = [&](int level) {
+    level = std::min(level, int(m_level_writers.size()) - 1);
+    if (level < 0) {
+      return m_default_writer.get();
+    } else {
+      return m_level_writers[level].get();
+    }
+  };
+  auto debug_print = [c](const char* strbool) {
+    if (SidePluginRepo::DebugLevel() >= 4) {
+      fprintf(stderr,
+  "DispatcherTableFactory::InputCompressionMatchesOutput: {%s}->%d : %s\n",
+        str_input_levels(c).c_str(), c->output_level(), strbool);
+    }
+  };
+  const TableFactory* output_factory = get_fac(c->output_level());
+  for (auto& each_input : *c->inputs()) {
+    const TableFactory* input_factory = get_fac(each_input.level);
+    if (input_factory != output_factory) {
+      debug_print("false");
+      return false;
+    }
+  }
+  debug_print("true");
+  return true;
 }
 
 void DispatcherTableBackPatch(TableFactory* f, const SidePluginRepo& repo) {

@@ -481,7 +481,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_SIZE(js, max_write_buffer_size_to_maintain);
     ROCKSDB_JSON_OPT_PROP(js, inplace_update_support);
     ROCKSDB_JSON_OPT_PROP(js, inplace_update_num_locks);
-    // ROCKSDB_JSON_OPT_PROP(js, inplace_callback); // not need update
+ // ROCKSDB_JSON_OPT_PROP(js, inplace_callback); // not need update
     ROCKSDB_JSON_OPT_PROP(js, memtable_prefix_bloom_size_ratio);
     ROCKSDB_JSON_OPT_PROP(js, memtable_whole_key_filtering);
     ROCKSDB_JSON_OPT_PROP(js, memtable_huge_page_size);
