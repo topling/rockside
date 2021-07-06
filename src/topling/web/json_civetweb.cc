@@ -111,7 +111,7 @@ public:
               //"Connection: close\r\n"
               "\r\n"
 R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
-              );
+              "\r\n");
 
     const mg_request_info* req = mg_get_request_info(conn);
     json query = from_query_string(req->query_string);
