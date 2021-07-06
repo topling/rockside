@@ -107,7 +107,9 @@ public:
   bool handleGet(CivetServer *server, struct mg_connection *conn) override {
     mg_printf(conn,
               "HTTP/1.1 200 OK\r\nContent-Type: "
-              "text/html\r\nConnection: close\r\n\r\n");
+              "text/html\r\nConnection: close\r\n\r\n"
+R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
+              );
 
     const mg_request_info* req = mg_get_request_info(conn);
     json query = from_query_string(req->query_string);
