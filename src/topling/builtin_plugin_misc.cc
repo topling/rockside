@@ -1675,6 +1675,9 @@ try {
     .emoji {
       font-family: "Apple Color Emoji","Segoe UI Emoji",NotoColorEmoji,"Segoe UI Symbol","Android Emoji",EmojiSymbols;
     }
+    em {
+      color: brown;
+    }
   </style>)EOS"
   );
   html.append("<p>");
