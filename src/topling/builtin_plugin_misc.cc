@@ -1874,10 +1874,12 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
   if (!s.ok()) {
     THROW_InvalidArgument(s.ToString());
   }
+  ROCKSDB_VERIFY(nullptr != ch);
+  ROCKSDB_SCOPE_EXIT(tc->ReleaseHandle(ch));
   TableReader* tr = tc->GetTableReaderFromHandle(ch);
   const auto& zip_algo = tr->GetTableProperties()->compression_name;
-  auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), SidePluginRepo());
-  return manip->ToString(*tr, dump_options, SidePluginRepo());
+  auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), null_repo_ref());
+  return manip->ToString(*tr, dump_options, null_repo_ref());
 }
 
 struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
