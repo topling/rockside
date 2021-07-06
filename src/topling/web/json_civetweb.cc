@@ -184,8 +184,10 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
     else if (html) {
       mg_printf(conn, "<html><title>ERROR</title><body>\r\n");
       mg_printf(conn, "<h1>ERROR: not found: %s</h1>\r\n", uri);
-      mg_printf(conn, "<h1><a href='/%.*s'>see all %.*s</a>\r\n",
+      mg_printf(conn, "<h1><a href='/%.*s%s%s'>see all %.*s</a>\r\n",
                 int(slash - uri), uri,
+                req->query_string ? "?" : "",
+                req->query_string ? req->query_string : "",
                 int(slash - uri), uri);
       mg_printf(conn, "</body></html>\r\n");
     }
