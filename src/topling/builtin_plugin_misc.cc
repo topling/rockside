@@ -1394,7 +1394,9 @@ static std::string
 Json_DB_CF_SST_HtmlTable(const DB& db, ColumnFamilyHandle* cfh,
                          const SidePluginRepo& repo) {
   std::string html;
+#if defined(NDEBUG)
 try {
+#endif
   char buf[128];
   ColumnFamilyMetaData meta;
   TablePropertiesCollection props;
@@ -1735,10 +1737,12 @@ try {
   }
   html.append("</div>");
   return html;
+#if defined(NDEBUG)
 }
 catch (const std::exception& ex) {
   throw std::runtime_error(html + "\n" + ex.what());
 }
+#endif
 }
 
 static void

@@ -168,9 +168,12 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
         mg_printf(conn, "<html><title>%s</title><body>\n", name);
         mg_print_cur_time(conn);
       }
+#if defined(NDEBUG)
       try {
+#endif
         std::string str = PluginToString(p, *m_map, query, *m_repo);
         mg_write(conn, str.data(), str.size());
+#if defined(NDEBUG)
       }
       catch (const Status& es) {
         mg_printf(conn, "Caught Status: %s\n", es.ToString().c_str());
@@ -178,6 +181,7 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
       catch (const std::exception& ex) {
         mg_printf(conn, "Caught std::exception: %s\n", ex.what());
       }
+#endif
       if (html)
         mg_printf(conn, "</body></html>\n");
     }
