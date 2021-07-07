@@ -84,6 +84,24 @@ void mg_print_cur_time(mg_connection *conn) {
   mg_printf(conn, "<p>%s</p>\r\n", cur_time_stat().c_str());
 }
 
+std::string ReadPostData(mg_connection* conn) {
+  std::string post; post.resize(8192);
+  size_t pos = 0;
+  while (true) {
+    if (pos + 4096 < post.size()) {
+      post.resize(pos + 4096);
+    }
+    auto len = mg_read(conn, &post[pos], post.size() - pos);
+    if (len > 0) {
+      pos += len;
+    }
+    if (0 == len)
+      break; // have read all data
+  }
+  post.resize(pos);
+  return post;
+}
+
 template<class Ptr>
 class RepoHandler : public CivetHandler {
 public:
