@@ -486,11 +486,11 @@ Status DispatcherTableFactory::NewTableReader(
 
 TableBuilder* DispatcherTableFactory::NewTableBuilder(
     const TableBuilderOptions& table_builder_options,
-    uint32_t column_family_id, WritableFileWriter* file)
+    WritableFileWriter* file)
 const {
-  auto info_log = table_builder_options.ioptions.info_log;
+  auto info_log = table_builder_options.ioptions.info_log.get();
   ROCKSDB_VERIFY_F(m_is_back_patched, "BackPatch() was not called");
-  int level = std::min(table_builder_options.level,
+  int level = std::min(table_builder_options.level_at_creation,
                        int(m_level_writers.size()-1));
   TableBuilder* builder;
   if (level >= 0) {
@@ -500,14 +500,14 @@ const {
         level, m_level_writers[level]->Name());
     }
     builder = m_level_writers[level]->NewTableBuilder(
-        table_builder_options, column_family_id, file);
+        table_builder_options, file);
     if (!builder) {
       Warn(info_log,
         "Dispatch::NewTableBuilder: level = %d, use level factory = %s,"
         " returns null, try default: %s\n",
         level, m_level_writers[level]->Name(), m_default_writer->Name());
       builder = m_default_writer->NewTableBuilder(
-          table_builder_options, column_family_id, file);
+          table_builder_options, file);
       m_writer_files[0]++;
     } else {
       m_writer_files[level+1]++;
@@ -520,7 +520,7 @@ const {
         level, m_default_writer->Name());
     }
     builder = m_default_writer->NewTableBuilder(
-        table_builder_options, column_family_id, file);
+        table_builder_options, file);
     m_writer_files[0]++;
   }
   return new DispatcherTableBuilder(builder, this, level);

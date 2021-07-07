@@ -25,9 +25,8 @@ public:
           std::unique_ptr<TableReader>* table,
           bool prefetch_index_and_filter_in_cache) const override;
 
-  TableBuilder* NewTableBuilder(
-          const TableBuilderOptions& table_builder_options,
-          uint32_t column_family_id, WritableFileWriter* file)
+  TableBuilder*
+  NewTableBuilder(const TableBuilderOptions&, WritableFileWriter* file)
   const override;
 
   Status ValidateOptions(const DBOptions&, const ColumnFamilyOptions&) const override;
