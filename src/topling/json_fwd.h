@@ -22,14 +22,10 @@ public:
 
     template<class Iter>
     JsonStrMap(Iter first, Iter last) {
-        this->enable_freelist();
-        for (Iter iter = first; iter != last; ++iter) {
+        for (Iter iter = first; iter != last; ++iter)
             this->insert_i(iter->first, iter->second);
-        }
     }
-    JsonStrMap() {
-        this->enable_freelist();
-    }
+    JsonStrMap() {}
 };
 } // namespace terark
 
