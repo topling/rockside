@@ -2724,13 +2724,16 @@ void HtmlAppendEscape(std::string* d, const char* s, size_t n) {
 }
 struct HtmlTextUserKeyCoder : public UserKeyCoder {
   void Update(const json&, const SidePluginRepo&) override {
+    ROCKSDB_DIE("This function should not be called");
   }
   std::string ToString(const json&, const SidePluginRepo&) const override {
-    return "";
+    return R"(<h3>this is HtmlTextUserKeyCoder</h3>
+<p>1. convert &amp; &lt; &gt; to &amp;amp; &amp;lt; &amp;gt;</p>
+<p>2. also escape chars as C string(such as \\t, \\r\\n)</p>
+)";
   }
   void Encode(Slice, std::string*) const override {
-    assert(!"Unexpected call");
-    THROW_InvalidArgument("Unexpected call");
+    ROCKSDB_DIE("This function should not be called");
   }
   void Decode(Slice coded, std::string* de) const override {
     de->clear();
