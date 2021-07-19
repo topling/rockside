@@ -725,4 +725,6 @@ void JsonRepoSet(json& js, const void* prop,
                  const std::map<const void*, SidePluginRepo::Impl::ObjInfo>&,
                  const char* mapname, bool html);
 
+const char* StrDateTimeNow();
+
 } // ROCKSDB_NAMESPACE
