@@ -10,7 +10,26 @@
 #include "builtin_table_factory.h"
 #include "internal_dispather_table.h"
 
+// when we can not get a rocksdb Logger object, use this simple log
+#define PrintLog(level, fmt, ...) \
+  do { if (SidePluginRepo::DebugLevel() >= level) \
+    fprintf(stderr, "%s" fmt "\n", StrDateTimeNow(), ## __VA_ARGS__); \
+  } while (0)
+#define TRAC(...) PrintLog(4, "TRAC: " __VA_ARGS__)
+#define DEBG(...) PrintLog(3, "DEBG: " __VA_ARGS__)
+#define INFO(...) PrintLog(2, "INFO: " __VA_ARGS__)
+#define WARN(...) PrintLog(1, "WARN: " __VA_ARGS__)
+
 namespace ROCKSDB_NAMESPACE {
+
+const char* StrDateTimeNow() {
+  static thread_local char buf[64];
+  time_t rawtime;
+  time(&rawtime);
+  struct tm* timeinfo = localtime(&rawtime);
+  strftime(buf, sizeof(buf), "%F %T",timeinfo);
+  return buf;
+}
 
 static std::shared_ptr<const FilterPolicy>
 NewBloomFilterPolicyJson(const json& js, const SidePluginRepo&) {
@@ -116,137 +135,6 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
   }
 };
 
-#if 0
-std::string BlockBasedTableFactory::GetOptionJson() const {
-  std::string ret;
-  ret.reserve(20000);
-  const int kBufferSize = 200;
-  char buffer[kBufferSize];
-
-  ret.append("{");
-  snprintf(buffer, kBufferSize, "  flush_block_policy_factory: %s, ",
-           table_options_.flush_block_policy_factory->Name());
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  cache_index_and_filter_blocks: %d, ",
-           table_options_.cache_index_and_filter_blocks);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize,
-           "  cache_index_and_filter_blocks_with_high_priority: %d, ",
-           table_options_.cache_index_and_filter_blocks_with_high_priority);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize,
-           "  pin_l0_filter_and_index_blocks_in_cache: %d, ",
-           table_options_.pin_l0_filter_and_index_blocks_in_cache);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  pin_top_level_index_and_filter: %d, ",
-           table_options_.pin_top_level_index_and_filter);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  index_type: %d, ",
-           table_options_.index_type);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  data_block_index_type: %d, ",
-           table_options_.data_block_index_type);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  index_shortening: %d, ",
-           static_cast<int>(table_options_.index_shortening));
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  data_block_hash_table_util_ratio: %lf, ",
-           table_options_.data_block_hash_table_util_ratio);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  hash_index_allow_collision: %d, ",
-           table_options_.hash_index_allow_collision);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  checksum: %d, ", table_options_.checksum);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  no_block_cache: %d, ",
-           table_options_.no_block_cache);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  block_cache: %p, ",
-           static_cast<void*>(table_options_.block_cache.get()));
-  ret.append(buffer);
-/*
-  if (table_options_.block_cache) {
-    const char* block_cache_name = table_options_.block_cache->Name();
-    if (block_cache_name != nullptr) {
-      snprintf(buffer, kBufferSize, "  block_cache_name: %s, ",
-               block_cache_name);
-      ret.append(buffer);
-    }
-    ret.append("  block_cache_options:, ");
-    ret.append(table_options_.block_cache->GetOptionJson());
-  }
-  snprintf(buffer, kBufferSize, "  block_cache_compressed: %p, ",
-           static_cast<void*>(table_options_.block_cache_compressed.get()));
-  ret.append(buffer);
-  if (table_options_.block_cache_compressed) {
-    const char* block_cache_compressed_name =
-        table_options_.block_cache_compressed->Name();
-    if (block_cache_compressed_name != nullptr) {
-      snprintf(buffer, kBufferSize, "  block_cache_name: %s, ",
-               block_cache_compressed_name);
-      ret.append(buffer);
-    }
-    ret.append("  block_cache_compressed_options:, ");
-    ret.append(table_options_.block_cache_compressed->GetOptionJson());
-  }
-  snprintf(buffer, kBufferSize, "  persistent_cache: %p, ",
-           static_cast<void*>(table_options_.persistent_cache.get()));
-  ret.append(buffer);
-  if (table_options_.persistent_cache) {
-    snprintf(buffer, kBufferSize, "  persistent_cache_options:, ");
-    ret.append(buffer);
-    ret.append(table_options_.persistent_cache->GetOptionJson());
-  }
-*/
-  snprintf(buffer, kBufferSize, "  block_size: %" ROCKSDB_PRIszt ", ",
-           table_options_.block_size);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  block_size_deviation: %d, ",
-           table_options_.block_size_deviation);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  block_restart_interval: %d, ",
-           table_options_.block_restart_interval);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  index_block_restart_interval: %d, ",
-           table_options_.index_block_restart_interval);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  metadata_block_size: %" PRIu64 ", ",
-           table_options_.metadata_block_size);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  partition_filters: %d, ",
-           table_options_.partition_filters);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  use_delta_encoding: %d, ",
-           table_options_.use_delta_encoding);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  filter_policy: %s, ",
-           table_options_.filter_policy == nullptr
-           ? "nullptr"
-           : table_options_.filter_policy->Name());
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  whole_key_filtering: %d, ",
-           table_options_.whole_key_filtering);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  verify_compression: %d, ",
-           table_options_.verify_compression);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  read_amp_bytes_per_bit: %d, ",
-           table_options_.read_amp_bytes_per_bit);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  format_version: %d, ",
-           table_options_.format_version);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  enable_index_compression: %d, ",
-           table_options_.enable_index_compression);
-  ret.append(buffer);
-  snprintf(buffer, kBufferSize, "  block_align: %d",
-           table_options_.block_align);
-  ret.append(buffer);
-  ret.append("}");
-  return ret;
-}
-#endif
-
 static std::shared_ptr<TableFactory>
 NewBlockBasedTableFactoryFromJson(const json& js, const SidePluginRepo& repo) {
   BlockBasedTableOptions_Json _table_options(js, repo);
@@ -347,12 +235,8 @@ GetDispatcherTableMagicNumberMap() {
 RegTableFactoryMagicNumber::
 RegTableFactoryMagicNumber(uint64_t magic, const char* name) {
   auto ib = GetDispatcherTableMagicNumberMap().emplace(magic, name);
-  if (!ib.second) {
-    fprintf(stderr,
-        "ERROR: RegTableFactoryMagicNumber: dup: %016llX -> %s\n",
-        (long long)magic, name);
-    abort();
-  }
+  using ll = long long;
+  ROCKSDB_VERIFY_F(ib.second, "Dup MagicNum: %016llX -> %s", ll(magic), name);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -485,42 +369,34 @@ Status DispatcherTableFactory::NewTableReader(
 }
 
 TableBuilder* DispatcherTableFactory::NewTableBuilder(
-    const TableBuilderOptions& table_builder_options,
+    const TableBuilderOptions& tbo,
     WritableFileWriter* file)
 const {
-  auto info_log = table_builder_options.ioptions.info_log.get();
+  auto info_log = tbo.ioptions.info_log.get();
   ROCKSDB_VERIFY_F(m_is_back_patched, "BackPatch() was not called");
-  int level = std::min(table_builder_options.level_at_creation,
-                       int(m_level_writers.size()-1));
+  int level = std::min(tbo.level_at_creation, int(m_level_writers.size()-1));
   TableBuilder* builder;
   if (level >= 0) {
-    if (SidePluginRepo::DebugLevel() >= 3) {
-      Info(info_log,
+    Debug(info_log,
         "Dispatch::NewTableBuilder: level = %d, use level factory = %s\n",
         level, m_level_writers[level]->Name());
-    }
-    builder = m_level_writers[level]->NewTableBuilder(
-        table_builder_options, file);
+    builder = m_level_writers[level]->NewTableBuilder(tbo, file);
     if (!builder) {
       Warn(info_log,
         "Dispatch::NewTableBuilder: level = %d, use level factory = %s,"
         " returns null, try default: %s\n",
         level, m_level_writers[level]->Name(), m_default_writer->Name());
-      builder = m_default_writer->NewTableBuilder(
-          table_builder_options, file);
+      builder = m_default_writer->NewTableBuilder(tbo, file);
       m_writer_files[0]++;
     } else {
       m_writer_files[level+1]++;
     }
   }
   else {
-    if (SidePluginRepo::DebugLevel() >= 3) {
-      Info(info_log,
+    Debug(info_log,
         "Dispatch::NewTableBuilder: level = %d, use default factory = %s\n",
         level, m_default_writer->Name());
-    }
-    builder = m_default_writer->NewTableBuilder(
-        table_builder_options, file);
+    builder = m_default_writer->NewTableBuilder(tbo, file);
     m_writer_files[0]++;
   }
   return new DispatcherTableBuilder(builder, this, level);
@@ -553,11 +429,9 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
     }
   };
   auto debug_print = [c](const char* strbool) {
-    if (SidePluginRepo::DebugLevel() >= 4) {
-      fprintf(stderr,
-  "DispatcherTableFactory::InputCompressionMatchesOutput: {%s}->%d : %s\n",
+    Debug(c->immutable_options()->info_log,
+        "DispatcherTableFactory::InputCompressionMatchesOutput: {%s}->%d : %s",
         str_input_levels(c).c_str(), c->output_level(), strbool);
-    }
   };
   const TableFactory* output_factory = get_fac(c->output_level());
   for (auto& each_input : *c->inputs()) {
@@ -628,7 +502,7 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   std::map<std::string, std::vector<uint64_t> > name2magic;
   for (auto& kv : GetDispatcherTableMagicNumberMap()) {
     name2magic[kv.second].push_back(kv.first);
-    //fprintf(stderr, "DEBG: %016llX : %s\n", (long long)kv.first, kv.second.c_str());
+    TRAC("Add name2magic: %016llX : %s", (long long)kv.first, kv.second.c_str());
   }
   auto add_magic = [&](const std::shared_ptr<TableFactory>& factory,
                        const std::string& varname,
@@ -654,14 +528,11 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
       if (!ib.second) { // emplace fail
         const char* varname1 = ib.first->second.varname.c_str(); // existed
         const char* type = ib.first->second.is_user_defined ? "user" : "auto";
-        if (SidePluginRepo::DebugLevel() >= 4)
-          fprintf(stderr,
-                "TRAC: Dispatch::BackPatch: dup factory: %016llX : %-20s : %s(%s) %s(auto)\n",
-                (long long)magic, facname, varname1, type, varname.c_str());
-      } else if (SidePluginRepo::DebugLevel() >= 4) {
-        fprintf(stderr,
-                "TRAC: Dispatch::BackPatch: reg factory: %016llX : %-20s : %s\n",
-                (long long)magic, facname, varname.c_str());
+        TRAC("Dispatch::BackPatch: dup factory: %016llX : %-20s : %s(%s) %s(auto)",
+             (long long)magic, facname, varname1, type, varname.c_str());
+      } else {
+        TRAC("Dispatch::BackPatch: reg factory: %016llX : %-20s : %s",
+             (long long)magic, facname, varname.c_str());
       }
     }
   };
@@ -875,11 +746,8 @@ void DispatcherTableBuilder::Add(const Slice& key, const Slice& value) {
 void DispatcherTableBuilder::UpdateStat() {
   st_sum.Add(st);
   const_cast<DispatcherTableFactory*>(dispatcher)->UpdateStat(level, st);
-  if (SidePluginRepo::DebugLevel() >= 5) {
-    fprintf(stderr,
-            "DBUG: DispatcherTableBuilder::UpdateStat: ""entry_cnt = %zd\n",
+  PrintLog(5, "TRAC5: DispatcherTableBuilder::UpdateStat: ""entry_cnt = %zd",
             st_sum.entry_cnt);
-  }
   st.Reset();
 }
 
@@ -892,13 +760,11 @@ void DispatcherTableFactory::UpdateStat(size_t lev, const Stat& st) {
     assert(m_stats[i].size() == m_level_writers.size() + 1);
     assert(lev <= m_level_writers.size());
     auto& ts = m_stats[i][lev];
-    if (SidePluginRepo::DebugLevel() >= 6) {
-      fprintf(stderr, "DBUG: DispatcherTableBuilder::UpdateStat: "
+    PrintLog(6, "TRAC6: DispatcherTableBuilder::UpdateStat: "
 "tp-ts.time = %zd, g_durations[i] = %zd, (tp - ts.time > g_durations[i]) = %d\n",
               (size_t)duration_cast<seconds>(tp - ts.time).count(),
               (size_t)duration_cast<seconds>(g_durations[i]).count(),
               tp - ts.time > g_durations[i]);
-    }
     if (tp - ts.time > g_durations[i]) {
       auto& newer = m_stats[i-1][lev];
       ts = newer; // refresh
