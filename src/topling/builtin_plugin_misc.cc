@@ -1868,13 +1868,21 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
   auto cfh = static_cast<ColumnFamilyHandleImpl*>(cfh0);
   auto cfd = cfh->cfd();
   auto tc = cfd->table_cache();
+//auto mut_cfo = cfd->GetCurrentMutableCFOptions(); // must in DB mutex
+  auto mut_cfo = cfd->GetLatestMutableCFOptions(); // safe if not in DB mutex
+  // GetLatestMutableCFOptions: rocksdb says it is not safe if not in DB mutex
+  // but it is realy safe, because the '*mut_cfo' object is a field of cfd,
+  // we just use mut_cfo->prefix_extractor.get() which is an atomic load
   FileDescriptor fd(file_num,
                     JsonSmartInt(dump_options, "path", 0),
                     JsonSmartInt64(dump_options, "size", 0),
                     JsonSmartInt64(dump_options, "smallest", 0),
                     JsonSmartInt64(dump_options, "largest", kMaxSequenceNumber));
   Cache::Handle* ch = nullptr;
-  auto s = tc->FindTable(ReadOptions(), cfd->internal_comparator(), fd, &ch);
+  auto& icmp = cfd->internal_comparator();
+  auto& fopt = *cfd->soptions(); // file_options
+  auto pref_ext = mut_cfo->prefix_extractor.get();
+  auto s = tc->FindTable(ReadOptions(), fopt, icmp, fd, &ch, pref_ext);
   if (!s.ok()) {
     THROW_InvalidArgument(s.ToString());
   }
