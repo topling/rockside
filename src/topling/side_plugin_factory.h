@@ -42,6 +42,10 @@ inline const SidePluginRepo& null_repo_ref() {
    return *p;
 }
 
+const char* StrDateTimeNow();
+std::string demangle(const char* name);
+std::string demangle(const std::type_info&);
+
 struct CFPropertiesWebView {
   DB* db;
   ColumnFamilyHandle* cfh;
@@ -386,11 +390,12 @@ struct PluginFactory<Ptr>::Reg::Impl {
 template<class Ptr>
 PluginFactory<Ptr>::Reg::Reg(Slice class_name, AcqFunc acq, Slice base_class) noexcept {
   auto& imp = Impl::s_singleton();
-  Meta meta{acq, std::string(base_class.data(), base_class.size())};
-  auto ib = imp.func_map.insert(std::make_pair(class_name.ToString(), std::move(meta)));
+  Meta meta{acq, base_class.ToString()};
+  auto ib = imp.func_map.insert({class_name.ToString(), std::move(meta)});
   ROCKSDB_VERIFY_F(ib.second, "duplicate class_name = %s", class_name.data());
-  if (SidePluginRepo::DebugLevel() >= 1) {
-    fprintf(stderr, "INFO: %s: class = %s\n", ROCKSDB_FUNC, class_name.data());
+  if (SidePluginRepo::DebugLevel() >= 2) {
+    fprintf(stderr, "%s: INFO: PluginFactory<%s>::Reg: class = %s\n",
+        StrDateTimeNow(), demangle(typeid(Ptr)).c_str(), class_name.data());
   }
   this->ipos = ib.first;
 }
@@ -724,7 +729,5 @@ JsonRepoSetHtml_ahref(json&, const char* mapname, const std::string& varname);
 void JsonRepoSet(json& js, const void* prop,
                  const std::map<const void*, SidePluginRepo::Impl::ObjInfo>&,
                  const char* mapname, bool html);
-
-const char* StrDateTimeNow();
 
 } // ROCKSDB_NAMESPACE

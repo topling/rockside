@@ -22,6 +22,10 @@
 #include "json.h"
 #include "side_plugin_factory.h"
 
+#if defined(__GNUC__)
+# include <cxxabi.h>
+#endif
+
 namespace ROCKSDB_NAMESPACE {
 
 using std::shared_ptr;
@@ -1375,5 +1379,24 @@ void JsonRepoSet(json& js, const void* prop,
     js = "$(BuiltinDefault)";
   }
 }
+
+std::string demangle(const char* name) {
+#ifdef _MSC_VER
+  return name;
+#elif defined(__GNUC__)
+  int status = -4; // some arbitrary value to eliminate the compiler warning
+  char* res = abi::__cxa_demangle(name, NULL, NULL, &status);
+  std::string dem = (status == 0) ? res : name;
+  free(res);
+  return dem;
+#else
+  return boost::core::demangle(name);
+#endif
+}
+
+std::string demangle(const std::type_info& ti) {
+  return demangle(ti.name());
+}
+
 
 } // ROCKSDB_NAMESPACE
