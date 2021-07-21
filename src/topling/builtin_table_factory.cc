@@ -13,7 +13,7 @@
 // when we can not get a rocksdb Logger object, use this simple log
 #define PrintLog(level, fmt, ...) \
   do { if (SidePluginRepo::DebugLevel() >= level) \
-    fprintf(stderr, "%s" fmt "\n", StrDateTimeNow(), ## __VA_ARGS__); \
+    fprintf(stderr, "%s: " fmt "\n", StrDateTimeNow(), ## __VA_ARGS__); \
   } while (0)
 #define TRAC(...) PrintLog(4, "TRAC: " __VA_ARGS__)
 #define DEBG(...) PrintLog(3, "DEBG: " __VA_ARGS__)
