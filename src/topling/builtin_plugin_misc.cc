@@ -1745,6 +1745,69 @@ catch (const std::exception& ex) {
 #endif
 }
 
+Slice SliceSlice(Slice big, Slice sub) {
+  auto pos = (const char*)memmem(big.data_, big.size_, sub.data_, sub.size_);
+  return Slice(pos, sub.size_);
+}
+
+template<class T>
+static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
+  oss << x;
+  return oss;
+}
+static std::string
+Json_DB_NoFileHistogram_Add_convenient_links(
+        const std::string& db,
+        const std::string& cf,
+        const std::string& str) {
+  Slice big = str;
+  Slice pos = SliceSlice(big, "\nUptime(secs):");
+  if (pos.data_) {
+    std::ostringstream oss;
+    oss << "<pre>";
+    oss.write(big.data_, pos.data_ - big.data_);
+    auto write_space = [&](size_t lo, size_t hi) {
+      for (; lo < hi; ++lo) oss.write(" ", 1);
+    };
+    size_t left_width = 50;
+    write_space(0, left_width);
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1'>noint=0</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&sst=1'>noint=0&amp;sst=1</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&sst=2'>noint=0&amp;sst=2</a>  ";
+
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&nozero=1'>noint=0&amp;nozero=1</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&nozero=1&sst=1'>noint=0&amp;nozero=1&amp;sst=1</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&nozero=1&sst=2'>noint=0&amp;nozero=1&amp;sst=2</a>";
+
+    auto lf = (const char*)memchr(pos.end(), '\n', big.data_ - pos.end());
+    if (lf) {
+      size_t len = lf - pos.data_;
+      oss.write(pos.data_, len);
+      write_space(len-1, left_width); // len-1 to exclude the starting '\n'
+      pos = Slice(lf, big.end() - lf);
+    }
+    else { // insert a line, should not happen, just for fallback
+      oss << "\n";
+      write_space(0, left_width);
+      pos = Slice(pos.end(), big.end() - pos.end());
+    }
+
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&noint=1'>noint=1</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&noint=1&sst=1'>noint=1&amp;sst=1</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&noint=1&sst=2'>noint=1&amp;sst=2</a>  ";
+
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&noint=1&nozero=1'>noint=1&amp;nozero=1</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&noint=1&nozero=1&sst=1'>noint=1&amp;nozero=1&amp;sst=1</a>  ";
+    oss|"<a href='/props/"|db|"/"|cf|"?html=1&noint=1&nozero=1&sst=2'>noint=1&amp;nozero=1&amp;sst=2</a>";
+
+    oss.write(pos.data_, pos.size_);
+    oss << "</pre>";
+    return oss.str();
+  }
+  else {
+    return html_pre(str);
+  }
+}
 static void
 Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
                     bool html, const json& dump_options,
@@ -1768,7 +1831,14 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
     std::string value;
     if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
       if (html) {
-        stjs[HTML_WRAP(name)] = html_pre(value);
+        if (name == DB::Properties::kCFStatsNoFileHistogram) {
+          const std::string dbname = basename(db.GetName().c_str());
+          const std::string cfname = cfh->GetName();
+          stjs[HTML_WRAP(name)] = Json_DB_NoFileHistogram_Add_convenient_links(dbname, cfname, value);
+        }
+        else {
+          stjs[HTML_WRAP(name)] = html_pre(value);
+        }
       }
       else {
         stjs[HTML_WRAP(name)] = std::move(value);
