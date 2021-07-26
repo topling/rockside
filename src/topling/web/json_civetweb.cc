@@ -141,7 +141,7 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
       mg_printf(conn, "ERROR: local uri is null\r\n");
       return true;
     }
-    const bool html = JsonSmartBool(query, "html");
+    const bool html = JsonSmartBool(query, "html", true);
     while ('/' == *uri) uri++;
     size_t urilen = strlen(uri);
 //    if (urilen < m_ns.size()) {

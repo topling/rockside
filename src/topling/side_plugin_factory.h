@@ -716,7 +716,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 
 
 bool SameVarName(const std::string&, const std::string&);
-bool JsonSmartBool(const json& js, const char* subname);
+bool JsonSmartBool(const json& js, const char* subname, bool Default = false);
 int  JsonSmartInt(const json& js, const char* subname, int Default);
 int64_t JsonSmartInt64(const json& js, const char* subname, int64_t Default);
 std::string SizeToString(unsigned long long val);

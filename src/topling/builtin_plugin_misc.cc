@@ -152,7 +152,7 @@ struct WriteBufferManager_Manip : PluginManipFunc<WriteBufferManager> {
   }
   std::string ToString(const WriteBufferManager& wbm, const json& dump_options,
                        const SidePluginRepo& repo) const final {
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     json js;
     size_t buffer_size = wbm.buffer_size();
     const shared_ptr<Cache>& cache = wbm.GetCache();
@@ -389,7 +389,7 @@ struct DBOptions_Manip : PluginManipFunc<DBOptions> {
   std::string ToString(const DBOptions& x, const json& dump_options,
                        const SidePluginRepo& repo) const final {
     json djs;
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     static_cast<const DBOptions_Json&>(x).SaveToJson(djs, repo, html);
     return JsonToString(djs, dump_options);
   }
@@ -677,7 +677,7 @@ struct CFOptions_Manip : PluginManipFunc<ColumnFamilyOptions> {
   std::string ToString(const ColumnFamilyOptions& x, const json& dump_options,
                        const SidePluginRepo& repo) const final {
     json djs;
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     // NOLINTNEXTLINE
     static_cast<const ColumnFamilyOptions_Json&>(x).SaveToJson(djs, repo, html);
     return JsonToString(djs, dump_options);
@@ -821,7 +821,7 @@ struct LRUCache_Manip : PluginManipFunc<Cache> {
 
   string ToString(const Cache& r, const json& dump_options, const SidePluginRepo& repo)
   const override {
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     auto& p2name = repo.m_impl->cache.p2name;
     auto iter = p2name.find((Cache*)&r);
     json js;
@@ -1134,7 +1134,7 @@ struct Statistics_Manip : PluginManipFunc<Statistics> {
   }
   std::string ToString(const Statistics& db, const json& dump_options,
                        const SidePluginRepo& repo) const final {
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     bool nozero = JsonSmartBool(dump_options, "nozero");
     json djs;
     Json_DB_Statistics(&db, djs, html, nozero);
@@ -1970,7 +1970,7 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   }
   std::string ToString(const CFPropertiesWebView& cfp, const json& dump_options,
                        const SidePluginRepo& repo) const final {
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     json djs;
     int file_num = JsonSmartInt(dump_options, "file", -1);
     if (file_num >= 0) {
@@ -2124,7 +2124,7 @@ struct DB_Manip : PluginManipFunc<DB> {
         THROW_Corruption("p2name[" + dbname + "].params[cf_options|options] are all missing");
       }
     }
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     if (dbo_name.empty()) dbo_name = "json varname: (defined inline)";
     if (cfo_name.empty()) cfo_name = "json varname: (defined inline)";
     djs["DBOptions"][0] = dbo_name; dbo.SaveToJson(djs["DBOptions"][1], repo, html);
@@ -2190,7 +2190,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
       THROW_Corruption("p2name[" + dbname + "].params.column_families are all missing");
     }
     const auto& def_cfo_js = ijs.value();
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     if (dbo_name.empty()) dbo_name = "json varname: (defined inline)";
     djs["CFOptions"]; // insert
     djs["CFProps"]; // insert

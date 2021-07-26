@@ -1097,12 +1097,12 @@ bool JsonSmartBool(const json& js) {
   throw std::invalid_argument("JsonSmartBool: bad js = " + js.dump());
 }
 
-bool JsonSmartBool(const json& js, const char* subname) {
+bool JsonSmartBool(const json& js, const char* subname, bool Default) {
   auto iter = js.find(subname);
   if (js.end() != iter) {
     return JsonSmartBool(iter.value());
   }
-  return false;
+  return Default;
 }
 
 int JsonSmartInt(const json& js) {
@@ -1303,7 +1303,7 @@ std::string JsonToString(const json& obj, const json& options) {
   if (-1 != indent) {
     fprintf(stderr, "INFO: JsonToString: indent = %d\n", indent);
   }
-  if (JsonSmartBool(options, "html"))
+  if (JsonSmartBool(options, "html", true))
     return JsonToHtml(obj);
   else
     return obj.dump(indent);

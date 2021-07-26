@@ -87,7 +87,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
   }
 
   json ToJsonObj(const json& dump_options, const SidePluginRepo& repo) const {
-    bool html = JsonSmartBool(dump_options, "html");
+    bool html = JsonSmartBool(dump_options, "html", true);
     json js;
     if (!IsCompactionWorker())
       ROCKSDB_JSON_SET_FACT(js, flush_block_policy_factory);
@@ -587,7 +587,7 @@ std::string DispatcherTableFactory::GetPrintableOptions() const {
 }
 
 json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePluginRepo& repo) const {
-  const bool html = JsonSmartBool(dump_options, "html");
+  const bool html = JsonSmartBool(dump_options, "html", true);
   const bool nozero = JsonSmartBool(dump_options, "nozero");
   auto& p2name = repo.m_impl->table_factory.p2name;
   const static std::string labels[] = {
