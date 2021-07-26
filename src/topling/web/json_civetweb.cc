@@ -183,7 +183,16 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
     if (m_map->name2p->end() != iter) {
       auto& p = iter->second;
       if (html) {
-        mg_printf(conn, "<html><title>%s</title><body>\n", name);
+        int refresh = JsonSmartInt(query, "refresh", 0);
+        if (refresh > 0) {
+          mg_printf(conn,
+            "<html><title>%s</title>\n"
+            "<meta http-equiv='refresh' content='%d'>\n"
+            "<body>\n", name, refresh);
+        }
+        else {
+          mg_printf(conn, "<html><title>%s</title><body>\n", name);
+        }
         mg_print_cur_time(conn);
       }
 #if defined(NDEBUG)
