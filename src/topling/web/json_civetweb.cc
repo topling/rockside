@@ -79,9 +79,12 @@ std::string cur_time_stat() {
                       buf, days, hours, minites, sec));
   return str;
 }
-void mg_print_cur_time(mg_connection *conn) {
+
+void mg_print_cur_time(mg_connection *conn, const json& query) {
   std::string str = cur_time_stat();
-  mg_printf(conn, "<p>%s</p>\r\n", cur_time_stat().c_str());
+  int refresh = JsonSmartInt(query, "refresh", 0);
+  mg_printf(conn, R"(<p><a href='javascript:SetParam("refresh","%d")'>%s</a></p>)"
+            "\n", refresh ? 0 : 3, str.c_str());
 }
 
 std::string ReadPostData(mg_connection* conn) {
@@ -168,7 +171,7 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
       }
       else {
         mg_printf(conn, "<html><title>db list</title>\n<body>\n");
-        mg_print_cur_time(conn);
+        mg_print_cur_time(conn, query);
         mg_printf(conn, "<table border=1><tbody>\n");
         for (auto& kv : vec) {
           mg_printf(conn, "<tr><td><a href='/%.*s/%s?html=1'>%s</a></td></tr>\n",
@@ -193,7 +196,6 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
         else {
           mg_printf(conn, "<html><title>%s</title><body>\n", name);
         }
-        mg_print_cur_time(conn);
         mg_printf(conn, R"(<script>
 function SetParam(name, value) {
     const url = new URL(location.href);
@@ -203,6 +205,7 @@ function SetParam(name, value) {
     location.href = url.href;
 }
 </script>)");
+        mg_print_cur_time(conn, query);
       }
 #if defined(NDEBUG)
       try {
