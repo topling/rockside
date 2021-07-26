@@ -598,10 +598,14 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
       "30m-ops", "30m-key", "30m-val",
   };
   json lwjs;
+  size_t non_zero_num = 0;
   auto add_writer = [&](const std::shared_ptr<TableFactory>& tf, size_t level) {
     size_t file_num = m_writer_files[level];
     if (nozero && 0 == file_num) {
       return;
+    }
+    if (0 != file_num) {
+      non_zero_num++;
     }
     json wjs;
     char buf[64];
@@ -655,7 +659,16 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   if (lwjs.empty()) {
     lwjs = "Did Not Created Any TableBuilder, try nozero=0";
   }
-  js["writers"] = std::move(lwjs);
+  if (html && non_zero_num) {
+    char buf[128];
+    auto len = sprintf(buf, "writers<br/>"
+      R"(<a href='javascript:SetParam("nozero","%d")'>nozero=%d</a>)",
+      !nozero, !nozero);
+    js[std::string(buf, len)] = std::move(lwjs);
+  }
+  else {
+    js["writers"] = std::move(lwjs);
+  }
 
   json readers_js;
   for (auto& kv : m_magic_to_factory) {

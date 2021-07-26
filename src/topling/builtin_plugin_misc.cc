@@ -1088,6 +1088,17 @@ Options JS_Options(const json& js, const SidePluginRepo& repo,
 static void Json_DB_Statistics(const Statistics* st, json& djs,
                                bool html, bool nozero) {
   djs["histograms"]; // insert "histograms"
+  std::string name;
+  if (html) {
+    char buf[128];
+    auto len = sprintf(buf, "name : &nbsp;"
+      R"(<a href='javascript:SetParam("nozero","%d")'>nozero=%d</a>)",
+      !nozero, !nozero);
+    name.assign(buf, len);
+  }
+  else {
+    name = "name";
+  }
   json& tikers = djs["tikers"];
   json& histograms = djs["histograms"];
   if (!st) {
@@ -1109,7 +1120,7 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
       continue;
     }
     json cur;
-    cur["name"] = h.second;
+    cur[name] = h.second;
     cur["P50"] = hData.median;
     cur["P95"] = hData.percentile95;
     cur["P99"] = hData.percentile99;
@@ -1123,7 +1134,7 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
   }
   if (html) {
     histograms[0]["<htmltab:col>"] = json::array({
-      "name", "P50", "P95", "P99", "AVG", "MIN", "MAX", "CNT", "STD", "SUM"
+      name, "P50", "P95", "P99", "AVG", "MIN", "MAX", "CNT", "STD", "SUM"
     });
   }
 }

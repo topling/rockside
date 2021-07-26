@@ -194,6 +194,15 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
           mg_printf(conn, "<html><title>%s</title><body>\n", name);
         }
         mg_print_cur_time(conn);
+        mg_printf(conn, R"(<script>
+function SetParam(name, value) {
+    const url = new URL(location.href);
+    var params = new URLSearchParams(url.search);
+    params.set(name, value);
+    url.search = params.toString();
+    location.href = url.href;
+}
+</script>)");
       }
 #if defined(NDEBUG)
       try {
