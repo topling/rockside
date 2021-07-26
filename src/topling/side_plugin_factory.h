@@ -183,7 +183,7 @@ public:
     Reg& operator=(Reg&&) = delete;
     Reg& operator=(const Reg&) = delete;
     using NameToFuncMap = std::map<std::string, Meta>;
-    Reg(Slice class_name, AcqFunc acq, Slice base_class = "") noexcept;
+    Reg(Slice class_name, AcqFunc acq, const char* file, int line, Slice base_class = "") noexcept;
     ~Reg();
     typename NameToFuncMap::iterator ipos;
     struct Impl;
@@ -211,7 +211,7 @@ PluginManipSingleton(const json&, const SidePluginRepo&) {
 #define ROCKSDB_REG_PluginManip(ClassName, ManipClass) \
   PluginFactory<const typename ManipClass::InterfaceType*>::Reg \
       ROCKSDB_PP_CAT_3(g_reg_manip_,ManipClass,__LINE__) \
-     (ClassName, &PluginManipSingleton<ManipClass>)
+     (ClassName, &PluginManipSingleton<ManipClass>, __FILE__, __LINE__)
 
 template<class Object>
 using PluginManip = PluginFactory<const PluginManipFunc<Object>*>;
@@ -261,7 +261,7 @@ PluginSerDeSingleton(const json&, const SidePluginRepo&) {
 #define ROCKSDB_REG_PluginSerDe(ClassName, SerDeClass) \
   PluginFactory<std::shared_ptr<typename SerDeClass::InterfaceType> >::Reg \
       ROCKSDB_PP_CAT_3(g_reg_serde_,SerDeClass,__LINE__) \
-     (ClassName, &PluginSerDeSingleton<SerDeClass>)
+     (ClassName, &PluginSerDeSingleton<SerDeClass>, __FILE__, __LINE__)
 
 template<class Object>
 using SerDeFactory = PluginFactory<std::shared_ptr<SerDeFunc<Object> > >;
@@ -350,7 +350,7 @@ struct AnyPluginManip : public PluginManipFunc<AnyPlugin> {
 #define ROCKSDB_REG_AnyPluginManip(ClassName) \
   PluginFactory<const PluginManipFunc<AnyPlugin>*>::Reg \
       ROCKSDB_PP_CAT_2(g_reg_manip_any_plugin_,__LINE__) \
-     (ClassName, &PluginManipSingleton<AnyPluginManip>)
+     (ClassName, &PluginManipSingleton<AnyPluginManip>, __FILE__, __LINE__)
 
 /// Concrete class defined non-virtual Update() & ToString()
 /// EasyProxyManip is a proxy which forward Update() & ToString() to Concrete
@@ -370,7 +370,7 @@ struct EasyProxyManip : public PluginManipFunc<Interface> {
 #define ROCKSDB_REG_EasyProxyManip_3(ClassName, ClassType, Interface) \
   PluginFactory<const PluginManipFunc<Interface>*>::Reg \
       ROCKSDB_PP_CAT_3(g_reg_manip_,ClassType,__LINE__) \
-     (ClassName, &PluginManipSingleton<EasyProxyManip<ClassType, Interface> >)
+     (ClassName, &PluginManipSingleton<EasyProxyManip<ClassType, Interface> >, __FILE__, __LINE__)
 #define ROCKSDB_REG_EasyProxyManip_2(ClassType, Interface) \
         ROCKSDB_REG_EasyProxyManip_3(#ClassType, ClassType, Interface)
 // call ROCKSDB_REG_EasyProxyManip_${ArgNum}, ArgNum must be 2 or 3
@@ -388,11 +388,19 @@ struct PluginFactory<Ptr>::Reg::Impl {
 };
 
 template<class Ptr>
-PluginFactory<Ptr>::Reg::Reg(Slice class_name, AcqFunc acq, Slice base_class) noexcept {
+PluginFactory<Ptr>::Reg::Reg(Slice class_name, AcqFunc acq,
+                             const char* file, int line, Slice base_class)
+noexcept {
   auto& imp = Impl::s_singleton();
   Meta meta{acq, base_class.ToString()};
   auto ib = imp.func_map.insert({class_name.ToString(), std::move(meta)});
-  ROCKSDB_VERIFY_F(ib.second, "duplicate class_name = %s", class_name.data());
+  if (!ib.second) {
+    fprintf(stderr,
+            "%s: FATAL: %s:%d: PluginFactory<%s>::Reg: dup class = %s\n",
+            StrDateTimeNow(), file, line, demangle(typeid(Ptr)).c_str(),
+            class_name.data());
+    abort();
+  }
   if (SidePluginRepo::DebugLevel() >= 2) {
     fprintf(stderr, "%s: INFO: PluginFactory<%s>::Reg: class = %s\n",
         StrDateTimeNow(), demangle(typeid(Ptr)).c_str(), class_name.data());
@@ -610,8 +618,9 @@ const SidePluginRepo& repoRefType();
 ///@param Name     string of factory class_name
 ///@param Acquire  must return base class ptr
 #define ROCKSDB_FACTORY_REG(Name, Acquire) \
-  PluginFactory<decltype(Acquire(jsonRefType(),repoRefType()))>:: \
-  Reg ROCKSDB_PP_CAT_3(g_reg_factory_,Acquire,__LINE__)(Name,Acquire)
+  PluginFactory<decltype(Acquire(jsonRefType(),repoRefType()))>::Reg \
+  ROCKSDB_PP_CAT_3(g_reg_factory_,Acquire,__LINE__) \
+  (Name,Acquire,__FILE__,__LINE__)
 
 template<class ConcretClass, class Interface>
 std::shared_ptr<Interface>
@@ -626,11 +635,11 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 #define ROCKSDB_REG_DEFAULT_CONS_3(Name, ConcretClass, Interface) \
   PluginFactory<std::shared_ptr<Interface> >::Reg \
       ROCKSDB_PP_CAT_3(g_reg_factory_,ConcretClass,__LINE__) \
-     (Name,  &JS_NewDefaultConsObject<ConcretClass,Interface>)
+     (Name,  &JS_NewDefaultConsObject<ConcretClass,Interface>, __FILE__, __LINE__)
 #define ROCKSDB_REG_JSON_REPO_CONS_3(Name, ConcretClass, Interface) \
   PluginFactory<std::shared_ptr<Interface> >::Reg \
       ROCKSDB_PP_CAT_3(g_reg_factory_,ConcretClass,__LINE__) \
-     (Name, &JS_NewJsonRepoConsObject<ConcretClass,Interface>)
+     (Name, &JS_NewJsonRepoConsObject<ConcretClass,Interface>, __FILE__, __LINE__)
 
 #define ROCKSDB_REG_DEFAULT_CONS_2(ConcretClass, Interface) \
         ROCKSDB_REG_DEFAULT_CONS_3(#ConcretClass, ConcretClass, Interface)
