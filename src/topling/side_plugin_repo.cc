@@ -1073,6 +1073,7 @@ std::string SizeToString(unsigned long long val) {
 bool JsonSmartBool(const json& js) {
   if (js.is_string()) {
     const std::string& s = js.get_ref<const std::string&>();
+    if (s.empty()) return true; // empty means true
     if (strcasecmp(s.c_str(), "true") == 0) return true;
     if (strcasecmp(s.c_str(), "false") == 0) return false;
     if (strcasecmp(s.c_str(), "on") == 0) return true;
