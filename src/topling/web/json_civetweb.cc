@@ -83,7 +83,7 @@ std::string cur_time_stat() {
 void mg_print_cur_time(mg_connection *conn, const json& query) {
   std::string str = cur_time_stat();
   int refresh = JsonSmartInt(query, "refresh", 0);
-  mg_printf(conn, R"(<p><a href='javascript:SetParam("refresh","%d")'>%s</a></p>)"
+  mg_printf(conn, R"(<p id='time_stat_line'><a href='javascript:SetParam("refresh","%d")'>%s</a></p>)"
             "\n", refresh ? 0 : 3, str.c_str());
 }
 
