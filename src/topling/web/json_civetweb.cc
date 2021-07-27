@@ -80,11 +80,33 @@ std::string cur_time_stat() {
   return str;
 }
 
-void mg_print_cur_time(mg_connection *conn, const json& query) {
-  std::string str = cur_time_stat();
+static std::string& operator|(std::string& str, Slice x) {
+  str.append(x.data_, x.size_);
+  return str;
+}
+void mg_print_cur_time(mg_connection* conn, const json& query,
+                       const SidePluginRepo* repo) {
+  std::string str;
+  str.reserve(4096);
   int refresh = JsonSmartInt(query, "refresh", 0);
-  mg_printf(conn, R"(<p id='time_stat_line'><a href='javascript:SetParam("refresh","%d")'>%s</a></p>)"
-            "\n", refresh ? 0 : 3, str.c_str());
+  auto toggle = refresh ? "0" : "3";
+  str|"<p id='time_stat_line'>";
+  str|"<a href='javascript:SetParam(`refresh`,`"|toggle|"`)'>";
+  str|cur_time_stat();
+  str|"</a>";
+  if (repo) for (auto& kvp : *repo->GetAllDB()) {
+    const std::string& dbname = kvp.first; // not dbpath
+    const DB_Ptr& dbp = kvp.second;
+    TERARK_VERIFY(nullptr != dbp.db);
+    str | "&nbsp;&nbsp;&nbsp;";
+    str | "<a href='/" | dbname | "/'>" | dbname | "</a>/";
+    str | "<a href='/" | dbname | "/LOG'>LOG</a>";
+  }
+  str|"</p>";
+  mg_write(conn, str.data(), str.size());
+}
+void mg_print_cur_time(mg_connection* conn, const json& query) {
+  mg_print_cur_time(conn, query, nullptr);
 }
 
 std::string ReadPostData(mg_connection* conn) {
@@ -171,7 +193,7 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
       }
       else {
         mg_printf(conn, "<html><title>db list</title>\n<body>\n");
-        mg_print_cur_time(conn, query);
+        mg_print_cur_time(conn, query, m_repo);
         mg_printf(conn, "<table border=1><tbody>\n");
         for (auto& kv : vec) {
           mg_printf(conn, "<tr><td><a href='/%.*s/%s?html=1'>%s</a></td></tr>\n",
@@ -205,7 +227,7 @@ function SetParam(name, value) {
     location.href = url.href;
 }
 </script>)");
-        mg_print_cur_time(conn, query);
+        mg_print_cur_time(conn, query, m_repo);
       }
 #if defined(NDEBUG)
       try {
