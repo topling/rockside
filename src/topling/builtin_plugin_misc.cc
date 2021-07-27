@@ -2817,8 +2817,8 @@ struct HtmlTextUserKeyCoder : public UserKeyCoder {
   }
   std::string ToString(const json&, const SidePluginRepo&) const override {
     return R"(<h3>this is HtmlTextUserKeyCoder</h3>
-<p>1. convert &amp; &lt; &gt; to &amp;amp; &amp;lt; &amp;gt;</p>
-<p>2. also escape chars as C string(such as \\t, \\r\\n)</p>
+<p>1. convert <code>&amp; &lt; &gt;</code> to <code>&amp;amp; &amp;lt; &amp;gt;</code></p>
+<p>2. also escape chars as C string(such as \t, \r, \n)</p>
 )";
   }
   void Encode(Slice, std::string*) const override {
@@ -2836,6 +2836,7 @@ JS_NewHtmlTextUserKeyCoder(const json&, const SidePluginRepo&) {
   return single;
 }
 ROCKSDB_FACTORY_REG("HtmlTextUserKeyCoder", JS_NewHtmlTextUserKeyCoder);
+ROCKSDB_REG_AnyPluginManip("HtmlTextUserKeyCoder");
 
 // users should ensure databases are alive when calling this function
 void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
