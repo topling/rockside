@@ -97,7 +97,7 @@ void mg_print_cur_time(mg_connection* conn, const json& query,
   if (repo) for (auto& kvp : *repo->GetAllDB()) {
     const std::string& dbname = kvp.first; // not dbpath
     const DB_Ptr& dbp = kvp.second;
-    TERARK_VERIFY(nullptr != dbp.db);
+    ROCKSDB_VERIFY(nullptr != dbp.db);
     str | "&nbsp;&nbsp;&nbsp;";
     str | "<a href='/" | dbname | "/'>" | dbname | "</a>/";
     str | "<a href='/" | dbname | "/LOG'>LOG</a>";
