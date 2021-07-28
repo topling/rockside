@@ -169,14 +169,6 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
     const bool html = JsonSmartBool(query, "html", true);
     while ('/' == *uri) uri++;
     size_t urilen = strlen(uri);
-//    if (urilen < m_ns.size()) {
-//      mg_printf(conn, "ERROR: local uri is too short = %zd\r\n", urilen);
-//      return true;
-//    }
-//    if (memcmp(uri, m_ns.data(), m_ns.size()) != 0) {
-//      mg_printf(conn, "ERROR: registered uri = %s, request uri = %s\r\n", m_ns.data(), uri);
-//      return true;
-//    }
     auto slash = (const char*)memchr(uri, '/', urilen);
     if (NULL == slash) {
       std::vector<std::pair<std::string, Ptr> > vec;
@@ -192,14 +184,29 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
         mg_write(conn, jstr.data(), jstr.size());
       }
       else {
-        mg_printf(conn, "<html><title>db list</title>\n<body>\n");
+        mg_printf(conn, "<html><title>%s</title>\n<body>\n", m_ns.data_);
         mg_print_cur_time(conn, query, m_repo);
-        mg_printf(conn, "<table border=1><tbody>\n");
-        for (auto& kv : vec) {
-          mg_printf(conn, "<tr><td><a href='/%.*s/%s?html=1'>%s</a></td></tr>\n",
-                    int(urilen), uri, kv.first.c_str(), kv.first.c_str());
+        if (vec.empty()) {
+          mg_printf(conn, "<strong>%s</strong> repo is empty</body></html>\n",
+                    m_ns.data_);
         }
-        mg_printf(conn, "</tbody></table></body></html>\n");
+        else {
+          mg_printf(conn, "<table border=1><tbody>\n"
+                    "<tr align='left'><th>name</th><th>class</th></tr>\n");
+          for (auto& kv : vec) {
+            const auto name = kv.first.c_str();
+            const auto pobj = GetRawPtr(kv.second);
+            const auto iter = m_map->p2name.find(pobj);
+            ROCKSDB_VERIFY_F(iter != m_map->p2name.end(), "%s : %s", name, m_ns.data_);
+            const SidePluginRepo::Impl::ObjInfo& obj_info = iter->second;
+            const auto jter = obj_info.params.find("class");
+            ROCKSDB_VERIFY_F(jter != obj_info.params.end(), "%s : %s", name, m_ns.data_);
+            const auto clazz = jter.value().get_ref<const std::string&>().c_str();
+            mg_printf(conn, "<tr><td><a href='/%.*s/%s?html=1'>%s</a></td><td>%s</td></tr>\n",
+                      int(urilen), uri, name, name, clazz);
+          }
+          mg_printf(conn, "</tbody></table></body></html>\n");
+        }
       }
       return true;
     }

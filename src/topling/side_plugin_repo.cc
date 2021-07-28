@@ -1282,7 +1282,9 @@ static void JsonToHtml_Object(const json& obj, std::string& html, bool nested) {
 
 std::string JsonToHtml(const json& obj) {
   std::string html;
-  JsonToHtml_Object(obj, html, false);
+  if (obj.is_structured()) {
+    JsonToHtml_Object(obj, html, false);
+  }
   return html;
 }
 

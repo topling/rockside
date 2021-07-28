@@ -2007,7 +2007,8 @@ static void SetCFPropertiesWebView(DB* db, ColumnFamilyHandle* cfh,
   auto view = std::make_shared<CFPropertiesWebView>(
                                CFPropertiesWebView{db, cfh});
   repo.m_impl->props.p2name.emplace(
-      view.get(), SidePluginRepo::Impl::ObjInfo{varname, json("builtin")});
+      view.get(), SidePluginRepo::Impl::ObjInfo{varname,
+      json{{"class", "builtin"}, {"params", "empty"}}});
   repo.m_impl->props.name2p->emplace(varname, view);
 }
 static void SetCFPropertiesWebView(DB* db, const std::string& dbname,
