@@ -2,35 +2,11 @@
 // Created by leipeng on 2020/8/18.
 //
 
-/* Copyright (c) 2013-2018 the Civetweb developers
- * Copyright (c) 2013 No Face Press, LLC
- * License http://opensource.org/licenses/mit-license.php MIT License
- */
-
-// Simple example program on how to use Embedded C++ interface.
-
 #include "CivetServer.h"
-#include <cstring>
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
-#include <topling/side_plugin_factory.h>
 #include "json_civetweb.h"
-
-#define DOCUMENT_ROOT "."
-#define PORT "8081"
-#define EXAMPLE_URI "/example"
-#define EXIT_URI "/exit"
-
+#include <topling/side_plugin_factory.h>
 
 namespace ROCKSDB_NAMESPACE {
-
-/* Exit flag for main loop */
-volatile bool exitNow = false;
 
 json from_query_string(const char* qry) {
   json js;
@@ -133,13 +109,11 @@ public:
   SidePluginRepo* m_repo;
   SidePluginRepo::Impl::ObjMap<Ptr>* m_map;
   Slice m_ns;
-  //std::string m_clazz;
 
   RepoHandler(const char* clazz,
               SidePluginRepo* repo,
               SidePluginRepo::Impl::ObjMap<Ptr>* map) {
     m_repo = repo;
-    //m_clazz = clazz;
     m_ns = clazz;
     m_map = map;
     if (SidePluginRepo::DebugLevel() >= 2) {
@@ -158,9 +132,6 @@ R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
 
     const mg_request_info* req = mg_get_request_info(conn);
     json query = from_query_string(req->query_string);
-//    if (SidePluginRepo::DebugLevel() >= 2) {
-//      fprintf(stderr, "INFO: query = %s\n", query.dump().c_str());
-//    }
     const char* uri = req->local_uri;
     if (nullptr == uri) {
       mg_printf(conn, "ERROR: local uri is null\r\n");
@@ -307,20 +278,14 @@ JsonCivetServer::Impl::Impl(const json& conf, SidePluginRepo* repo) {
   std::vector<std::string> options;
   for (const auto& kv : conf.items()) {
     std::string key = kv.key();
-    const auto& value = kv.value();
-    if (!value.is_string()) {
-    #if 0
-      THROW_InvalidArgument(
-        "conf[\"" + key + "\"] must be a string, but is: " + value.dump());
-    #else
-      options.push_back(std::move(key));
-      options.push_back(value.dump());
-      continue;
-    #endif
-    }
     options.push_back(std::move(key));
-    options.push_back(value.get_ref<const std::string&>());
+    const auto& value = kv.value();
+    if (value.is_string())
+      options.push_back(value.get_ref<const std::string&>());
+    else
+      options.push_back(value.dump());
   }
+  ROCKSDB_VERIFY_AL(options.size(), 2);
   if (SidePluginRepo::DebugLevel() >= 2) {
     for (const auto& val : options) {
       fprintf(stderr, "INFO: JsonCivetServer::Impl::Impl(): len=%02zd: %s\n", val.size(), val.c_str());

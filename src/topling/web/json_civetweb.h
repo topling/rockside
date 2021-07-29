@@ -10,7 +10,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 using nlohmann::json;
-
+class SidePluginRepo;
 class JsonCivetServer {
 public:
   ~JsonCivetServer();
