@@ -580,6 +580,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_FACT(js, compaction_thread_limiter);
     ROCKSDB_JSON_OPT_FACT(js, sst_partitioner_factory);
     ROCKSDB_JSON_OPT_FACT(js, compaction_executor_factory);
+    ROCKSDB_JSON_OPT_FACT(js, html_user_key_coder);
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
@@ -662,6 +663,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_FACT(js, compaction_thread_limiter);
     ROCKSDB_JSON_SET_FACT(js, sst_partitioner_factory);
     ROCKSDB_JSON_SET_FACT(js, compaction_executor_factory);
+    ROCKSDB_JSON_SET_FACX(js, html_user_key_coder, any_plugin);
   }
 };
 using CFOptions = ColumnFamilyOptions;
@@ -1400,6 +1402,16 @@ std::string Json_dbname(const DB* db, const SidePluginRepo& repo) {
   return iter->second.name;
 }
 
+std::shared_ptr<UserKeyCoder>
+Json_GetUserKeyCoder(const DB& db, ColumnFamilyHandle* cfh,
+                     const SidePluginRepo& repo) {
+  ColumnFamilyDescriptor cfd;
+  Status s = cfh->GetDescriptor(&cfd);
+  ROCKSDB_VERIFY_F(s.ok(), "%s", s.ToString().c_str());
+  auto html_user_key_coder = cfd.options.html_user_key_coder;
+  return std::dynamic_pointer_cast<UserKeyCoder>(html_user_key_coder);
+}
+
 std::string AggregateNames(const std::map<std::string, int>& map, const char* delim);
 static std::string
 Json_DB_CF_SST_HtmlTable(const DB& db, ColumnFamilyHandle* cfh,
@@ -1419,15 +1431,8 @@ try {
       return html;
     }
   }
-  std::string dbname = Json_dbname(&db, repo);
-  std::string coderName = "userKeyCoderHtml:" + dbname + ":" + cfh->GetName();
-  const UserKeyCoder* coder = nullptr;
-  {
-    auto& name2p = *repo.m_impl->any_plugin.name2p;
-    auto  iter = name2p.find(coderName);
-    if (name2p.end() != iter)
-      coder = dynamic_cast<const UserKeyCoder*>(iter->second.get());
-  }
+  auto coder_sp = Json_GetUserKeyCoder(db, cfh, repo);
+  const UserKeyCoder* coder = coder_sp.get();
 
   auto comp = cfh->GetComparator();
   struct SstProp : SstFileMetaData, TableProperties {};
