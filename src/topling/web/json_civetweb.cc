@@ -124,10 +124,8 @@ public:
   bool handleGet(CivetServer *server, struct mg_connection *conn) override {
     mg_printf(conn,
               "HTTP/1.1 200 OK\r\n"
-              "Content-Type: text/html\r\n"
+              "Content-Type: text/html; charset=utf-8\r\n"
               //"Connection: close\r\n"
-              "\r\n"
-R"(<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />)"
               "\r\n");
 
     const mg_request_info* req = mg_get_request_info(conn);
