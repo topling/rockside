@@ -274,7 +274,7 @@ void MergeSubAny(json* target, const json& patch, const string& subname) {
   }
 }
 
-static void JS_setenv(const nlohmann::json& main_js) {
+static void JS_setenv(const json& main_js) {
   auto iter = main_js.find("setenv");
   if (main_js.end() == iter) {
     return;
@@ -306,7 +306,7 @@ static void JS_setenv(const nlohmann::json& main_js) {
   }
 }
 
-Status SidePluginRepo::Import(const nlohmann::json& main_js)
+Status SidePluginRepo::Import(const json& main_js)
 #if defined(NDEBUG)
 try
 #endif
@@ -378,7 +378,7 @@ static void Impl_Export(const SidePluginRepo::Impl::ObjMap<Ptr>& field,
     params_js = kv.second.params;
   }
 }
-Status SidePluginRepo::Export(nlohmann::json* main_js) const
+Status SidePluginRepo::Export(json* main_js) const
 #if defined(NDEBUG)
 try
 #endif
@@ -425,7 +425,7 @@ catch (const std::exception& ex) {
 
 Status SidePluginRepo::Export(string* json_str, bool pretty) const {
   assert(NULL != json_str);
-  nlohmann::json js;
+  json js;
   Status s = Export(&js);
   if (s.ok()) {
     *json_str = js.dump(pretty ? 4 : -1);
@@ -645,10 +645,10 @@ Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp);
  *       }
  *     }
  */
-Status SidePluginRepo::OpenDB(const nlohmann::json& js, DB** dbp) {
+Status SidePluginRepo::OpenDB(const json& js, DB** dbp) {
   return OpenDB_tpl<DB>(*this, js, dbp);
 }
-Status SidePluginRepo::OpenDB(const nlohmann::json& js, DB_MultiCF** dbp) {
+Status SidePluginRepo::OpenDB(const json& js, DB_MultiCF** dbp) {
   return OpenDB_tpl<DB_MultiCF>(*this, js, dbp);
 }
 
@@ -963,7 +963,7 @@ ParseSizeXiB::ParseSizeXiB(const std::string& s) {
   else
     m_val = ParseUint64(s);
 }
-ParseSizeXiB::ParseSizeXiB(const nlohmann::json& js) {
+ParseSizeXiB::ParseSizeXiB(const json& js) {
   if (js.is_number_integer())
     m_val = js.get<long long>();
   else if (js.is_number_unsigned())
@@ -973,7 +973,7 @@ ParseSizeXiB::ParseSizeXiB(const nlohmann::json& js) {
   else
     throw std::invalid_argument("bad json = " + js.dump());
 }
-ParseSizeXiB::ParseSizeXiB(const nlohmann::json& js, const char* key) {
+ParseSizeXiB::ParseSizeXiB(const json& js, const char* key) {
     if (!js.is_object()) {
       throw std::invalid_argument(
           std::string(ROCKSDB_FUNC) + ": js is not an object, key = " + key);

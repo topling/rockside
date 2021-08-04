@@ -97,14 +97,14 @@ class SidePluginRepo {
   Status ImportYamlFile(const Slice& fname);
 
   Status Import(const std::string& json_str);
-  Status Import(const nlohmann::json&);
-  Status Export(nlohmann::json*) const;
+  Status Import(const json&);
+  Status Export(json*) const;
   Status Export(std::string*, bool pretty = false) const;
 
   Status OpenDB(const std::string& js, DB**);
   Status OpenDB(const std::string& js, DB_MultiCF**);
-  Status OpenDB(const nlohmann::json&, DB**);
-  Status OpenDB(const nlohmann::json&, DB_MultiCF**);
+  Status OpenDB(const json&, DB**);
+  Status OpenDB(const json&, DB_MultiCF**);
 
   ///@{ open the DB defined in js["open"]
   Status OpenDB(DB**);
@@ -296,8 +296,8 @@ class ParseSizeXiB {
 public:
   explicit ParseSizeXiB(const char* s);
   explicit ParseSizeXiB(const std::string& s);
-  explicit ParseSizeXiB(const nlohmann::json&);
-  explicit ParseSizeXiB(const nlohmann::json&, const char* key);
+  explicit ParseSizeXiB(const json&);
+  explicit ParseSizeXiB(const json&, const char* key);
   operator int() const;
   operator long() const;
   operator long long() const;
