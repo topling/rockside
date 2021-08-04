@@ -4,7 +4,6 @@
 #pragma once
 
 #include <rocksdb/rocksdb_namespace.h>
-#include <string>
 #include <topling/json_fwd.h>
 
 namespace ROCKSDB_NAMESPACE {
