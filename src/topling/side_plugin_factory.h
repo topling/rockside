@@ -13,6 +13,7 @@
 #include "side_plugin_repo.h"
 #include "web/json_civetweb.h"
 #include "json.h"
+#include "logging/logging.h"
 #include "rocksdb/enum_reflection.h"
 #include "rocksdb/preproc.h"
 #include "rocksdb/status.h"
@@ -397,13 +398,14 @@ noexcept {
   if (!ib.second) {
     fprintf(stderr,
             "%s: FATAL: %s:%d: PluginFactory<%s>::Reg: dup class = %s\n",
-            StrDateTimeNow(), file, line, demangle(typeid(Ptr)).c_str(),
-            class_name.data());
+            StrDateTimeNow(), RocksLogShorterFileName(file), line,
+            demangle(typeid(Ptr)).c_str(), class_name.data());
     abort();
   }
   if (SidePluginRepo::DebugLevel() >= 2) {
-    fprintf(stderr, "%s: INFO: PluginFactory<%s>::Reg: class = %s\n",
-        StrDateTimeNow(), demangle(typeid(Ptr)).c_str(), class_name.data());
+    fprintf(stderr, "%s: INFO: %s:%d: PluginFactory<%s>::Reg: class = %s\n",
+            StrDateTimeNow(), RocksLogShorterFileName(file), line,
+            demangle(typeid(Ptr)).c_str(), class_name.data());
   }
   this->ipos = ib.first;
 }
