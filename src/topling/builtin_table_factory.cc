@@ -807,7 +807,7 @@ struct DispatcherTableFactory_Manip : PluginManipFunc<TableFactory> {
       return t->ToJsonStr(dump_options, repo);
     }
     std::string name = fac.Name();
-    THROW_InvalidArgument("Is not TerarkZipTable, but is: " + name);
+    THROW_InvalidArgument("Is not DispatcherTable, but is: " + name);
   }
 };
 
