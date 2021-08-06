@@ -284,7 +284,7 @@ JsonCivetServer::Impl::Impl(const json& conf, SidePluginRepo* repo) {
       options.push_back(value.dump());
   }
   ROCKSDB_VERIFY_AL(options.size(), 2);
-  if (SidePluginRepo::DebugLevel() >= 2) {
+  if (SidePluginRepo::DebugLevel() >= 5) {
     for (const auto& val : options) {
       fprintf(stderr, "INFO: JsonCivetServer::Impl::Impl(): len=%02zd: %s\n", val.size(), val.c_str());
     }

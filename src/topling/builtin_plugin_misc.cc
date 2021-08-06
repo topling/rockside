@@ -750,8 +750,12 @@ ROCKSDB_FACTORY_REG("GenericRateLimiter", JS_NewGenericRateLimiter);
 //////////////////////////////////////////////////////////////////////////////
 
 static shared_ptr<Statistics>
-JS_NewStatistics(const json&, const SidePluginRepo&) {
-  return CreateDBStatistics();
+JS_NewStatistics(const json& js, const SidePluginRepo&) {
+  StatsLevel stats_level = kExceptDetailedTimers;
+  ROCKSDB_JSON_OPT_ENUM(js, stats_level);
+  auto p = CreateDBStatistics();
+  p->set_stats_level(stats_level);
+  return p;
 }
 ROCKSDB_FACTORY_REG("default", JS_NewStatistics);
 ROCKSDB_FACTORY_REG("Default", JS_NewStatistics);
