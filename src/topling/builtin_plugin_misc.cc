@@ -749,11 +749,19 @@ ROCKSDB_FACTORY_REG("GenericRateLimiter", JS_NewGenericRateLimiter);
 
 //////////////////////////////////////////////////////////////////////////////
 
+class StatisticsWithOneHistroy : public StatisticsImpl {
+public:
+  using StatisticsImpl::StatisticsImpl;
+  uint64_t m_last_tikers[INTERNAL_TICKER_ENUM_MAX] = {0};
+  HistogramStat m_last_histogram[INTERNAL_HISTOGRAM_ENUM_MAX];
+};
+
 static shared_ptr<Statistics>
 JS_NewStatistics(const json& js, const SidePluginRepo&) {
   StatsLevel stats_level = kExceptDetailedTimers;
   ROCKSDB_JSON_OPT_ENUM(js, stats_level);
-  auto p = CreateDBStatistics();
+  //auto p = CreateDBStatistics();
+  auto p = std::make_shared<StatisticsWithOneHistroy>(nullptr);
   p->set_stats_level(stats_level);
   return p;
 }
