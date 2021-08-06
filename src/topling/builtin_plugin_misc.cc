@@ -1143,6 +1143,7 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
       name, "P50", "P95", "P99", "AVG", "MIN", "MAX", "CNT", "STD", "SUM"
     });
   }
+  djs["stats_level"] = enum_stdstr(st->get_stats_level());
 }
 
 struct Statistics_Manip : PluginManipFunc<Statistics> {
