@@ -296,7 +296,7 @@ template<class Object>
 void SerDe_SerializeOpt(FILE* fp, const std::string& clazz, const Object* obj,
                         const json& js = json{},
                         const SidePluginRepo& repo = null_repo_ref()) {
-  auto serde = SerDeFactory<Object>::NullablePlugin(clazz, js, repo);
+  auto serde = SerDeFac(obj)->NullablePlugin(clazz, js, repo);
   if (serde) {
     assert(nullptr != obj);
     serde->Serialize(fp, *obj);
@@ -310,14 +310,18 @@ void SerDe_SerializeOpt(FILE* fp, const std::string& clazz,
   return SerDe_SerializeOpt(fp, clazz, obj.get(), js, repo);
 }
 
+template<class T>
+T* SidePlugin_const_cast(const T* p) { return const_cast<T*>(p); }
+
 template<class Object>
 void SerDe_DeSerialize(FILE* fp, const std::string& clazz, Object* obj,
                        const json& js = json{},
                        const SidePluginRepo& repo = null_repo_ref()) {
-  auto serde = SerDeFactory<Object>::NullablePlugin(clazz, js, repo);
+  auto serde = SerDeFac(obj)->NullablePlugin(clazz, js, repo);
   if (serde) {
     assert(nullptr != obj);
-    serde->DeSerialize(fp, obj);
+    // Object may be const, such as 'const Comparator'
+    serde->DeSerialize(fp, SidePlugin_const_cast(obj));
   }
 }
 template<class Object>
@@ -385,234 +389,10 @@ struct PluginFactory<Ptr>::Reg::Impl {
   Impl() = default;
   NameToFuncMap func_map;
   std::map<std::string, Ptr> inst_map;
-  static Impl& s_singleton() { static Impl imp; return imp; }
+  static Impl& s_singleton();
 };
 
-template<class Ptr>
-PluginFactory<Ptr>::Reg::Reg(Slice class_name, AcqFunc acq,
-                             const char* file, int line, Slice base_class)
-noexcept {
-  auto& imp = Impl::s_singleton();
-  Meta meta{acq, base_class.ToString()};
-  auto ib = imp.func_map.insert({class_name.ToString(), std::move(meta)});
-  if (!ib.second) {
-    fprintf(stderr,
-            "%s: FATAL: %s:%d: PluginFactory<%s>::Reg: dup class = %s\n",
-            StrDateTimeNow(), RocksLogShorterFileName(file), line,
-            demangle(typeid(Ptr)).c_str(), class_name.data());
-    abort();
-  }
-  if (SidePluginRepo::DebugLevel() >= 2) {
-    fprintf(stderr, "%s: INFO: %s:%d: PluginFactory<%s>::Reg: class = %s\n",
-            StrDateTimeNow(), RocksLogShorterFileName(file), line,
-            demangle(typeid(Ptr)).c_str(), class_name.data());
-  }
-  this->ipos = ib.first;
-}
-
-template<class Ptr>
-PluginFactory<Ptr>::Reg::~Reg() {
-  auto& imp = Impl::s_singleton();
-  imp.func_map.erase(ipos);
-}
-
-template<class Ptr>
-Ptr
-PluginFactory<Ptr>::AcquirePlugin(const std::string& clazz, const json& js,
-                                  const SidePluginRepo& repo) {
-  auto& imp = Reg::Impl::s_singleton();
-  auto iter = imp.func_map.find(clazz);
-  if (imp.func_map.end() != iter) {
-    Ptr ptr = iter->second.acq(js, repo);
-    assert(!!ptr);
-    return ptr;
-  }
-  else {
-    //return Ptr(nullptr);
-    THROW_NotFound("class = " + clazz + ", params = " + js.dump());
-  }
-}
-
-template<class Ptr>
-Ptr
-PluginFactory<Ptr>::NullablePlugin(const std::string& clazz, const json& js,
-                                   const SidePluginRepo& repo) {
-  auto& imp = Reg::Impl::s_singleton();
-  auto iter = imp.func_map.find(clazz);
-  if (imp.func_map.end() != iter) {
-    Ptr ptr = iter->second.acq(js, repo);
-    assert(!!ptr);
-    return ptr;
-  }
-  return Ptr(nullptr);
-}
-
 std::string PluginParseInstID(const std::string& str_val);
-
-template<class Ptr>
-Ptr
-PluginFactory<Ptr>::
-GetPlugin(const char* varname, const char* func_name,
-          const json& js, const SidePluginRepo& repo) {
-  if (js.is_string()) {
-    const auto& str_val = js.get_ref<const std::string&>();
-    if (str_val.empty()) {
-      throw Status::InvalidArgument(
-          func_name, std::string(varname) + " inst_id/class_name is empty");
-    }
-    Ptr p(nullptr);
-    bool ret = false;
-    if ('$' == str_val[0]) {
-      if (str_val.size() < 3) {
-        throw Status::InvalidArgument(func_name,
-                   std::string(varname) + " inst_id is too short");
-      }
-      const auto inst_id = PluginParseInstID(str_val);
-      ret = repo.Get(inst_id, &p);
-    } else {
-      ret = repo.Get(str_val, &p); // the whole str_val is inst_id
-    }
-    if (!ret) {
-      throw Status::NotFound(func_name,
-            std::string(varname) + "inst_id = " + str_val);
-    }
-    assert(!!p);
-    return p;
-  }
-  else {
-    throw Status::InvalidArgument(func_name,
-      std::string(varname) + " must be a string for reference to object");
-  }
-}
-
-///@param varname just for error report
-///@param func_name just for error report
-//
-// if json is a string ${inst_id} or $inst_id, then Get the plugin named
-// inst_id in repo.
-//
-// if json is a string does not like ${inst_id} or $inst_id, then the string
-// is treated as a class name to create the plugin with empty json params.
-//
-// if json is an object, it should be { class: class_name, params: ... }
-template<class Ptr>
-Ptr
-PluginFactory<Ptr>::
-ObtainPlugin(const char* varname, const char* func_name,
-             const json& js, const SidePluginRepo& repo) {
-  if (js.is_string()) {
-    const auto& str_val = js.get_ref<const std::string&>();
-    if (str_val.empty()) {
-    #if 1
-      // treat empty string json as null, because json convert to yaml
-      // may convert json null into empty string, convert such yaml back
-      // to json yield an empty string ""
-      return Ptr(nullptr);
-    #else
-      throw Status::InvalidArgument(func_name, std::string(varname) +
-               " inst_id/class_name is empty");
-    #endif
-    }
-    if ('$' == str_val[0]) {
-      if (str_val.size() < 3) {
-        throw Status::InvalidArgument(func_name, std::string(varname) +
-                 " inst_id = \"" + str_val + "\" is too short");
-      }
-      const auto inst_id = PluginParseInstID(str_val);
-      Ptr p(nullptr);
-      if (!repo.Get(inst_id, &p)) {
-        throw Status::NotFound(func_name,
-           std::string(varname) + " inst_id = \"" + inst_id + "\"");
-      }
-      assert(!!p);
-      return p;
-    } else {
-      // string which does not like ${inst_id} or $inst_id
-      // try to treat str_val as inst_id to Get it
-      Ptr p(nullptr);
-      if (repo.Get(str_val, &p)) {
-        assert(!!p);
-        return p;
-      }
-      // now treat str_val as class name, try to --
-      // AcquirePlugin with empty json params
-      const std::string& clazz_name = str_val;
-      return AcquirePlugin(clazz_name, json{}, repo);
-    }
-  } else if (js.is_null()) {
-    return Ptr(nullptr);
-  } else if (js.is_object()) {
-    auto iter = js.find("class");
-    if (js.end() == iter) {
-        throw Status::InvalidArgument(func_name, "sub obj class is required");
-    }
-    if (!iter.value().is_string()) {
-        throw Status::InvalidArgument(func_name, "sub obj class must be string");
-    }
-    const auto& clazz_name = iter.value().get_ref<const std::string&>();
-    const json& params = js.at("params");
-    return AcquirePlugin(clazz_name, params, repo);
-  }
-  throw Status::InvalidArgument(func_name,
-      "js must be string, null, or object, but is: " + js.dump());
-}
-
-template<class Ptr>
-Ptr
-PluginFactory<Ptr>::
-AcquirePlugin(const json& js, const SidePluginRepo& repo) {
-  if (js.is_string()) {
-    const auto& str_val = js.get_ref<const std::string&>();
-    if (str_val.empty()) {
-      THROW_InvalidArgument("jstr class_name is empty");
-    }
-    // now treat js as class name, try to --
-    // AcquirePlugin with empty json params
-    const std::string& clazz_name = str_val;
-    return AcquirePlugin(clazz_name, json{}, repo);
-  } else if (js.is_null()) {
-    return Ptr(nullptr);
-  } else if (js.is_object()) {
-    auto iter = js.find("class");
-    if (js.end() == iter) {
-      THROW_InvalidArgument("js[\"class\"] is required: " + js.dump());
-    }
-    if (!iter.value().is_string()) {
-      THROW_InvalidArgument("js[\"class\"] must be string: " + js.dump());
-    }
-    const auto& clazz_name = iter.value().get_ref<const std::string&>();
-    const json& params = js.at("params");
-    return AcquirePlugin(clazz_name, params, repo);
-  }
-  THROW_InvalidArgument(
-        "js must be string, null, or object, but is: " + js.dump());
-}
-
-template<class Ptr>
-bool PluginFactory<Ptr>::HasPlugin(const std::string& class_name) {
-  auto& imp = Reg::Impl::s_singleton();
-  return imp.func_map.count(class_name) != 0;
-}
-
-// plugin can have alias class name, this function check whether the two
-// aliases are defined as a same plugin
-template<class Ptr>
-bool PluginFactory<Ptr>::SamePlugin(const std::string& clazz1,
-                                    const std::string& clazz2) {
-  if (clazz1 == clazz2) {
-    return true;
-  }
-  auto& imp = Reg::Impl::s_singleton();
-  auto i1 = imp.func_map.find(clazz1);
-  auto i2 = imp.func_map.find(clazz2);
-  if (imp.func_map.end() == i1) {
-    THROW_NotFound("clazz1 = " + clazz1);
-  }
-  if (imp.func_map.end() == i2) {
-    THROW_NotFound("clazz2 = " + clazz2);
-  }
-  return i1->second.acq == i2->second.acq;
-}
 
 const json& jsonRefType();
 const SidePluginRepo& repoRefType();
