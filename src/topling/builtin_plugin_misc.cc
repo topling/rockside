@@ -19,6 +19,7 @@
 #include "utilities/blob_db/blob_db.h"
 #include "utilities/transactions/transaction_db_mutex_impl.h"
 #include "side_plugin_factory.h"
+#include "side_plugin_internal.h"
 
 #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
   #define rocksdb_build_compile_date rocksdb_build_date

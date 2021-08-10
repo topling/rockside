@@ -7,7 +7,6 @@
 #pragma once
 
 #include <mutex>
-#include <thread>
 
 #include "side_plugin_repo.h"
 #include "web/json_civetweb.h"
@@ -33,11 +32,6 @@ template<class P> using RemovePtr = typename RemovePtr_tpl<P>::type;
 template<class T> T* GetRawPtr(T* p){ return p; }
 template<class T> T* GetRawPtr(const std::shared_ptr<T>& p){ return p.get(); }
 inline DB* GetRawPtr(const DB_Ptr& p){ return p.db; }
-
-inline const SidePluginRepo& null_repo_ref() {
-   SidePluginRepo* p = nullptr;
-   return *p;
-}
 
 const char* StrDateTimeNow();
 std::string demangle(const char* name);
@@ -110,28 +104,6 @@ struct SidePluginRepo::Impl {
 
   JsonCivetServer http;
 };
-struct DB_MultiCF_Impl : public DB_MultiCF {
-  DB_MultiCF_Impl();
-  ~DB_MultiCF_Impl() override;
-  ColumnFamilyHandle* Get(const std::string& cfname) const override;
-  Status CreateColumnFamily(const std::string& cfname, const std::string& json_str, ColumnFamilyHandle**) override;
-  Status DropColumnFamily(const std::string& cfname) override;
-  Status DropColumnFamily(ColumnFamilyHandle*) override;
-  void AddOneCF_ToMap(const std::string& cfname, ColumnFamilyHandle*, const json&);
-  void InitAddCF_ToMap(const json& js_cf_desc);
-  SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*> m_cfhs;
-  const SidePluginRepo* m_repo;
-  std::function<ColumnFamilyHandle*
-    (DB*, const std::string& cfname, const ColumnFamilyOptions&, const json& extra_args)
-   > m_create_cf;
-  std::unique_ptr<std::thread> m_catch_up_thread;
-  bool m_catch_up_running;
-  int m_catch_up_delay_ms;
-};
-template<class Ptr>
-Ptr ObtainOPT(SidePluginRepo::Impl::ObjMap<Ptr>& field,
-              const char* option_class, // "DBOptions" or "CFOptions"
-              const json& option_js, const SidePluginRepo& repo);
 
 ///@note on principle, the factory itself is stateless, but its product
 /// can has states, sometimes we need factory of factory, in this case,
@@ -262,78 +234,6 @@ PluginSerDeSingleton(const json&, const SidePluginRepo&) {
 
 template<class Object>
 using SerDeFactory = PluginFactory<std::shared_ptr<SerDeFunc<Object> > >;
-
-template<class Object>
-SerDeFactory<Object>* SerDeFac(const Object*) { return nullptr; }
-template<class Object>
-SerDeFactory<Object>* SerDeFac(const std::shared_ptr<Object>&) { return nullptr; }
-
-// Suffix 'Req' means 'required'
-template<class Object>
-void SerDe_SerializeReq(FILE* fp, const std::string& clazz, const Object* obj,
-                        const json& js = json{},
-                        const SidePluginRepo& repo = null_repo_ref()) {
-  assert(nullptr != obj);
-  auto serde = SerDeFactory<Object>::AcquirePlugin(clazz, js, repo);
-  serde->Serialize(fp, *obj);
-}
-template<class Object>
-void SerDe_SerializeReq(FILE* fp, const std::string& clazz,
-                        const std::shared_ptr<Object>& obj,
-                        const json& js = json{},
-                        const SidePluginRepo& repo = null_repo_ref()) {
-  return SerDe_SerializeReq(fp, clazz, obj.get(), js, repo);
-}
-
-// Suffix 'Opt' means 'optional'
-// if clazz has no SerDeFunc, obj can     be null
-// if clazz has    SerDeFunc, obj can not be null
-template<class Object>
-void SerDe_SerializeOpt(FILE* fp, const std::string& clazz, const Object* obj,
-                        const json& js = json{},
-                        const SidePluginRepo& repo = null_repo_ref()) {
-  auto serde = SerDeFac(obj)->NullablePlugin(clazz, js, repo);
-  if (serde) {
-    assert(nullptr != obj);
-    serde->Serialize(fp, *obj);
-  }
-}
-template<class Object>
-void SerDe_SerializeOpt(FILE* fp, const std::string& clazz,
-                        const std::shared_ptr<Object>& obj,
-                        const json& js = json{},
-                        const SidePluginRepo& repo = null_repo_ref()) {
-  return SerDe_SerializeOpt(fp, clazz, obj.get(), js, repo);
-}
-
-template<class T>
-T* SidePlugin_const_cast(const T* p) { return const_cast<T*>(p); }
-
-template<class Object>
-void SerDe_DeSerialize(FILE* fp, const std::string& clazz, Object* obj,
-                       const json& js = json{},
-                       const SidePluginRepo& repo = null_repo_ref()) {
-  auto serde = SerDeFac(obj)->NullablePlugin(clazz, js, repo);
-  if (serde) {
-    assert(nullptr != obj);
-    // Object may be const, such as 'const Comparator'
-    serde->DeSerialize(fp, SidePlugin_const_cast(obj));
-  }
-}
-template<class Object>
-void SerDe_DeSerialize(FILE* fp, const std::string& clazz,
-                       const std::shared_ptr<Object>& obj,
-                       const json& js = json{},
-                       const SidePluginRepo& repo = null_repo_ref()) {
-  SerDe_DeSerialize(fp, clazz, obj.get(), js, repo);
-}
-template<class Ptr>
-void SerDe_DeSerialize(FILE* fp, const Ptr& p,
-                       const json& js = json{},
-                       const SidePluginRepo& repo = null_repo_ref()) {
-  if (p)
-    SerDe_DeSerialize(fp, p->Name(), p, js, repo);
-}
 
 template<class Object, class Extra>
 struct ExtraBinderFunc {

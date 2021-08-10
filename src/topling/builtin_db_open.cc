@@ -15,6 +15,7 @@
 #include "rocksdb/wal_filter.h"
 #include "json.h"
 #include "side_plugin_factory.h"
+#include "side_plugin_internal.h"
 
 namespace ROCKSDB_NAMESPACE {
 
