@@ -6,14 +6,12 @@
 //
 #pragma once
 
-#include <memory>
 #include <mutex>
 #include <thread>
 
 #include "side_plugin_repo.h"
 #include "web/json_civetweb.h"
 #include "json.h"
-#include "logging/logging.h"
 #include "rocksdb/enum_reflection.h"
 #include "rocksdb/preproc.h"
 #include "rocksdb/status.h"
@@ -25,8 +23,6 @@ namespace ROCKSDB_NAMESPACE {
 #define THROW_Corruption(msg) THROW_STATUS(Corruption, msg)
 #define THROW_NotFound(msg) THROW_STATUS(NotFound, msg)
 #define THROW_NotSupported(msg) THROW_STATUS(NotSupported, msg)
-
-using nlohmann::json;
 
 template<class P> struct RemovePtr_tpl; // NOLINT
 template<class T> struct RemovePtr_tpl<T*> { typedef T type; };
@@ -381,16 +377,6 @@ struct EasyProxyManip : public PluginManipFunc<Interface> {
 // call ROCKSDB_REG_EasyProxyManip_${ArgNum}, ArgNum must be 2 or 3
 #define ROCKSDB_REG_EasyProxyManip(...) ROCKSDB_PP_CAT2 \
        (ROCKSDB_REG_EasyProxyManip_,ROCKSDB_PP_ARG_N(__VA_ARGS__))(__VA_ARGS__)
-
-template<class Ptr>
-struct PluginFactory<Ptr>::Reg::Impl {
-  Impl(const Impl&) = delete;
-  Impl& operator=(const Impl&) = delete;
-  Impl() = default;
-  NameToFuncMap func_map;
-  std::map<std::string, Ptr> inst_map;
-  static Impl& s_singleton();
-};
 
 std::string PluginParseInstID(const std::string& str_val);
 

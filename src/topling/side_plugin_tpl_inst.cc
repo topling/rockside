@@ -12,9 +12,20 @@
 #include "rocksdb/sst_file_manager.h"
 #include "rocksdb/utilities/transaction_db_mutex.h"
 #include "rocksdb/wal_filter.h"
+#include "logging/logging.h"
 #include "util/string_util.h"
 
 namespace ROCKSDB_NAMESPACE {
+
+template<class Ptr>
+struct PluginFactory<Ptr>::Reg::Impl {
+  Impl(const Impl&) = delete;
+  Impl& operator=(const Impl&) = delete;
+  Impl() = default;
+  NameToFuncMap func_map;
+  std::map<std::string, Ptr> inst_map;
+  static Impl& s_singleton();
+};
 
 template<class Ptr>
 typename
