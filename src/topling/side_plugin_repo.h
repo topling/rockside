@@ -66,7 +66,8 @@ struct DB_MultiCF {
 };
 
 class SidePluginRepo;
-struct AnyPlugin {
+class AnyPlugin {
+public:
   AnyPlugin(const AnyPlugin&) = delete;
   AnyPlugin& operator=(const AnyPlugin&) = delete;
   AnyPlugin() {}
