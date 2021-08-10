@@ -13,7 +13,6 @@
 #include "json.h"
 #include "rocksdb/enum_reflection.h"
 #include "rocksdb/preproc.h"
-#include "rocksdb/status.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -234,14 +233,6 @@ PluginSerDeSingleton(const json&, const SidePluginRepo&) {
 
 template<class Object>
 using SerDeFactory = PluginFactory<std::shared_ptr<SerDeFunc<Object> > >;
-
-template<class Object, class Extra>
-struct ExtraBinderFunc {
-  virtual ~ExtraBinderFunc() {}
-  virtual void Bind(Object*, Extra*) const = 0;
-};
-template<class Object, class Extra>
-using ExtraBinder = PluginFactory<const ExtraBinderFunc<Object, Extra>*>;
 
 struct AnyPluginManip : public PluginManipFunc<AnyPlugin> {
   void Update(AnyPlugin*, const json&, const SidePluginRepo&) const final;
