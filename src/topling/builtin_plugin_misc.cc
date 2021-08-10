@@ -2,41 +2,23 @@
 // Created by leipeng on 2020/7/12.
 //
 
-
-#include "utilities/table_properties_collectors/compact_on_deletion_collector.h"
-
 #include <memory>
 #include <cinttypes>
 #include <chrono>
 
 #include "rocksdb/db.h"
-#include "cache/lru_cache.h"
 #include "db/dbformat.h"
 #include "db/column_family.h"
 #include "db/table_cache.h"
-#include "rocksdb/env.h"
 #include "rocksdb/options.h"
 #include "options/db_options.h"
-#include "rocksdb/compaction_filter.h"
-#include "rocksdb/concurrent_task_limiter.h"
 #include "rocksdb/utilities/db_ttl.h"
 #include "rocksdb/utilities/transaction_db.h"
 #include "rocksdb/utilities/transaction_db_mutex.h"
 #include "rocksdb/utilities/optimistic_transaction_db.h"
-#include "rocksdb/flush_block_policy.h"
-#include "rocksdb/merge_operator.h"
-#include "rocksdb/rate_limiter.h"
-#include "rocksdb/slice_transform.h"
-#include "rocksdb/sst_file_manager.h"
-#include "rocksdb/wal_filter.h"
-#include "util/rate_limiter.h"
 #include "utilities/blob_db/blob_db.h"
 #include "utilities/transactions/transaction_db_mutex_impl.h"
-#include "json.h"
 #include "side_plugin_factory.h"
-#if defined(MEMKIND)
-  #include "memory/memkind_kmem_allocator.h"
-#endif
 
 #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
   #define rocksdb_build_compile_date rocksdb_build_date
@@ -137,32 +119,6 @@ static Status Json_EventListenerVec(const json& js, const SidePluginRepo& repo,
   }
   return Status::OK();
 }
-
-static std::shared_ptr<WriteBufferManager>
-JS_NewWriteBufferManager(const json& js, const SidePluginRepo& repo) {
-  size_t buffer_size = 0;
-  shared_ptr<Cache> cache;
-  ROCKSDB_JSON_REQ_SIZE(js, buffer_size);
-  ROCKSDB_JSON_OPT_FACT(js, cache);
-  return std::make_shared<WriteBufferManager>(buffer_size, cache);
-}
-struct WriteBufferManager_Manip : PluginManipFunc<WriteBufferManager> {
-  void Update(WriteBufferManager*, const json&, const SidePluginRepo&) const final {
-    // TODO:
-  }
-  std::string ToString(const WriteBufferManager& wbm, const json& dump_options,
-                       const SidePluginRepo& repo) const final {
-    bool html = JsonSmartBool(dump_options, "html", true);
-    json js;
-    size_t buffer_size = wbm.buffer_size();
-    const shared_ptr<Cache>& cache = wbm.GetCache();
-    ROCKSDB_JSON_SET_SIZE(js, buffer_size);
-    ROCKSDB_JSON_SET_FACT(js, cache);
-    return JsonToString(js, dump_options);
-  }
-};
-ROCKSDB_FACTORY_REG("WriteBufferManager", JS_NewWriteBufferManager);
-ROCKSDB_REG_PluginManip("WriteBufferManager", WriteBufferManager_Manip);
 
 struct DBOptions_Json : DBOptions {
   DBOptions_Json(const json& js, const SidePluginRepo& repo) {
@@ -690,65 +646,6 @@ ROCKSDB_REG_PluginManip("CFOptions", CFOptions_Manip);
 
 //////////////////////////////////////////////////////////////////////////////
 
-static shared_ptr<TablePropertiesCollectorFactory>
-JS_NewCompactOnDeletionCollectorFactory(const json& js, const SidePluginRepo&) {
-  size_t sliding_window_size = 0;
-  size_t deletion_trigger = 0;
-  double deletion_ratio = 0;
-  ROCKSDB_JSON_REQ_PROP(js, sliding_window_size);
-  ROCKSDB_JSON_REQ_PROP(js, deletion_trigger);
-  ROCKSDB_JSON_OPT_PROP(js, deletion_ratio);  // this is optional
-  return NewCompactOnDeletionCollectorFactory(sliding_window_size,
-                                              deletion_trigger, deletion_ratio);
-}
-ROCKSDB_FACTORY_REG("CompactOnDeletionCollector",
-               JS_NewCompactOnDeletionCollectorFactory);
-
-//////////////////////////////////////////////////////////////////////////////
-
-static shared_ptr<RateLimiter>
-JS_NewGenericRateLimiter(const json& js, const SidePluginRepo& repo) {
-  int64_t rate_bytes_per_sec = 0;
-  int64_t refill_period_us = 100 * 1000;
-  int32_t fairness = 10;
-  RateLimiter::Mode mode = RateLimiter::Mode::kWritesOnly;
-  bool auto_tuned = false;
-  ROCKSDB_JSON_REQ_SIZE(js, rate_bytes_per_sec); // required
-  ROCKSDB_JSON_OPT_PROP(js, refill_period_us);
-  ROCKSDB_JSON_OPT_PROP(js, fairness);
-  ROCKSDB_JSON_OPT_ENUM(js, mode);
-  ROCKSDB_JSON_OPT_PROP(js, auto_tuned);
-  if (rate_bytes_per_sec <= 0) {
-    THROW_InvalidArgument("rate_bytes_per_sec must > 0");
-  }
-  if (refill_period_us <= 0) {
-    THROW_InvalidArgument("refill_period_us must > 0");
-  }
-  if (fairness <= 0) {
-    THROW_InvalidArgument("fairness must > 0");
-  }
-  Env* env = Env::Default();
-  auto iter = js.find("env");
-  if (js.end() != iter) {
-    const auto& env_js = iter.value();
-    env = PluginFactory<Env*>::GetPlugin("env", ROCKSDB_FUNC, env_js, repo);
-    if (!env)
-      THROW_InvalidArgument("param env is specified but got null");
-  }
-  return std::make_shared<GenericRateLimiter>(
-      rate_bytes_per_sec, refill_period_us, fairness,
-      mode,
-#if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
-      env->GetSystemClock(),
-#else
-      env,
-#endif
-      auto_tuned);
-}
-ROCKSDB_FACTORY_REG("GenericRateLimiter", JS_NewGenericRateLimiter);
-
-//////////////////////////////////////////////////////////////////////////////
-
 class StatisticsWithOneHistroy : public StatisticsImpl {
 public:
   using StatisticsImpl::StatisticsImpl;
@@ -770,237 +667,6 @@ ROCKSDB_FACTORY_REG("Default", JS_NewStatistics);
 ROCKSDB_FACTORY_REG("Statistics", JS_NewStatistics);
 
 //////////////////////////////////////////////////////////////////////////////
-struct JemallocAllocatorOptions_Json : JemallocAllocatorOptions {
-  JemallocAllocatorOptions_Json(const json& js, const SidePluginRepo&) {
-    ROCKSDB_JSON_OPT_PROP(js, limit_tcache_size);
-    ROCKSDB_JSON_OPT_SIZE(js, tcache_size_lower_bound);
-    ROCKSDB_JSON_OPT_SIZE(js, tcache_size_upper_bound);
-  }
-  json ToJson(const SidePluginRepo&) {
-    json js;
-    ROCKSDB_JSON_SET_PROP(js, limit_tcache_size);
-    ROCKSDB_JSON_SET_SIZE(js, tcache_size_lower_bound);
-    ROCKSDB_JSON_SET_SIZE(js, tcache_size_upper_bound);
-    return js;
-  }
-};
-std::shared_ptr<MemoryAllocator>
-JS_NewJemallocNodumpAllocator(const json& js, const SidePluginRepo& repo) {
-  JemallocAllocatorOptions_Json opt(js, repo);
-  std::shared_ptr<MemoryAllocator> p;
-  Status s = NewJemallocNodumpAllocator(opt, &p);
-  if (!s.ok()) {
-    throw s;
-  }
-  return p;
-}
-ROCKSDB_FACTORY_REG("JemallocNodumpAllocator", JS_NewJemallocNodumpAllocator);
-#if defined(MEMKIND)
-ROCKSDB_REG_DEFAULT_CONS(MemkindKmemAllocator, MemoryAllocator);
-#endif
-
-struct LRUCacheOptions_Json : LRUCacheOptions {
-  LRUCacheOptions_Json(const json& js, const SidePluginRepo& repo) {
-    ROCKSDB_JSON_REQ_SIZE(js, capacity);
-    ROCKSDB_JSON_OPT_PROP(js, num_shard_bits);
-    ROCKSDB_JSON_OPT_PROP(js, strict_capacity_limit);
-    ROCKSDB_JSON_OPT_PROP(js, high_pri_pool_ratio);
-    ROCKSDB_JSON_OPT_FACT(js, memory_allocator);
-    ROCKSDB_JSON_OPT_PROP(js, use_adaptive_mutex);
-    ROCKSDB_JSON_OPT_ENUM(js, metadata_charge_policy);
-  }
-  json ToJson(const SidePluginRepo& repo, bool html) const {
-    json js;
-    ROCKSDB_JSON_SET_SIZE(js, capacity);
-    ROCKSDB_JSON_SET_PROP(js, num_shard_bits);
-    ROCKSDB_JSON_SET_PROP(js, strict_capacity_limit);
-    ROCKSDB_JSON_SET_PROP(js, high_pri_pool_ratio);
-    ROCKSDB_JSON_SET_FACT(js, memory_allocator);
-    ROCKSDB_JSON_SET_PROP(js, use_adaptive_mutex);
-    ROCKSDB_JSON_SET_ENUM(js, metadata_charge_policy);
-    return js;
-  }
-};
-static std::shared_ptr<Cache>
-JS_NewLRUCache(const json& js, const SidePluginRepo& repo) {
-  return NewLRUCache(LRUCacheOptions_Json(js, repo));
-}
-ROCKSDB_FACTORY_REG("LRUCache", JS_NewLRUCache);
-
-struct LRUCache_Manip : PluginManipFunc<Cache> {
-  void Update(Cache* p, const json& js, const SidePluginRepo& repo)
-  const override {
-
-  }
-
-  string ToString(const Cache& r, const json& dump_options, const SidePluginRepo& repo)
-  const override {
-    bool html = JsonSmartBool(dump_options, "html", true);
-    auto& p2name = repo.m_impl->cache.p2name;
-    auto iter = p2name.find((Cache*)&r);
-    json js;
-    if (p2name.end() != iter) {
-      js = iter->second.params;
-    }
-    size_t usage = r.GetUsage();
-    size_t pined_usage = r.GetPinnedUsage();
-    size_t capacity = r.GetCapacity();
-    bool strict_capacity = r.HasStrictCapacityLimit();
-    double usage_rate = 1.0*usage / capacity;
-    double pined_rate = 1.0*pined_usage / capacity;
-    MemoryAllocator* memory_allocator = r.memory_allocator();
-    ROCKSDB_JSON_SET_SIZE(js, usage);
-    ROCKSDB_JSON_SET_SIZE(js, pined_usage);
-    ROCKSDB_JSON_SET_SIZE(js, capacity);
-    ROCKSDB_JSON_SET_PROP(js, strict_capacity);
-    ROCKSDB_JSON_SET_PROP(js, usage_rate);
-    ROCKSDB_JSON_SET_PROP(js, pined_rate);
-    ROCKSDB_JSON_SET_FACT(js, memory_allocator);
-    auto lru = dynamic_cast<const LRUCache*>(&r);
-    if (lru) {
-      size_t cached_elem_num = const_cast<LRUCache*>(lru)->TEST_GetLRUSize();
-      ROCKSDB_JSON_SET_PROP(js, cached_elem_num);
-    }
-    return JsonToString(js, dump_options);
-  }
-};
-ROCKSDB_REG_PluginManip("LRUCache", LRUCache_Manip);
-
-//////////////////////////////////////////////////////////////////////////////
-static std::shared_ptr<Cache>
-JS_NewClockCache(const json& js, const SidePluginRepo& repo) {
-#ifdef SUPPORT_CLOCK_CACHE
-  LRUCacheOptions_Json opt(js, repo); // similar with ClockCache param
-  auto p = NewClockCache(opt.capacity, opt.num_shard_bits,
-                         opt.strict_capacity_limit, opt.metadata_charge_policy);
-  if (nullptr != p) {
-	THROW_InvalidArgument(
-		"SUPPORT_CLOCK_CACHE is defined but NewClockCache returns null");
-  }
-  return p;
-#else
-  (void)js;
-  (void)repo;
-  THROW_InvalidArgument(
-      "SUPPORT_CLOCK_CACHE is not defined, "
-      "need to recompile with -D SUPPORT_CLOCK_CACHE=1");
-#endif
-}
-ROCKSDB_FACTORY_REG("ClockCache", JS_NewClockCache);
-
-//////////////////////////////////////////////////////////////////////////////
-static std::shared_ptr<const SliceTransform>
-JS_NewFixedPrefixTransform(const json& js, const SidePluginRepo&) {
-  size_t prefix_len = 0;
-  ROCKSDB_JSON_REQ_PROP(js, prefix_len);
-  return std::shared_ptr<const SliceTransform>(
-      NewFixedPrefixTransform(prefix_len));
-}
-ROCKSDB_FACTORY_REG("FixedPrefixTransform", JS_NewFixedPrefixTransform);
-
-//////////////////////////////////////////////////////////////////////////////
-static std::shared_ptr<const SliceTransform>
-JS_NewCappedPrefixTransform(const json& js, const SidePluginRepo&) {
-  size_t cap_len = 0;
-  ROCKSDB_JSON_REQ_PROP(js, cap_len);
-  return std::shared_ptr<const SliceTransform>(
-      NewCappedPrefixTransform(cap_len));
-}
-ROCKSDB_FACTORY_REG("CappedPrefixTransform", JS_NewCappedPrefixTransform);
-
-//////////////////////////////////////////////////////////////////////////////
-static const Comparator*
-BytewiseComp(const json&, const SidePluginRepo&) {
-  return BytewiseComparator();
-}
-static const Comparator*
-RevBytewiseComp(const json&, const SidePluginRepo&) {
-  return ReverseBytewiseComparator();
-}
-ROCKSDB_FACTORY_REG(                   "default", BytewiseComp);
-ROCKSDB_FACTORY_REG(                   "Default", BytewiseComp);
-ROCKSDB_FACTORY_REG(                  "bytewise", BytewiseComp);
-ROCKSDB_FACTORY_REG(                  "Bytewise", BytewiseComp);
-ROCKSDB_FACTORY_REG(        "BytewiseComparator", BytewiseComp);
-ROCKSDB_FACTORY_REG("leveldb.BytewiseComparator", BytewiseComp);
-ROCKSDB_FACTORY_REG(        "ReverseBytewise"          , RevBytewiseComp);
-ROCKSDB_FACTORY_REG(        "ReverseBytewiseComparator", RevBytewiseComp);
-ROCKSDB_FACTORY_REG("leveldb.ReverseBytewiseComparator", RevBytewiseComp);
-
-//////////////////////////////////////////////////////////////////////////////
-static Env* DefaultEnv(const json&, const SidePluginRepo&) {
-  return Env::Default();
-}
-ROCKSDB_FACTORY_REG("default", DefaultEnv);
-
-/////////////////////////////////////////////////////////////////////////////
-ROCKSDB_REG_DEFAULT_CONS(FlushBlockBySizePolicyFactory,FlushBlockPolicyFactory);
-
-/////////////////////////////////////////////////////////////////////////////
-static shared_ptr<FileChecksumGenFactory>
-GetFileChecksumGenCrc32cFactoryJson(const json&,
-                                    const SidePluginRepo&) {
-  return GetFileChecksumGenCrc32cFactory();
-}
-ROCKSDB_FACTORY_REG("Crc32c", GetFileChecksumGenCrc32cFactoryJson);
-ROCKSDB_FACTORY_REG("crc32c", GetFileChecksumGenCrc32cFactoryJson);
-
-/////////////////////////////////////////////////////////////////////////////
-static shared_ptr<MemTableRepFactory>
-NewSkipListMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
-  size_t lookahead = 0;
-  ROCKSDB_JSON_OPT_PROP(js, lookahead);
-  return std::make_shared<SkipListFactory>(lookahead);
-}
-ROCKSDB_FACTORY_REG("SkipListRep", NewSkipListMemTableRepFactoryJson);
-ROCKSDB_FACTORY_REG("SkipList", NewSkipListMemTableRepFactoryJson);
-ROCKSDB_FACTORY_REG("skiplist", NewSkipListMemTableRepFactoryJson);
-
-static shared_ptr<MemTableRepFactory>
-NewVectorMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
-  size_t count = 0;
-  ROCKSDB_JSON_OPT_PROP(js, count);
-  return std::make_shared<VectorRepFactory>(count);
-}
-ROCKSDB_FACTORY_REG("VectorRep", NewVectorMemTableRepFactoryJson);
-ROCKSDB_FACTORY_REG("Vector", NewVectorMemTableRepFactoryJson);
-ROCKSDB_FACTORY_REG("vector", NewVectorMemTableRepFactoryJson);
-
-static shared_ptr<MemTableRepFactory>
-NewHashSkipListMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
-  size_t bucket_count = 1000000;
-  int32_t height = 4;
-  int32_t branching_factor = 4;
-  ROCKSDB_JSON_OPT_PROP(js, bucket_count);
-  ROCKSDB_JSON_OPT_PROP(js, height);
-  ROCKSDB_JSON_OPT_PROP(js, branching_factor);
-  return shared_ptr<MemTableRepFactory>(
-      NewHashSkipListRepFactory(bucket_count, height, branching_factor));
-}
-ROCKSDB_FACTORY_REG("HashSkipListRep", NewHashSkipListMemTableRepFactoryJson);
-ROCKSDB_FACTORY_REG("HashSkipList", NewHashSkipListMemTableRepFactoryJson);
-
-static shared_ptr<MemTableRepFactory>
-NewHashLinkListMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
-  size_t bucket_count = 50000;
-  size_t huge_page_tlb_size = 0;
-  int bucket_entries_logging_threshold = 4096;
-  bool if_log_bucket_dist_when_flash = true;
-  uint32_t threshold_use_skiplist = 256;
-  ROCKSDB_JSON_OPT_PROP(js, bucket_count);
-  ROCKSDB_JSON_OPT_SIZE(js, huge_page_tlb_size);
-  ROCKSDB_JSON_OPT_PROP(js, bucket_entries_logging_threshold);
-  ROCKSDB_JSON_OPT_PROP(js, if_log_bucket_dist_when_flash);
-  ROCKSDB_JSON_OPT_PROP(js, threshold_use_skiplist);
-  return shared_ptr<MemTableRepFactory>(
-      NewHashLinkListRepFactory(bucket_count,
-                                huge_page_tlb_size,
-                                bucket_entries_logging_threshold,
-                                if_log_bucket_dist_when_flash,
-                                threshold_use_skiplist));
-}
-ROCKSDB_FACTORY_REG("HashLinkListRep", NewHashLinkListMemTableRepFactoryJson);
-ROCKSDB_FACTORY_REG("HashLinkList", NewHashLinkListMemTableRepFactoryJson);
 
 /////////////////////////////////////////////////////////////////////////////
 // OpenDB implementations
@@ -2804,62 +2470,10 @@ ROCKSDB_FACTORY_REG("BlobDB::Open", JS_DB_MultiCF_Manip);
 DB_MultiCF::DB_MultiCF() = default;
 DB_MultiCF::~DB_MultiCF() = default;
 
-AnyPlugin::~AnyPlugin() = default;
-
-void HtmlAppendEscape(std::string* d, const char* s, size_t n) {
-  for (size_t i = 0; i < n; ++i) {
-    const char c = s[i];
-    switch (c) {
-      default : d->push_back(c);    break;
-      case  0 : d->append("<em>\\0</em>");   break;
-      case  1 : d->append("<em>\\1</em>");   break;
-      case  2 : d->append("<em>\\2</em>");   break;
-      case  3 : d->append("<em>\\3</em>");   break;
-      case  4 : d->append("<em>\\4</em>");   break;
-      case  5 : d->append("<em>\\5</em>");   break;
-      case  6 : d->append("<em>\\6</em>");   break;
-      case  7 : d->append("<em>\\7</em>");   break;
-      case '\\': d->append("<em>\\\\</em>"); break;
-      case '\b': d->append("<em>\\b</em>");  break;
-      case '\t': d->append("<em>\\t</em>");  break;
-      case '\r': d->append("<em>\\r</em>");  break;
-      case '\n': d->append("<em>\\n</em>");  break;
-      case '<': d->append("&lt;" ); break;
-      case '>': d->append("&gt;" ); break;
-      case '&': d->append("&amp;"); break;
-    }
-  }
-}
-struct HtmlTextUserKeyCoder : public UserKeyCoder {
-  void Update(const json&, const SidePluginRepo&) override {
-    ROCKSDB_DIE("This function should not be called");
-  }
-  std::string ToString(const json&, const SidePluginRepo&) const override {
-    return R"(<h3>this is HtmlTextUserKeyCoder</h3>
-<p>1. convert <code>&amp; &lt; &gt;</code> to <code>&amp;amp; &amp;lt; &amp;gt;</code></p>
-<p>2. also escape chars as C string(such as \t, \r, \n)</p>
-)";
-  }
-  void Encode(Slice, std::string*) const override {
-    ROCKSDB_DIE("This function should not be called");
-  }
-  void Decode(Slice coded, std::string* de) const override {
-    de->clear();
-    de->reserve(coded.size_);
-    HtmlAppendEscape(de, coded.data_, coded.size_);
-  }
-};
-std::shared_ptr<AnyPlugin>
-JS_NewHtmlTextUserKeyCoder(const json&, const SidePluginRepo&) {
-  static const auto single = std::make_shared<HtmlTextUserKeyCoder>();
-  return single;
-}
-ROCKSDB_FACTORY_REG("HtmlTextUserKeyCoder", JS_NewHtmlTextUserKeyCoder);
-ROCKSDB_REG_AnyPluginManip("HtmlTextUserKeyCoder");
-
 // users should ensure databases are alive when calling this function
 void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
   m_impl->http.Close();
+#if 1
   using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
   //using view_kv_ptr = const std::pair<const void* const, Impl::ObjInfo>*;
   std::map<const void*, view_kv_ptr> cfh_to_view;
@@ -2873,9 +2487,12 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
     ROCKSDB_VERIFY_F(cfh_to_view.end() != iter, "cfh must in cfh_to_view");
     auto view = (CFPropertiesWebView*)(iter->second->first);
     const Impl::ObjInfo& oi = iter->second->second;
-    m_impl->props.p2name.erase(view);
     m_impl->props.name2p->erase(oi.name);
+    m_impl->props.p2name.erase(view); // this erase invalidate 'oi'
   };
+#else
+  auto del_view = [&](ColumnFamilyHandle*) {};
+#endif
   auto del_rocks = [del_rocksdb_objs](auto obj) {
     if (del_rocksdb_objs)
       delete obj;
