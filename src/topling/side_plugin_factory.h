@@ -128,9 +128,8 @@ public:
   static Ptr AcquirePlugin(const json&, const SidePluginRepo&);
 
   // not throw if plugin does not exist
-  static Ptr NullablePlugin(const std::string& clazz,
-                            const json& = json(),
-                            const SidePluginRepo& = SidePluginRepo());
+  static Ptr NullablePlugin(const std::string& clazz, const json&,
+                            const SidePluginRepo&);
 
   static Ptr ObtainPlugin(const char* varname, const char* func_name,
                           const json&, const SidePluginRepo&);
