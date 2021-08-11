@@ -22,7 +22,7 @@ struct PluginFactory<Ptr>::Reg::Impl {
   Impl(const Impl&) = delete;
   Impl& operator=(const Impl&) = delete;
   Impl() = default;
-  NameToFuncMap func_map;
+  std::map<std::string, Meta> func_map;
   std::map<std::string, Ptr> inst_map;
   static Impl& s_singleton();
 };
@@ -62,6 +62,14 @@ PluginFactory<Ptr>::Reg::~Reg() {
   auto& imp = Impl::s_singleton();
   imp.func_map.erase(ipos);
 }
+
+template<class Ptr> SidePluginRepo::Impl::ObjMap<Ptr>::ObjMap() {
+   name2p = std::make_shared<std::map<std::string, Ptr> >();
+}
+template<class Ptr> SidePluginRepo::Impl::ObjMap<Ptr>::~ObjMap() = default;
+
+template<class Ptr> PluginFactory<Ptr>::PluginFactory() = default;
+template<class Ptr> PluginFactory<Ptr>::~PluginFactory() = default;
 
 template<class Ptr>
 Ptr
@@ -291,10 +299,12 @@ bool PluginFactory<Ptr>::SamePlugin(const std::string& clazz1,
 }
 
 #define explicit_instantiate_sp(Interface) \
+  template class SidePluginRepo::Impl::ObjMap<std::shared_ptr<Interface> >; \
   template class PluginFactory<std::shared_ptr<Interface> >; \
   template class PluginFactory<const PluginManipFunc<Interface>*>
 
 #define explicit_instantiate_rp(Interface) \
+  template class SidePluginRepo::Impl::ObjMap<Interface*>; \
   template class PluginFactory<Interface*>; \
   template class PluginFactory<const PluginManipFunc<Interface>*>
 
@@ -339,6 +349,8 @@ explicit_instantiate_rp(Env);
 
 explicit_instantiate_rp(DB_MultiCF);
 explicit_instantiate_rp(DB);
+template class SidePluginRepo::Impl::ObjMap<DB_Ptr>;
+template class SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*>;
 
 explicit_instantiate_serde(CompactionFilterFactory);
 explicit_instantiate_serde(Comparator);

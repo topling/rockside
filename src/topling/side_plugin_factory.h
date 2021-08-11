@@ -51,13 +51,14 @@ struct SidePluginRepo::Impl {
     json params; // { class : "class_name", params : "params..." }
   };
   template<class Ptr>
-  struct ObjMap {
+  class ObjMap {
+  public:
     ObjMap(const ObjMap&) = delete;
     ObjMap& operator=(const ObjMap&) = delete;
-    ObjMap() = default;
+    ObjMap();
+    ~ObjMap();
     std::map<const void*, ObjInfo> p2name;
-    std::shared_ptr<std::map<std::string, Ptr>> name2p =
-        std::make_shared<std::map<std::string, Ptr>>();
+    std::shared_ptr<std::map<std::string, Ptr> > name2p;
   };
   template<class T>
   using ObjRepo = ObjMap<std::shared_ptr<T> >;
@@ -114,8 +115,8 @@ class PluginFactory {
 public:
   PluginFactory(const PluginFactory&) = delete;
   PluginFactory& operator=(const PluginFactory&) = delete;
-  PluginFactory() = default;
-  virtual ~PluginFactory() = default;
+  PluginFactory();
+  virtual ~PluginFactory();
   // in some contexts Acquire means 'CreateNew'
   // in some contexts Acquire means 'GetExisting'
   static Ptr AcquirePlugin(const std::string& clazz, const json&,
@@ -147,13 +148,10 @@ public:
   };
   struct Reg {
     Reg(const Reg&) = delete;
-    Reg(Reg&&) = delete;
-    Reg& operator=(Reg&&) = delete;
     Reg& operator=(const Reg&) = delete;
-    using NameToFuncMap = std::map<std::string, Meta>;
     Reg(Slice class_name, AcqFunc acq, const char* file, int line, Slice base_class = "") noexcept;
     ~Reg();
-    typename NameToFuncMap::iterator ipos;
+    typename std::map<std::string, Meta>::iterator ipos;
     struct Impl;
   };
 };
