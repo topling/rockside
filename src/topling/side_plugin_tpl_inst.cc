@@ -71,7 +71,7 @@ PluginFactory<Ptr>::AcquirePlugin(const std::string& clazz, const json& js,
   auto iter = imp.func_map.find(clazz);
   if (imp.func_map.end() != iter) {
     Ptr ptr = iter->second.acq(js, repo);
-    assert(!!ptr);
+    ROCKSDB_VERIFY(nullptr != ptr);
     return ptr;
   }
   else {
@@ -88,7 +88,7 @@ PluginFactory<Ptr>::NullablePlugin(const std::string& clazz, const json& js,
   auto iter = imp.func_map.find(clazz);
   if (imp.func_map.end() != iter) {
     Ptr ptr = iter->second.acq(js, repo);
-    assert(!!ptr);
+    ROCKSDB_VERIFY(nullptr != ptr);
     return ptr;
   }
   return Ptr(nullptr);
@@ -135,7 +135,7 @@ GetNoAcq(const char* varname, const char* func_name,
       throw Status::NotFound(func_name,
             std::string(varname) + "inst_id = " + str_val);
     }
-    assert(!!*pp);
+    ROCKSDB_VERIFY(nullptr != *pp);
   }
   else {
     throw Status::InvalidArgument(func_name,
@@ -179,12 +179,12 @@ GetOrAcq(const char* varname, const char* func_name,
         throw Status::NotFound(func_name,
            std::string(varname) + " inst_id = \"" + inst_id + "\"");
       }
-      assert(!!*pp);
+      ROCKSDB_VERIFY(nullptr != *pp);
     } else {
       // string which does not like ${inst_id} or $inst_id
       // try to treat str_val as inst_id to Get it
       if (repo.Get(str_val, pp)) {
-        assert(!!*pp);
+        ROCKSDB_VERIFY(nullptr != *pp);
       }
       else {
         // now treat str_val as class name, try to --
