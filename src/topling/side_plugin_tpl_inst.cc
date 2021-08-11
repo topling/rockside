@@ -23,7 +23,7 @@ struct PluginFactory<Ptr>::Reg::Impl {
   Impl& operator=(const Impl&) = delete;
   Impl() = default;
   std::map<std::string, Meta> func_map;
-  std::map<std::string, Ptr> inst_map;
+  //std::map<std::string, Ptr> inst_map;
   static Impl& s_singleton();
 };
 
