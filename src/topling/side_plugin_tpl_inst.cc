@@ -292,13 +292,14 @@ bool PluginFactory<Ptr>::SamePlugin(const std::string& clazz1,
 
 #define explicit_instantiate_sp(Interface) \
   template class PluginFactory<std::shared_ptr<Interface> >; \
-  template class PluginFactory<const PluginManipFunc<Interface>*>; \
-  template class PluginFactory<std::shared_ptr<SerDeFunc<std::remove_const_t<Interface> > > >
+  template class PluginFactory<const PluginManipFunc<Interface>*>
 
 #define explicit_instantiate_rp(Interface) \
   template class PluginFactory<Interface*>; \
-  template class PluginFactory<const PluginManipFunc<Interface>*>; \
-  template class PluginFactory<std::shared_ptr<SerDeFunc<std::remove_const_t<Interface> > > >
+  template class PluginFactory<const PluginManipFunc<Interface>*>
+
+#define explicit_instantiate_serde(Interface) \
+  template class PluginFactory<std::shared_ptr<SerDeFunc<Interface> > >
 
 explicit_instantiate_sp(AnyPlugin);
 explicit_instantiate_sp(Cache);
@@ -338,5 +339,13 @@ explicit_instantiate_rp(Env);
 
 explicit_instantiate_rp(DB_MultiCF);
 explicit_instantiate_rp(DB);
+
+explicit_instantiate_serde(CompactionFilterFactory);
+explicit_instantiate_serde(Comparator);
+explicit_instantiate_serde(SliceTransform);
+explicit_instantiate_serde(MergeOperator);
+explicit_instantiate_serde(SstPartitionerFactory);
+explicit_instantiate_serde(TableFactory);
+explicit_instantiate_serde(TablePropertiesCollectorFactory);
 
 } // ROCKSDB_NAMESPACE
