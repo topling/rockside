@@ -140,17 +140,14 @@ public:
   static bool HasPlugin(const std::string& class_name);
   static bool SamePlugin(const std::string& clazz1, const std::string& clazz2);
 
-  typedef Ptr (*AcqFunc)(const json&,const SidePluginRepo&);
-  struct Meta {
-    AcqFunc acq;
-    std::string base_class; // chain to base
-  };
+  typedef Ptr (*AcqFunc)(const json&, const SidePluginRepo&);
+  struct Meta;
   struct Reg {
     Reg(const Reg&) = delete;
     Reg& operator=(const Reg&) = delete;
-    Reg(Slice class_name, AcqFunc acq, const char* file, int line, Slice base_class = "") noexcept;
+    Reg(const char* class_name, AcqFunc, const char* file, int line) noexcept;
     ~Reg();
-    typename std::map<std::string, Meta>::iterator ipos;
+    typename std::map<Slice, Meta>::iterator ipos;
     struct Impl;
   };
 };

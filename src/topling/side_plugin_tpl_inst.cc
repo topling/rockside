@@ -18,11 +18,17 @@
 namespace ROCKSDB_NAMESPACE {
 
 template<class Ptr>
+struct PluginFactory<Ptr>::Meta {
+  AcqFunc acq;
+  //std::string base_class; // chain to base
+};
+
+template<class Ptr>
 struct PluginFactory<Ptr>::Reg::Impl {
   Impl(const Impl&) = delete;
   Impl& operator=(const Impl&) = delete;
   Impl() = default;
-  std::map<std::string, Meta> func_map;
+  std::map<Slice, Meta> func_map;
   //std::map<std::string, Ptr> inst_map;
   static Impl& s_singleton();
 };
@@ -33,23 +39,23 @@ PluginFactory<Ptr>::Reg::Impl&
 PluginFactory<Ptr>::Reg::Impl::s_singleton() { static Impl imp; return imp; }
 
 template<class Ptr>
-PluginFactory<Ptr>::Reg::Reg(Slice class_name, AcqFunc acq,
-                             const char* file, int line, Slice base_class)
+PluginFactory<Ptr>::Reg::Reg(const char* class_name, AcqFunc acq,
+                             const char* file, int line)
 noexcept {
   auto& imp = Impl::s_singleton();
-  Meta meta{acq, base_class.ToString()};
-  auto ib = imp.func_map.insert({class_name.ToString(), std::move(meta)});
+  Meta meta{acq};
+  auto ib = imp.func_map.emplace(class_name, std::move(meta));
   if (!ib.second) {
     fprintf(stderr,
             "%s: FATAL: %s:%d: PluginFactory<%s>::Reg: dup class = %s\n",
             StrDateTimeNow(), RocksLogShorterFileName(file), line,
-            demangle(typeid(Ptr)).c_str(), class_name.data());
+            demangle(typeid(Ptr)).c_str(), class_name);
     abort();
   }
   if (SidePluginRepo::DebugLevel() >= 2) {
     fprintf(stderr, "%s: INFO: %s:%d: PluginFactory<%s>::Reg: class = %s\n",
             StrDateTimeNow(), RocksLogShorterFileName(file), line,
-            demangle(typeid(Ptr)).c_str(), class_name.data());
+            demangle(typeid(Ptr)).c_str(), class_name);
   }
   this->ipos = ib.first;
 }
