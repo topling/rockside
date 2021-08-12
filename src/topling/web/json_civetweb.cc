@@ -64,11 +64,16 @@ void mg_print_cur_time(mg_connection* conn, const json& query,
                        const SidePluginRepo* repo) {
   std::string str;
   str.reserve(4096);
-  int refresh = JsonSmartInt(query, "refresh", 0);
-  auto toggle = refresh ? "0" : "3";
+  std::string tm_str = cur_time_stat();
+  const char* comma = (const char*)memchr(tm_str.data(), ',', tm_str.size());
   str|"<p id='time_stat_line'>";
-  str|"<a href='javascript:SetParam(`refresh`,`"|toggle|"`)'>";
-  str|cur_time_stat();
+  str|"<a href='javascript:SetParam(`refresh`,`3`)'>";
+  str.append(tm_str.data(), comma - 1 - tm_str.data());
+  str|"</a>";
+  str|" , ";
+  str|"<a href='javascript:SetParam(`refresh`,`0`)'>Up</a>: ";
+  str|"<a href='javascript:SetParam(`refresh`,`1`)'>";
+  str.append(comma + 6);
   str|"</a>";
   if (repo) for (auto& kvp : *repo->GetAllDB()) {
     const std::string& dbname = kvp.first; // not dbpath
