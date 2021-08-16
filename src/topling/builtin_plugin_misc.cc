@@ -880,24 +880,25 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     }
   }
 
-  const string empty;
+  const auto empty = [](){};
   const string sum{"_sum"};
   const string count{"_count"};
   const string bucket{"_bucket"};
-  const string max_flag{"le=\"+Inf\""}; //bucket 最大是固定的+Inf
+  const auto max_flag = [&]{oss|"le=\"+Inf\"";}; //bucket 最大是固定的+Inf
   for (const auto& h : HistogramsNameMap) {
     assert(h.first < HISTOGRAM_ENUM_MAX);
-
-    auto append_result=[&h,&oss,&bucket_num](const string &suffix, const string &flag, const uint64_t value){
+    auto append_result=[&h,&oss,&bucket_num](const string &suffix, auto flag, const uint64_t value){
       string name = h.second;
       for (auto &c:name) { if (c == '.') c = ':'; }
-      name.append(suffix);
-      oss|name|"{"|flag|"} "|value|"\n";
+      oss|name|suffix|"{";
+      flag();
+      oss|"} "|value|"\n";
     };
 
     for (size_t i = 0; i < bucket_num; i++) {
-      string flag;
-      ((flag += "le=\"") += to_string(bucketMapper.BucketLimit(i))) += "\"";
+      auto flag = [&] {
+        oss | "le=\"" | bucketMapper.BucketLimit(i) | "\"";
+      };
       append_result(bucket, flag, cumsum[h.first].buckets_[i].cnt);
     }
 
@@ -922,9 +923,7 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
         check_val += (max.cnt - buckets[i].cnt)*(bucket_max - bucket_min)/(buckets[i+1].cnt - buckets[i].cnt);
       }
 
-      string flag;
-      (flag += string("_check_")) += to_string(limit);
-      append_result(flag, empty, check_val);
+      append_result("_check_" + to_string(limit), empty, check_val);
     };
 
     check_info(50);
