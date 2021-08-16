@@ -5,6 +5,9 @@
 #include <memory>
 #include <cinttypes>
 #include <chrono>
+#include <sstream>
+#include <array>
+#include <algorithm>
 
 #include "rocksdb/db.h"
 #include "db/dbformat.h"
@@ -650,8 +653,8 @@ ROCKSDB_REG_PluginManip("CFOptions", CFOptions_Manip);
 class StatisticsWithOneHistroy : public StatisticsImpl {
 public:
   using StatisticsImpl::StatisticsImpl;
-  uint64_t m_last_tikers[INTERNAL_TICKER_ENUM_MAX] = {0};
-  HistogramStat m_last_histogram[INTERNAL_HISTOGRAM_ENUM_MAX];
+  mutable uint64_t m_last_tikers[INTERNAL_TICKER_ENUM_MAX] = {0};
+  mutable HistogramStat m_last_histogram[INTERNAL_HISTOGRAM_ENUM_MAX];
 };
 
 static shared_ptr<Statistics>
@@ -821,6 +824,122 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
   djs["stats_level"] = enum_stdstr(st->get_stats_level());
 }
 
+template<class T>
+static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
+  oss << x;
+  return oss;
+}
+const rocksdb::HistogramBucketMapper bucketMapper;
+
+static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozero) {
+  using stat = std::array<HistogramStat, HISTOGRAM_ENUM_MAX>;
+  using elem = HistogramStat::BucketElem;
+  using std::to_string;
+
+  std::ostringstream oss;
+
+  auto *sth = dynamic_cast<const StatisticsWithOneHistroy*>(st);
+  std::unique_ptr<stat> current_ptr(new stat());
+  std::unique_ptr<stat> cumsum_ptr(new stat());
+  stat &current = *current_ptr;
+  stat &cumsum = *cumsum_ptr;
+  sth->GetAggregated(sth->m_last_tikers, current.data());
+  for (const auto& t : TickersNameMap) {
+    assert(t.first < TICKER_ENUM_MAX);
+    uint64_t value = sth->m_last_tikers[t.first];
+    if (!nozero || value) {
+      string name = t.second;
+      for (auto &c:name) { if (c == '.') c = ':'; }
+      oss|name|" "|value|"\n";
+    }
+  }
+
+  auto const bucket_num = bucketMapper.BucketCount();
+  std::unique_ptr<stat> period_ptr(new stat());
+  stat &period = *period_ptr;
+  auto &last = sth->m_last_histogram;
+  for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
+    for (size_t j = 0; j < bucket_num; j++) {
+      period[i].buckets_[j].cnt = current[i].buckets_[j].cnt - last[i].buckets_[j].cnt;
+      period[i].buckets_[j].sum = current[i].buckets_[j].sum - last[i].buckets_[j].sum;
+
+      cumsum[i].buckets_[j].cnt = last[i].buckets_[j].cnt.load();
+      cumsum[i].buckets_[j].sum = last[i].buckets_[j].sum.load();
+    }
+    period[i].num_ = current[i].num_ - last[i].num_;
+    period[i].sum_ = current[i].sum_ - last[i].sum_;
+  }
+
+  for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
+    for (size_t j = 1; j < bucket_num; j++) { 
+      period[i].buckets_[j].cnt += period[i].buckets_[j-1].cnt;
+      period[i].buckets_[j].sum += period[i].buckets_[j-1].sum;
+
+      cumsum[i].buckets_[j].cnt += cumsum[i].buckets_[j-1].cnt;
+      cumsum[i].buckets_[j].sum += cumsum[i].buckets_[j-1].sum;
+    }
+  }
+
+  const string empty;
+  const string sum{"_sum"};
+  const string count{"_count"};
+  const string bucket{"_bucket"};
+  const string max_flag{"le=\"+Inf\""}; //bucket 最大是固定的+Inf
+  for (const auto& h : HistogramsNameMap) {
+    assert(h.first < HISTOGRAM_ENUM_MAX);
+
+    auto append_result=[&h,&oss,&bucket_num](const string &suffix, const string &flag, const uint64_t value){
+      string name = h.second;
+      for (auto &c:name) { if (c == '.') c = ':'; }
+      name.append(suffix);
+      oss|name|"{"|flag|"} "|value|"\n";
+    };
+
+    for (size_t i = 0; i < bucket_num; i++) {
+      string flag;
+      ((flag += "le=\"") += to_string(bucketMapper.BucketLimit(i))) += "\"";
+      append_result(bucket, flag, cumsum[h.first].buckets_[i].cnt);
+    }
+
+    append_result(bucket, max_flag, cumsum[h.first].buckets_[bucket_num-1].cnt);
+    append_result(sum, empty, cumsum[h.first].sum());
+    append_result(count, empty, cumsum[h.first].num());
+
+    auto check_info=[&period,&h,&append_result,&empty,&bucket_num](int limit) {
+      elem max;
+      auto &buckets = period[h.first].buckets_;
+      max.cnt = buckets[bucket_num-1].cnt*limit/100;
+
+      auto compare=[](const elem &left, const elem &right){ return left.cnt < right.cnt; };
+      auto index = std::lower_bound(buckets, buckets+bucket_num, max, compare);
+    
+      int i = index - buckets;
+      if (i > 0) i--;
+      auto bucket_min = bucketMapper.BucketLimit(i);
+      auto bucket_max = bucketMapper.BucketLimit(i+1);
+      auto check_val = bucket_min;
+      if (buckets[i+1].cnt - buckets[i].cnt > 0) {
+        check_val += (max.cnt - buckets[i].cnt)*(bucket_max - bucket_min)/(buckets[i+1].cnt - buckets[i].cnt);
+      }
+
+      string flag;
+      (flag += string("_check_")) += to_string(limit);
+      append_result(flag, empty, check_val);
+    };
+
+    check_info(50);
+    check_info(90);
+    check_info(99);
+  }
+
+  for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
+    sth->m_last_histogram[i].Clear();
+    sth->m_last_histogram[i].Merge(current[i]);
+  }
+
+  res.append(oss.str());
+}
+
 struct Statistics_Manip : PluginManipFunc<Statistics> {
   void Update(Statistics* db, const json& js,
               const SidePluginRepo& repo) const final {
@@ -829,9 +948,17 @@ struct Statistics_Manip : PluginManipFunc<Statistics> {
                        const SidePluginRepo& repo) const final {
     bool html = JsonSmartBool(dump_options, "html", true);
     bool nozero = JsonSmartBool(dump_options, "nozero");
-    json djs;
-    Json_DB_Statistics(&db, djs, html, nozero);
-    return JsonToString(djs, dump_options);
+    bool metric = JsonSmartBool(dump_options, "metric");
+
+    if (metric) {
+      string res;
+      metrics_DB_Staticstics(&db, res, nozero);
+      return res;
+    } else {
+      json djs;
+      Json_DB_Statistics(&db, djs, html, nozero);
+      return JsonToString(djs, dump_options);
+    }
   }
 };
 ROCKSDB_REG_PluginManip("default", Statistics_Manip);
@@ -1446,11 +1573,6 @@ Slice SliceSlice(Slice big, Slice sub) {
   return Slice(pos, sub.size_);
 }
 
-template<class T>
-static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
-  oss << x;
-  return oss;
-}
 static std::string
 Json_DB_NoFileHistogram_Add_convenient_links(
         const std::string& db,
