@@ -1044,8 +1044,8 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     }
 
     append_result(bucket, max_flag, cumsum[h.first].buckets_[bucket_num-1].cnt);
-    append_result(sum, empty, cumsum[h.first].sum());
-    append_result(count, empty, cumsum[h.first].num());
+    append_result(sum, empty, current[h.first].sum());
+    append_result(count, empty, current[h.first].num());
 
     auto check_info=[&period,&h,&append_result,&empty,&bucket_num](int limit) {
       elem max;
