@@ -5,6 +5,7 @@
 #include "CivetServer.h"
 #include "json_civetweb.h"
 #include <topling/side_plugin_factory.h>
+#include <chrono>
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -213,8 +214,18 @@ function SetParam(name, value) {
 #if defined(NDEBUG)
       try {
 #endif
+        using namespace std::chrono;
+        bool html_time = JsonSmartBool(query, "html_time");
+        auto t1 = steady_clock::now();
         std::string str = PluginToString(p, *m_map, query, *m_repo);
+        auto t2 = steady_clock::now();
         mg_write(conn, str.data(), str.size());
+        if (html_time) {
+          double sec = duration_cast<microseconds>(t2-t1).count() / 1e6;
+          mg_printf(conn, "<script>"
+"document.getElementById('time_stat_line').innerHTML += ', html_time = %.6f sec';"
+            "</script>", sec);
+        }
 #if defined(NDEBUG)
       }
       catch (const Status& es) {
