@@ -45,7 +45,7 @@ static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
   return oss;
 }
 // bucketMapper is defined in histogram.cc
-extern const rocksdb::HistogramBucketMapper bucketMapper;
+extern const HistogramBucketMapper bucketMapper;
 
 static std::shared_ptr<FileSystem>
 DefaultFileSystemForJson(const json&, const SidePluginRepo&) {
