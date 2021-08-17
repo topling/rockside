@@ -669,14 +669,14 @@ public:
 };
 
 const auto g_tikers_name_to_val = []() {
-  std::map<std::string, int> m;
+  std::map<std::string, uint32_t> m;
   for (const auto& kv : TickersNameMap) {
     m[kv.second] = kv.first;
   }
   return m;
 }();
 const auto g_histograms_name_to_val = []() {
-  std::map<std::string, int> m;
+  std::map<std::string, uint32_t> m;
   for (const auto& kv : HistogramsNameMap) {
     m[kv.second] = kv.first;
   }
@@ -686,6 +686,19 @@ const auto g_histograms_name_to_val = []() {
 #define ROCKSDB_JSON_GET_FACT_INNER(js, prop) \
     prop = PluginFactory<decltype(prop)>:: \
         GetPlugin(#prop, ROCKSDB_FUNC, js, repo)
+
+static bool is_in_namespace(Slice name, Slice ns) {
+  if (name.size() == ns.size()) {
+    return memcmp(name.data_, ns.data_, ns.size_) == 0;
+  }
+  if (name.size() < ns.size()) {
+    return false;
+  }
+  if (name[ns.size()] == '.') {
+    return name.starts_with(ns);
+  }
+  return false;
+}
 
 static shared_ptr<Statistics>
 JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
@@ -710,15 +723,25 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
         if (!val.is_string()) {
           THROW_InvalidArgument("discard_tikers[*] must be string");
         }
-        auto& tiker_name = val.get_ref<const std::string&>();
-        auto i = g_tikers_name_to_val.find(tiker_name);
+        auto& tiker_ns = val.get_ref<const std::string&>();
+        if (Slice(tiker_ns).starts_with("//")) {
+          continue; // skip comments
+        }
+        if (Slice(tiker_ns).starts_with("#")) {
+          continue; // skip comments
+        }
+        auto i = g_tikers_name_to_val.lower_bound(tiker_ns);
         if (g_tikers_name_to_val.end() == i) {
           fprintf(stderr, "ERROR: JS_NewStatistics: bad tiker name: %s\n",
-                  tiker_name.c_str());
+                  tiker_ns.c_str());
           continue;
         }
-        ROCKSDB_VERIFY_LT(i->second, TICKER_ENUM_MAX);
-        p->m_discard_tikers.set(i->second, true);
+        while (g_tikers_name_to_val.end() != i &&
+               is_in_namespace(i->first, tiker_ns)) {
+          ROCKSDB_VERIFY_LT(i->second, HISTOGRAM_ENUM_MAX);
+          p->m_discard_tikers.set(i->second, true);
+          ++i;
+        }
       }
     }
   }
@@ -738,15 +761,25 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
         if (!val.is_string()) {
           THROW_InvalidArgument("discard_histograms[*] must be string");
         }
-        auto& histogram_name = val.get_ref<const std::string&>();
-        auto i = g_histograms_name_to_val.find(histogram_name);
+        auto& histogram_ns = val.get_ref<const std::string&>();
+        if (Slice(histogram_ns).starts_with("//")) {
+          continue; // skip comments
+        }
+        if (Slice(histogram_ns).starts_with("#")) {
+          continue; // skip comments
+        }
+        auto i = g_histograms_name_to_val.lower_bound(histogram_ns);
         if (g_histograms_name_to_val.end() == i) {
           fprintf(stderr, "ERROR: JS_NewStatistics: bad histogram name: %s\n",
-                  histogram_name.c_str());
+                  histogram_ns.c_str());
           continue;
         }
-        ROCKSDB_VERIFY_LT(i->second, HISTOGRAM_ENUM_MAX);
-        p->m_discard_histograms.set(i->second, true);
+        while (g_histograms_name_to_val.end() != i &&
+               is_in_namespace(i->first, histogram_ns)) {
+          ROCKSDB_VERIFY_LT(i->second, HISTOGRAM_ENUM_MAX);
+          p->m_discard_histograms.set(i->second, true);
+          ++i;
+        }
       }
     }
   }
