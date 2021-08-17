@@ -8,6 +8,7 @@
 #include <sstream>
 #include <array>
 #include <algorithm>
+#include <bitset>
 
 #include "rocksdb/db.h"
 #include "db/dbformat.h"
@@ -661,17 +662,94 @@ ROCKSDB_REG_PluginManip("CFOptions", CFOptions_Manip);
 class StatisticsWithOneHistroy : public StatisticsImpl {
 public:
   using StatisticsImpl::StatisticsImpl;
+  std::bitset<INTERNAL_TICKER_ENUM_MAX>    m_discard_tikers;
+  std::bitset<INTERNAL_HISTOGRAM_ENUM_MAX> m_discard_histograms;
   mutable uint64_t m_last_tikers[INTERNAL_TICKER_ENUM_MAX] = {0};
   mutable HistogramStat m_last_histogram[INTERNAL_HISTOGRAM_ENUM_MAX];
 };
 
+const auto g_tikers_name_to_val = []() {
+  std::map<std::string, int> m;
+  for (const auto& kv : TickersNameMap) {
+    m[kv.second] = kv.first;
+  }
+  return m;
+}();
+const auto g_histograms_name_to_val = []() {
+  std::map<std::string, int> m;
+  for (const auto& kv : HistogramsNameMap) {
+    m[kv.second] = kv.first;
+  }
+  return m;
+}();
+
+#define ROCKSDB_JSON_GET_FACT_INNER(js, prop) \
+    prop = PluginFactory<decltype(prop)>:: \
+        GetPlugin(#prop, ROCKSDB_FUNC, js, repo)
+
 static shared_ptr<Statistics>
-JS_NewStatistics(const json& js, const SidePluginRepo&) {
+JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
   StatsLevel stats_level = kExceptDetailedTimers;
   ROCKSDB_JSON_OPT_ENUM(js, stats_level);
   //auto p = CreateDBStatistics();
   auto p = std::make_shared<StatisticsWithOneHistroy>(nullptr);
   p->set_stats_level(stats_level);
+  auto iter = js.find("discard_tikers");
+  if (js.end() != iter) {
+    const json& discard = iter.value();
+    if (discard.is_string()) {
+      std::shared_ptr<Statistics> discard_tikers;
+      ROCKSDB_JSON_GET_FACT_INNER(discard, discard_tikers);
+      auto q = dynamic_cast<StatisticsWithOneHistroy*>(discard_tikers.get());
+      ROCKSDB_VERIFY(nullptr != q);
+      p->m_discard_tikers = q->m_discard_tikers;
+    }
+    else if (discard.is_array()) {
+      for (auto& item : discard.items()) {
+        const json& val = item.value();
+        if (!val.is_string()) {
+          THROW_InvalidArgument("discard_tikers[*] must be string");
+        }
+        auto& tiker_name = val.get_ref<const std::string&>();
+        auto i = g_tikers_name_to_val.find(tiker_name);
+        if (g_tikers_name_to_val.end() == i) {
+          fprintf(stderr, "ERROR: JS_NewStatistics: bad tiker name: %s\n",
+                  tiker_name.c_str());
+          continue;
+        }
+        ROCKSDB_VERIFY_LT(i->second, TICKER_ENUM_MAX);
+        p->m_discard_tikers.set(i->second, true);
+      }
+    }
+  }
+  iter = js.find("discard_histograms");
+  if (js.end() != iter) {
+    const json& discard = iter.value();
+    if (discard.is_string()) {
+      std::shared_ptr<Statistics> discard_histograms;
+      ROCKSDB_JSON_GET_FACT_INNER(discard, discard_histograms);
+      auto q = dynamic_cast<StatisticsWithOneHistroy*>(discard_histograms.get());
+      ROCKSDB_VERIFY(nullptr != q);
+      p->m_discard_histograms = q->m_discard_histograms;
+    }
+    else if (discard.is_array()) {
+      for (auto& item : discard.items()) {
+        const json& val = item.value();
+        if (!val.is_string()) {
+          THROW_InvalidArgument("discard_histograms[*] must be string");
+        }
+        auto& histogram_name = val.get_ref<const std::string&>();
+        auto i = g_histograms_name_to_val.find(histogram_name);
+        if (g_histograms_name_to_val.end() == i) {
+          fprintf(stderr, "ERROR: JS_NewStatistics: bad histogram name: %s\n",
+                  histogram_name.c_str());
+          continue;
+        }
+        ROCKSDB_VERIFY_LT(i->second, HISTOGRAM_ENUM_MAX);
+        p->m_discard_histograms.set(i->second, true);
+      }
+    }
+  }
   return p;
 }
 ROCKSDB_FACTORY_REG("default", JS_NewStatistics);
@@ -847,6 +925,9 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
   sth->GetAggregated(sth->m_last_tikers, current.data());
   for (const auto& t : TickersNameMap) {
     assert(t.first < TICKER_ENUM_MAX);
+    if (sth->m_discard_tikers[t.first]) {
+      continue;
+    }
     uint64_t value = sth->m_last_tikers[t.first];
     if (!nozero || value) {
       string name = t.second;
@@ -888,6 +969,9 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
   const auto max_flag = [&]{oss|"le=\"+Inf\"";}; //bucket 最大是固定的+Inf
   for (const auto& h : HistogramsNameMap) {
     assert(h.first < HISTOGRAM_ENUM_MAX);
+    if (sth->m_discard_histograms[h.first]) {
+      continue;
+    }
     auto append_result=[&h,&oss,&bucket_num](const string &suffix, auto flag, const uint64_t value){
       string name = h.second;
       for (auto &c:name) { if (c == '.') c = ':'; }
