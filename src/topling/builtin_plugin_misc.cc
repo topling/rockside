@@ -744,6 +744,9 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
         }
       }
     }
+    else {
+        THROW_InvalidArgument("discard_tikers must be string or array");
+    }
   }
   iter = js.find("discard_histograms");
   if (js.end() != iter) {
@@ -781,6 +784,9 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
           ++i;
         }
       }
+    }
+    else {
+        THROW_InvalidArgument("discard_histograms must be string or array");
     }
   }
   return p;
