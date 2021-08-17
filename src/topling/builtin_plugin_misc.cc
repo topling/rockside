@@ -668,20 +668,28 @@ public:
   mutable HistogramStat m_last_histogram[INTERNAL_HISTOGRAM_ENUM_MAX];
 };
 
-const auto g_tikers_name_to_val = []() {
-  std::map<std::string, uint32_t> m;
-  for (const auto& kv : TickersNameMap) {
-    m[kv.second] = kv.first;
-  }
-  return m;
-}();
-const auto g_histograms_name_to_val = []() {
-  std::map<std::string, uint32_t> m;
-  for (const auto& kv : HistogramsNameMap) {
-    m[kv.second] = kv.first;
-  }
-  return m;
-}();
+#define g_tikers_name_to_val g_tikers_name_to_val_func()
+const auto& g_tikers_name_to_val_func() {
+  static const auto scm = []() {
+    std::map<std::string, uint32_t> m;
+    for (const auto& kv : TickersNameMap) {
+      m[kv.second] = kv.first;
+    }
+    return m;
+  }();
+  return scm;
+}
+#define g_histograms_name_to_val g_histograms_name_to_val_func()
+const auto& g_histograms_name_to_val_func() {
+  static const auto scm = []() {
+    std::map<std::string, uint32_t> m;
+    for (const auto& kv : HistogramsNameMap) {
+      m[kv.second] = kv.first;
+    }
+    return m;
+  }();
+  return scm;
+}
 
 #define ROCKSDB_JSON_GET_FACT_INNER(js, prop) \
     prop = PluginFactory<decltype(prop)>:: \
