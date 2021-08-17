@@ -662,14 +662,14 @@ ROCKSDB_REG_PluginManip("CFOptions", CFOptions_Manip);
 class StatisticsWithOneHistroy : public StatisticsImpl {
 public:
   using StatisticsImpl::StatisticsImpl;
-  std::bitset<INTERNAL_TICKER_ENUM_MAX>    m_discard_tikers;
+  std::bitset<INTERNAL_TICKER_ENUM_MAX>    m_discard_tickers;
   std::bitset<INTERNAL_HISTOGRAM_ENUM_MAX> m_discard_histograms;
-  mutable uint64_t m_last_tikers[INTERNAL_TICKER_ENUM_MAX] = {0};
+  mutable uint64_t m_last_tickers[INTERNAL_TICKER_ENUM_MAX] = {0};
   mutable HistogramStat m_last_histogram[INTERNAL_HISTOGRAM_ENUM_MAX];
 };
 
-#define g_tikers_name_to_val g_tikers_name_to_val_func()
-const auto& g_tikers_name_to_val_func() {
+#define g_tickers_name_to_val g_tickers_name_to_val_func()
+const auto& g_tickers_name_to_val_func() {
   static const auto scm = []() {
     std::map<std::string, uint32_t> m;
     for (const auto& kv : TickersNameMap) {
@@ -715,45 +715,45 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
   //auto p = CreateDBStatistics();
   auto p = std::make_shared<StatisticsWithOneHistroy>(nullptr);
   p->set_stats_level(stats_level);
-  auto iter = js.find("discard_tikers");
+  auto iter = js.find("discard_tickers");
   if (js.end() != iter) {
     const json& discard = iter.value();
     if (discard.is_string()) {
-      std::shared_ptr<Statistics> discard_tikers;
-      ROCKSDB_JSON_GET_FACT_INNER(discard, discard_tikers);
-      auto q = dynamic_cast<StatisticsWithOneHistroy*>(discard_tikers.get());
+      std::shared_ptr<Statistics> discard_tickers;
+      ROCKSDB_JSON_GET_FACT_INNER(discard, discard_tickers);
+      auto q = dynamic_cast<StatisticsWithOneHistroy*>(discard_tickers.get());
       ROCKSDB_VERIFY(nullptr != q);
-      p->m_discard_tikers = q->m_discard_tikers;
+      p->m_discard_tickers = q->m_discard_tickers;
     }
     else if (discard.is_array()) {
       for (auto& item : discard.items()) {
         const json& val = item.value();
         if (!val.is_string()) {
-          THROW_InvalidArgument("discard_tikers[*] must be string");
+          THROW_InvalidArgument("discard_tickers[*] must be string");
         }
-        auto& tiker_ns = val.get_ref<const std::string&>();
-        if (Slice(tiker_ns).starts_with("//")) {
+        auto& ticker_ns = val.get_ref<const std::string&>();
+        if (Slice(ticker_ns).starts_with("//")) {
           continue; // skip comments
         }
-        if (Slice(tiker_ns).starts_with("#")) {
+        if (Slice(ticker_ns).starts_with("#")) {
           continue; // skip comments
         }
-        auto i = g_tikers_name_to_val.lower_bound(tiker_ns);
-        if (g_tikers_name_to_val.end() == i) {
-          fprintf(stderr, "ERROR: JS_NewStatistics: bad tiker name: %s\n",
-                  tiker_ns.c_str());
+        auto i = g_tickers_name_to_val.lower_bound(ticker_ns);
+        if (g_tickers_name_to_val.end() == i) {
+          fprintf(stderr, "ERROR: JS_NewStatistics: bad ticker name: %s\n",
+                  ticker_ns.c_str());
           continue;
         }
-        while (g_tikers_name_to_val.end() != i &&
-               is_in_namespace(i->first, tiker_ns)) {
-          ROCKSDB_VERIFY_LT(i->second, HISTOGRAM_ENUM_MAX);
-          p->m_discard_tikers.set(i->second, true);
+        while (g_tickers_name_to_val.end() != i &&
+               is_in_namespace(i->first, ticker_ns)) {
+          ROCKSDB_VERIFY_LT(i->second, TICKER_ENUM_MAX);
+          p->m_discard_tickers.set(i->second, true);
           ++i;
         }
       }
     }
     else {
-        THROW_InvalidArgument("discard_tikers must be string or array");
+        THROW_InvalidArgument("discard_tickers must be string or array");
     }
   }
   iter = js.find("discard_histograms");
@@ -916,10 +916,10 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
   else {
     name = "name";
   }
-  json& tikers = djs["tikers"];
+  json& tickers = djs["tickers"];
   json& histograms = djs["histograms"];
   if (!st) {
-    tikers = "Statistics Is Turned Off";
+    tickers = "Statistics Is Turned Off";
     histograms = "Statistics Is Turned Off";
     return;
   }
@@ -927,7 +927,7 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
     assert(t.first < TICKER_ENUM_MAX);
     uint64_t value = st->getTickerCount(t.first);
     if (!nozero || value)
-      tikers[t.second] = value;
+      tickers[t.second] = value;
   }
   for (const auto& h : HistogramsNameMap) {
     assert(h.first < HISTOGRAM_ENUM_MAX);
@@ -969,13 +969,13 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
   std::unique_ptr<stat> cumsum_ptr(new stat());
   stat &current = *current_ptr;
   stat &cumsum = *cumsum_ptr;
-  sth->GetAggregated(sth->m_last_tikers, current.data());
+  sth->GetAggregated(sth->m_last_tickers, current.data());
   for (const auto& t : TickersNameMap) {
     assert(t.first < TICKER_ENUM_MAX);
-    if (sth->m_discard_tikers[t.first]) {
+    if (sth->m_discard_tickers[t.first]) {
       continue;
     }
-    uint64_t value = sth->m_last_tikers[t.first];
+    uint64_t value = sth->m_last_tickers[t.first];
     if (!nozero || value) {
       string name = t.second;
       for (auto &c:name) { if (c == '.') c = ':'; }
