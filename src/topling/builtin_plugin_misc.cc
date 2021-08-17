@@ -39,6 +39,14 @@ using std::shared_ptr;
 using std::vector;
 using std::string;
 
+template<class T>
+static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
+  oss << x;
+  return oss;
+}
+// bucketMapper is defined in histogram.cc
+extern const rocksdb::HistogramBucketMapper bucketMapper;
+
 static std::shared_ptr<FileSystem>
 DefaultFileSystemForJson(const json&, const SidePluginRepo&) {
   return FileSystem::Default();
@@ -823,13 +831,6 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
   }
   djs["stats_level"] = enum_stdstr(st->get_stats_level());
 }
-
-template<class T>
-static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
-  oss << x;
-  return oss;
-}
-const rocksdb::HistogramBucketMapper bucketMapper;
 
 static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozero) {
   using stat = std::array<HistogramStat, HISTOGRAM_ENUM_MAX>;
