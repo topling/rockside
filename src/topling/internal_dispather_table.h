@@ -38,6 +38,8 @@ public:
   json ToJsonObj(const json& dump_options, const SidePluginRepo& repo) const;
   std::string ToJsonStr(const json& dump_options,
                         const SidePluginRepo& repo) const;
+  std::string MetricStr(const json& dump_options,
+                        const SidePluginRepo& repo) const;
   void UpdateOptions(const json& js, const SidePluginRepo& repo);
 
 // should be protected, but use public for simple
