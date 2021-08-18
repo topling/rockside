@@ -721,31 +721,28 @@ static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
 
 std::string DispatcherTableFactory::
 MetricStr(const json& dump_options, const SidePluginRepo& repo) const {
-  auto iter = repo.m_impl->table_factory.p2name.find(this);
-  ROCKSDB_VERIFY(repo.m_impl->table_factory.p2name.end() != iter);
-  const std::string& my_varname = iter->second.name;
   std::ostringstream oss;
   for (size_t level = 0; level < m_level_writers.size(); ++level) {
     auto& st = m_stats[0][level+1];
-    oss|my_varname|":level:"|level|":file_cnt " |m_writer_files[level+1]|"\n";
-    oss|my_varname|":level:"|level|":file_size "|st.st.file_size|"\n";
-    oss|my_varname|":level:"|level|":entry_cnt "|st.st.entry_cnt|"\n";
-    oss|my_varname|":level:"|level|":key_size " |st.st.key_size |"\n";
-    oss|my_varname|":level:"|level|":val_size " |st.st.val_size |"\n";
+    oss|"level:"|level|":file_cnt " |m_writer_files[level+1]|"\n";
+    oss|"level:"|level|":file_size "|st.st.file_size|"\n";
+    oss|"level:"|level|":entry_cnt "|st.st.entry_cnt|"\n";
+    oss|"level:"|level|":key_size " |st.st.key_size |"\n";
+    oss|"level:"|level|":val_size " |st.st.val_size |"\n";
   }
   {
     auto& st = m_stats[0][0];
     const char* level = "unknown";
-    oss|my_varname|":level:"|level|":file_cnt " |m_writer_files[0]|"\n";
-    oss|my_varname|":level:"|level|":file_size "|st.st.file_size|"\n";
-    oss|my_varname|":level:"|level|":entry_cnt "|st.st.entry_cnt|"\n";
-    oss|my_varname|":level:"|level|":key_size " |st.st.key_size |"\n";
-    oss|my_varname|":level:"|level|":val_size " |st.st.val_size |"\n";
+    oss|"level:"|level|":file_cnt " |m_writer_files[0]|"\n";
+    oss|"level:"|level|":file_size "|st.st.file_size|"\n";
+    oss|"level:"|level|":entry_cnt "|st.st.entry_cnt|"\n";
+    oss|"level:"|level|":key_size " |st.st.key_size |"\n";
+    oss|"level:"|level|":val_size " |st.st.val_size |"\n";
   }
   for (auto& kv : m_magic_to_factory) {
     auto& v = kv.second;
-    oss|my_varname|":reader:"|v.varname|":open_cnt " |v.open_cnt|"\n";
-    oss|my_varname|":reader:"|v.varname|":sum_open_size " |v.sum_open_size|"\n";
+    oss|"reader:"|v.varname|":open_cnt " |v.open_cnt|"\n";
+    oss|"reader:"|v.varname|":sum_open_size " |v.sum_open_size|"\n";
   }
   return oss.str();
 }
