@@ -4,7 +4,7 @@ table {
 
 table td,
 table th {
-  padding: 8px;
+  padding: 5px;
   border-top: 1px solid rgb(190, 190, 190);
   border-bottom: 1px solid rgb(190, 190, 190);
   text-align: center;
