@@ -35,18 +35,20 @@ a {
 }
 
 a:link {
-  color: rgb(0, 183, 255);
+  color: #0969da;
   padding: 3px;
 }
 
 a:visited {
-  color: rgb(0, 183, 255);
+  color: #0969da;
 }
 
 a:hover {
-  color: rgb(168, 168, 168);
+  color: #0969da;
+  text-decoration: underline;
 }
 
 a:active {
-  color: gainsboro;
+  color: #0969da;
+  text-decoration: underline;
 }
