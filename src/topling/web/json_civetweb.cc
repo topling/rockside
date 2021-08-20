@@ -159,7 +159,9 @@ public:
         mg_write(conn, jstr.data(), jstr.size());
       }
       else {
-        mg_printf(conn, "<html><title>%s</title>\n<body>\n", m_ns.data_);
+        mg_printf(conn, "<html><head>\n");
+        mg_printf(conn, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">\n"); // import css
+        mg_printf(conn, "<title>%s</title>\n</head>\n<body>\n", m_ns.data_);
         mg_print_cur_time(conn, query, m_repo);
         if (vec.empty()) {
           mg_printf(conn, "<strong>%s</strong> repo is empty</body></html>\n",
@@ -200,6 +202,7 @@ public:
         else {
           mg_printf(conn, "<html><title>%s</title><body>\n", name);
         }
+        mg_printf(conn, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">\n"); // import css
         mg_printf(conn, R"(<script>
 function SetParam(name, value) {
     const url = new URL(location.href);
