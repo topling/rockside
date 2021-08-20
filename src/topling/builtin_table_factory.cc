@@ -46,7 +46,9 @@ ROCKSDB_FACTORY_REG("Bloom"      , NewBloomFilterPolicyJson);
 static std::shared_ptr<const FilterPolicy>
 NewRibbonFilterPolicyJson(const json& js, const SidePluginRepo&) {
   double bits_per_key = 10; // bloom_equivalent_bits_per_key
+  int bloom_before_level = 0; // rocksdb-6.23: PR #8679
   ROCKSDB_JSON_REQ_PROP(js, bits_per_key);
+  ROCKSDB_JSON_OPT_PROP(js, bloom_before_level);
   return std::shared_ptr<const FilterPolicy>(
       NewRibbonFilterPolicy(bits_per_key));
 }
