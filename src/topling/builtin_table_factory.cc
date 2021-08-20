@@ -41,6 +41,17 @@ NewBloomFilterPolicyJson(const json& js, const SidePluginRepo&) {
       NewBloomFilterPolicy(bits_per_key, use_block_based_builder));
 }
 ROCKSDB_FACTORY_REG("BloomFilter", NewBloomFilterPolicyJson);
+ROCKSDB_FACTORY_REG("Bloom"      , NewBloomFilterPolicyJson);
+
+static std::shared_ptr<const FilterPolicy>
+NewRibbonFilterPolicyJson(const json& js, const SidePluginRepo&) {
+  double bits_per_key = 10; // bloom_equivalent_bits_per_key
+  ROCKSDB_JSON_REQ_PROP(js, bits_per_key);
+  return std::shared_ptr<const FilterPolicy>(
+      NewRibbonFilterPolicy(bits_per_key));
+}
+ROCKSDB_FACTORY_REG("RibbonFilter", NewRibbonFilterPolicyJson);
+ROCKSDB_FACTORY_REG("Ribbon"      , NewRibbonFilterPolicyJson);
 
 struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
   BlockBasedTableOptions_Json(const json& js, const SidePluginRepo& repo) {
