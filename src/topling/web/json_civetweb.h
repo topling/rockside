@@ -3,9 +3,10 @@
 //
 #pragma once
 
-#include <rocksdb/rocksdb_namespace.h>
+#include <rocksdb/slice.h>
 #include <topling/json_fwd.h>
 
+struct mg_connection;
 namespace ROCKSDB_NAMESPACE {
 
 using nlohmann::json;
@@ -22,5 +23,7 @@ private:
   class Impl;
   Impl* m_impl;
 };
+
+int mg_write(mg_connection*, Slice);
 
 } // ROCKSDB_NAMESPACE

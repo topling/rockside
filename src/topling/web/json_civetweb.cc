@@ -38,6 +38,10 @@ json from_query_string(const char* qry) {
   return js;
 }
 
+int mg_write(mg_connection* conn, Slice s) {
+   return mg_write(conn, s.data(), s.size());
+}
+
 static time_t g_web_start_time = ::time(NULL); // NOLINT
 
 std::string cur_time_stat() {
@@ -159,16 +163,16 @@ public:
         mg_write(conn, jstr.data(), jstr.size());
       }
       else {
-        mg_printf(conn, "<html><head>\n");
-        mg_printf(conn, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">\n"); // import css
-        mg_printf(conn, "<title>%s</title>\n</head>\n<body>\n", m_ns.data_);
+        mg_printf(conn, "<html><head>\n"
+          "<link rel='stylesheet' type='text/css' href='/style.css'>\n"
+          "<title>%s</title>\n</head>\n<body>\n", m_ns.data_);
         mg_print_cur_time(conn, query, m_repo);
         if (vec.empty()) {
           mg_printf(conn, "<strong>%s</strong> repo is empty</body></html>\n",
                     m_ns.data_);
         }
         else {
-          mg_printf(conn, "<table border=1><tbody>\n"
+          mg_write(conn, "<table border=1><tbody>\n"
                     "<tr align='left'><th>name</th><th>class</th></tr>\n");
           for (auto& kv : vec) {
             const auto name = kv.first.c_str();
@@ -182,7 +186,7 @@ public:
             mg_printf(conn, "<tr><td><a href='/%.*s/%s?html=1'>%s</a></td><td>%s</td></tr>\n",
                       int(urilen), uri, name, name, clazz);
           }
-          mg_printf(conn, "</tbody></table></body></html>\n");
+          mg_write(conn, "</tbody></table></body></html>\n");
         }
       }
       return true;
@@ -202,8 +206,9 @@ public:
         else {
           mg_printf(conn, "<html><title>%s</title><body>\n", name);
         }
-        mg_printf(conn, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">\n"); // import css
-        mg_printf(conn, R"(<script>
+        mg_write(conn,
+R"(<link rel='stylesheet' type='text/css' href='/style.css'>
+<script>
 function SetParam(name, value) {
     const url = new URL(location.href);
     var params = new URLSearchParams(url.search);
