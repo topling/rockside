@@ -320,7 +320,7 @@ Status DispatcherTableFactory::NewTableReader(
     return Status::InvalidArgument(
         ROCKSDB_FUNC, "BackPatch() was not called");
   }
-  auto info_log = table_reader_options.ioptions.info_log;
+  auto info_log = table_reader_options.ioptions.info_log.get();
   Footer footer;
   auto s = ReadFooterFromFile(IOOptions(),
                               file.get(), nullptr /* prefetch_buffer */,
@@ -334,7 +334,7 @@ Status DispatcherTableFactory::NewTableReader(
   if (m_magic_to_factory.end() != fp_iter) {
     const std::shared_ptr<TableFactory>& factory = fp_iter->second.factory;
     const std::string&                   varname = fp_iter->second.varname;
-    Info(info_log, "%s: found factory: %016llX : %s: %s\n",
+    ROCKS_LOG_INFO(info_log, "%s: found factory: %016llX : %s: %s\n",
          func, magic, factory->Name(), varname.c_str());
     fp_iter->second.open_cnt++;
     fp_iter->second.sum_open_size += file_size;
@@ -348,7 +348,7 @@ Status DispatcherTableFactory::NewTableReader(
     const std::string& facname = iter->second;
     if (PluginFactorySP<TableFactory>::HasPlugin(facname)) {
       try {
-        Warn(info_log,
+        ROCKS_LOG_WARN(info_log,
             "%s: not found factory: %016llX : %s, onfly create it.\n",
             func, magic, facname.c_str());
         json null_js;
@@ -388,12 +388,12 @@ const {
   int level = std::min(tbo.level_at_creation, int(m_level_writers.size()-1));
   TableBuilder* builder;
   if (level >= 0) {
-    Debug(info_log,
+    ROCKS_LOG_DEBUG(info_log,
         "Dispatch::NewTableBuilder: level = %d, use level factory = %s\n",
         level, m_level_writers[level]->Name());
     builder = m_level_writers[level]->NewTableBuilder(tbo, file);
     if (!builder) {
-      Warn(info_log,
+      ROCKS_LOG_WARN(info_log,
         "Dispatch::NewTableBuilder: level = %d, use level factory = %s,"
         " returns null, try default: %s\n",
         level, m_level_writers[level]->Name(), m_default_writer->Name());
@@ -404,7 +404,7 @@ const {
     }
   }
   else {
-    Debug(info_log,
+    ROCKS_LOG_DEBUG(info_log,
         "Dispatch::NewTableBuilder: level = %d, use default factory = %s\n",
         level, m_default_writer->Name());
     builder = m_default_writer->NewTableBuilder(tbo, file);
@@ -440,7 +440,7 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
     }
   };
   auto debug_print = [c](const char* strbool) {
-    Debug(c->immutable_options()->info_log,
+    ROCKS_LOG_DEBUG(c->immutable_options()->info_log.get(),
         "DispatcherTableFactory::InputCompressionMatchesOutput: {%s}->%d : %s",
         str_input_levels(c).c_str(), c->output_level(), strbool);
   };
