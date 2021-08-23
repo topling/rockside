@@ -1009,7 +1009,7 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
   }
 
   for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
-    for (size_t j = 1; j < bucket_num; j++) { 
+    for (size_t j = 1; j < bucket_num; j++) {
       period[i].buckets_[j].cnt += period[i].buckets_[j-1].cnt;
       period[i].buckets_[j].sum += period[i].buckets_[j-1].sum;
 
@@ -1054,7 +1054,7 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
 
       auto compare=[](const elem &left, const elem &right){ return left.cnt < right.cnt; };
       auto index = std::lower_bound(buckets, buckets+bucket_num, max, compare);
-    
+
       int i = index - buckets;
       if (i > 0) i--;
       auto bucket_min = bucketMapper.BucketLimit(i);
@@ -1940,6 +1940,98 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
   return manip->ToString(*tr, dump_options, null_repo_ref());
 }
 
+//static const string type_string{"string"};
+//static const string type_unit64{"unit64"};
+
+//static enum{type_string, type_unit64} type_id;
+
+enum type_id {
+  type_string,
+  type_unit64,
+  type_max
+};
+
+std::pair<const string*, type_id> props_type_info[] = {
+  // format not suitable for prometheus
+  //{&DB::Properties::kLevelStats, type_string},
+  //{&DB::Properties::kStats, type_string},
+  //{&DB::Properties::kCFStats, type_string},
+  //{&DB::Properties::kCFStatsNoFileHistogram, type_string},
+  //{&DB::Properties::kCFFileHistogram, type_string},
+  //{&DB::Properties::kDBStats, type_string},
+  //{&DB::Properties::kOptionsStatistics, type_string},
+  //{&DB::Properties::kSSTables, type_string},
+  //{&DB::Properties::kAggregatedTableProperties, type_string},
+  {&DB::Properties::kNumFilesAtLevelPrefix, type_string},
+  {&DB::Properties::kCompressionRatioAtLevelPrefix, type_string},
+  {&DB::Properties::kBlockCacheEntryStats, type_string},
+  {&DB::Properties::kAggregatedTablePropertiesAtLevel, type_string},
+
+  {&DB::Properties::kNumImmutableMemTable, type_unit64},
+  {&DB::Properties::kNumImmutableMemTableFlushed, type_unit64},
+  {&DB::Properties::kMemTableFlushPending, type_unit64},
+  {&DB::Properties::kCompactionPending, type_unit64},
+  {&DB::Properties::kBackgroundErrors, type_unit64},
+  {&DB::Properties::kCurSizeActiveMemTable, type_unit64},
+  {&DB::Properties::kCurSizeAllMemTables, type_unit64},
+  {&DB::Properties::kSizeAllMemTables, type_unit64},
+  {&DB::Properties::kNumEntriesActiveMemTable, type_unit64},
+  {&DB::Properties::kNumEntriesImmMemTables, type_unit64},
+  {&DB::Properties::kNumDeletesActiveMemTable, type_unit64},
+  {&DB::Properties::kNumDeletesImmMemTables, type_unit64},
+  {&DB::Properties::kEstimateNumKeys, type_unit64},
+  {&DB::Properties::kEstimateTableReadersMem, type_unit64},
+  {&DB::Properties::kIsFileDeletionsEnabled, type_unit64},
+  {&DB::Properties::kNumSnapshots, type_unit64},
+  {&DB::Properties::kOldestSnapshotTime, type_unit64},
+  {&DB::Properties::kOldestSnapshotSequence, type_unit64},
+  {&DB::Properties::kNumLiveVersions, type_unit64},
+  {&DB::Properties::kCurrentSuperVersionNumber, type_unit64},
+  {&DB::Properties::kEstimateLiveDataSize, type_unit64},
+  {&DB::Properties::kMinLogNumberToKeep, type_unit64},
+  {&DB::Properties::kMinObsoleteSstNumberToKeep, type_unit64},
+  {&DB::Properties::kBaseLevel, type_unit64},
+  {&DB::Properties::kTotalSstFilesSize, type_unit64},
+  {&DB::Properties::kLiveSstFilesSize, type_unit64},
+  {&DB::Properties::kEstimatePendingCompactionBytes, type_unit64},
+  {&DB::Properties::kNumRunningFlushes, type_unit64},
+  {&DB::Properties::kNumRunningCompactions, type_unit64},
+  {&DB::Properties::kActualDelayedWriteRate, type_unit64},
+  {&DB::Properties::kIsWriteStopped, type_unit64},
+  {&DB::Properties::kEstimateOldestKeyTime, type_unit64},
+  {&DB::Properties::kBlockCacheCapacity, type_unit64},
+  {&DB::Properties::kBlockCacheUsage, type_unit64},
+  {&DB::Properties::kBlockCachePinnedUsage, type_unit64},
+};
+
+//lifuzhou 方便定位
+static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh,
+                             json& js) {
+  std::ostringstream oss;
+
+  for (auto const iter:props_type_info) {
+    uint64_t value = 0;
+    if (iter.second == type_unit64) { // 这里浪费性能 优化为枚举值定义类型
+      if (const_cast<DB&>(db).GetIntProperty(cfh, *iter.first, &value)) {
+        string name = *iter.first;
+        for (auto &c:name) { if (c == '.') c = ':'; }
+        for (auto &c:name) { if (c == '-') c = '_'; }
+        oss|name|" "|value|"\n";
+      }
+    } else {
+      string value;
+      string name = *iter.first;
+      for (auto &c:name) { if (c == '.') c = ':'; }
+      for (auto &c:name) { if (c == '-') c = '_'; }
+      if (const_cast<DB&>(db).GetProperty(cfh, *iter.first, &value)) {
+        oss|name|" "|value|"\n";
+      }
+    }
+  }
+
+  return oss.str();
+}
+
 struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   void Update(CFPropertiesWebView* cfp, const json& js,
               const SidePluginRepo& repo) const final {
@@ -1947,6 +2039,8 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   std::string ToString(const CFPropertiesWebView& cfp, const json& dump_options,
                        const SidePluginRepo& repo) const final {
     bool html = JsonSmartBool(dump_options, "html", true);
+    bool metric = JsonSmartBool(dump_options, "metric", false);
+    if (metric) html = false;
     json djs;
     int file_num = JsonSmartInt(dump_options, "file", -1);
     if (file_num >= 0) {
@@ -1957,8 +2051,14 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
       bool nozero = JsonSmartBool(dump_options, "nozero");
       Json_DB_IntProps(*cfp.db, cfp.cfh, djs, showbad, nozero);
     }
+
     Json_DB_Level_Stats(*cfp.db, cfp.cfh, djs, html, dump_options, repo);
-    return JsonToString(djs, dump_options);
+
+    if (metric) {
+      return CFPropertiesMetric(*cfp.db, cfp.cfh, djs);
+    } else {
+      return JsonToString(djs, dump_options);
+    }
   }
 };
 ROCKSDB_REG_PluginManip("builtin", CFPropertiesWebView_Manip);
