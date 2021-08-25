@@ -1962,6 +1962,7 @@ std::pair<const string*, type_id> props_type_info[] = {
   //{&DB::Properties::kOptionsStatistics, type_string},
   //{&DB::Properties::kSSTables, type_string},
   //{&DB::Properties::kAggregatedTableProperties, type_string},
+
   {&DB::Properties::kNumFilesAtLevelPrefix, type_string},
   {&DB::Properties::kCompressionRatioAtLevelPrefix, type_string},
   {&DB::Properties::kBlockCacheEntryStats, type_string},
@@ -2011,11 +2012,12 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh,
 
   for (auto const iter:props_type_info) {
     uint64_t value = 0;
-    if (iter.second == type_unit64) { // 这里浪费性能 优化为枚举值定义类型
+    if (iter.second == type_unit64) {
       if (const_cast<DB&>(db).GetIntProperty(cfh, *iter.first, &value)) {
         string name = *iter.first;
         for (auto &c:name) { if (c == '.') c = ':'; }
         for (auto &c:name) { if (c == '-') c = '_'; }
+        //oss|"name:"|*iter.first|"\n";
         oss|name|" "|value|"\n";
       }
     } else {
@@ -2024,8 +2026,40 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh,
       for (auto &c:name) { if (c == '.') c = ':'; }
       for (auto &c:name) { if (c == '-') c = '_'; }
       if (const_cast<DB&>(db).GetProperty(cfh, *iter.first, &value)) {
+        //oss|"name:"|*iter.first|"\n";
         oss|name|" "|value|"\n";
       }
+
+      if (iter.first == &DB::Properties::kBlockCacheEntryStats) {
+        oss|*iter.first|"\n";
+        std::map<std::string, std::string> value;
+        if (const_cast<DB&>(db).GetMapProperty(cfh, *iter.first, &value)) {
+          //oss|"name:"|*iter.first|"\n";
+          for (auto const v_iter:value) {
+            oss|name|":"|v_iter.first|" "|v_iter.second|"\n";
+          }
+        }
+      }
+
+      auto add_param_get_value=[&iter,&db,&cfh,&oss](const string *prefix) {
+        if (iter.first == prefix) {
+          const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
+          for (int level = -1; level < num_levels; level++) {
+            string value;
+            string key = *iter.first;
+            key.append(std::to_string(level));
+            oss|key|"\n";
+            if (const_cast<DB&>(db).GetProperty(cfh, key, &value)) {
+              //oss|"name:"|*iter.first|"\n";
+              oss|key|" "|value|"\n";
+            }
+          }
+        }
+      };
+
+      add_param_get_value(&DB::Properties::kNumFilesAtLevelPrefix);
+      add_param_get_value(&DB::Properties::kCompressionRatioAtLevelPrefix);
+      add_param_get_value(&DB::Properties::kAggregatedTablePropertiesAtLevel);
     }
   }
 
