@@ -1992,32 +1992,16 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
         oss|name|" "|value|"\n";
       }
 
-      if (iter.first == &DB::Properties::kBlockCacheEntryStats) {
-        std::map<std::string, std::string> value;
-        if (const_cast<DB&>(db).GetMapProperty(cfh, *iter.first, &value)) {
-          for (auto const v_iter:value) {
-            oss|name|":"|v_iter.first|" "|v_iter.second|"\n";
-          }
-        }
+  auto add_prefix_properties=[&db,&cfh,&oss,&replace_char](const string *prefix) {
+    const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
+    for (int level = 0; level < num_levels; level++) {
+      string value;
+      string name = *prefix;
+      name.append(std::to_string(level));
+      if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
+        replace_char(name);
+        oss|name|" "|value|"\n";
       }
-
-      auto add_param_get_value=[&iter,&db,&cfh,&oss,&replace_char](const string *prefix) {
-        if (iter.first == prefix) {
-          const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
-          for (int level = -1; level < num_levels; level++) {
-            string value;
-            string name = *iter.first;
-            replace_char(name);
-            name.append(std::to_string(level));
-            if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
-              oss|name|" "|value|"\n";
-            }
-          }
-        }
-      };
-
-      add_param_get_value(&DB::Properties::kNumFilesAtLevelPrefix);
-      add_param_get_value(&DB::Properties::kCompressionRatioAtLevelPrefix);
     }
   };
   for (auto const key:prefix_properties) { add_prefix_properties(key); }
