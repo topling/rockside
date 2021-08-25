@@ -1940,74 +1940,63 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
   return manip->ToString(*tr, dump_options, null_repo_ref());
 }
 
-//static const string type_string{"string"};
-//static const string type_unit64{"unit64"};
+// format not suitable for prometheus
+//&DB::Properties::kLevelStats,
+//&DB::Properties::kStats,
+//&DB::Properties::kCFStats,
+//&DB::Properties::kCFStatsNoFileHistogram,
+//&DB::Properties::kCFFileHistogram,
+//&DB::Properties::kDBStats,
+//&DB::Properties::kOptionsStatistics,
+//&DB::Properties::kSSTables,
+//&DB::Properties::kAggregatedTableProperties,
+//&DB::Properties::kAggregatedTablePropertiesAtLevel
 
-//static enum{type_string, type_unit64} type_id;
-
-enum type_id {
-  type_string,
-  type_unit64,
-  type_max
-};
-
-std::pair<const string*, type_id> props_type_info[] = {
-  // format not suitable for prometheus
-  //{&DB::Properties::kLevelStats, type_string},
-  //{&DB::Properties::kStats, type_string},
-  //{&DB::Properties::kCFStats, type_string},
-  //{&DB::Properties::kCFStatsNoFileHistogram, type_string},
-  //{&DB::Properties::kCFFileHistogram, type_string},
-  //{&DB::Properties::kDBStats, type_string},
-  //{&DB::Properties::kOptionsStatistics, type_string},
-  //{&DB::Properties::kSSTables, type_string},
-  //{&DB::Properties::kAggregatedTableProperties, type_string},
-  //{&DB::Properties::kAggregatedTablePropertiesAtLevel, type_string},
-
-  {&DB::Properties::kNumFilesAtLevelPrefix, type_string},
-  {&DB::Properties::kCompressionRatioAtLevelPrefix, type_string},
-  {&DB::Properties::kBlockCacheEntryStats, type_string},
-
-  {&DB::Properties::kNumImmutableMemTable, type_unit64},
-  {&DB::Properties::kNumImmutableMemTableFlushed, type_unit64},
-  {&DB::Properties::kMemTableFlushPending, type_unit64},
-  {&DB::Properties::kCompactionPending, type_unit64},
-  {&DB::Properties::kBackgroundErrors, type_unit64},
-  {&DB::Properties::kCurSizeActiveMemTable, type_unit64},
-  {&DB::Properties::kCurSizeAllMemTables, type_unit64},
-  {&DB::Properties::kSizeAllMemTables, type_unit64},
-  {&DB::Properties::kNumEntriesActiveMemTable, type_unit64},
-  {&DB::Properties::kNumEntriesImmMemTables, type_unit64},
-  {&DB::Properties::kNumDeletesActiveMemTable, type_unit64},
-  {&DB::Properties::kNumDeletesImmMemTables, type_unit64},
-  {&DB::Properties::kEstimateNumKeys, type_unit64},
-  {&DB::Properties::kEstimateTableReadersMem, type_unit64},
-  {&DB::Properties::kIsFileDeletionsEnabled, type_unit64},
-  {&DB::Properties::kNumSnapshots, type_unit64},
-  {&DB::Properties::kOldestSnapshotTime, type_unit64},
-  {&DB::Properties::kOldestSnapshotSequence, type_unit64},
-  {&DB::Properties::kNumLiveVersions, type_unit64},
-  {&DB::Properties::kCurrentSuperVersionNumber, type_unit64},
-  {&DB::Properties::kEstimateLiveDataSize, type_unit64},
-  {&DB::Properties::kMinLogNumberToKeep, type_unit64},
-  {&DB::Properties::kMinObsoleteSstNumberToKeep, type_unit64},
-  {&DB::Properties::kBaseLevel, type_unit64},
-  {&DB::Properties::kTotalSstFilesSize, type_unit64},
-  {&DB::Properties::kLiveSstFilesSize, type_unit64},
-  {&DB::Properties::kEstimatePendingCompactionBytes, type_unit64},
-  {&DB::Properties::kNumRunningFlushes, type_unit64},
-  {&DB::Properties::kNumRunningCompactions, type_unit64},
-  {&DB::Properties::kActualDelayedWriteRate, type_unit64},
-  {&DB::Properties::kIsWriteStopped, type_unit64},
-  {&DB::Properties::kEstimateOldestKeyTime, type_unit64},
-  {&DB::Properties::kBlockCacheCapacity, type_unit64},
-  {&DB::Properties::kBlockCacheUsage, type_unit64},
-  {&DB::Properties::kBlockCachePinnedUsage, type_unit64},
-};
-
-//lifuzhou 方便定位
+//&DB::Properties::kBlockCacheEntryStats no response ignore
 static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh,
                              json& js) {
+  static const string* int_properties[] = {
+    &DB::Properties::kNumImmutableMemTable,
+    &DB::Properties::kNumImmutableMemTableFlushed,
+    &DB::Properties::kMemTableFlushPending,
+    &DB::Properties::kCompactionPending,
+    &DB::Properties::kBackgroundErrors,
+    &DB::Properties::kCurSizeActiveMemTable,
+    &DB::Properties::kCurSizeAllMemTables,
+    &DB::Properties::kSizeAllMemTables,
+    &DB::Properties::kNumEntriesActiveMemTable,
+    &DB::Properties::kNumEntriesImmMemTables,
+    &DB::Properties::kNumDeletesActiveMemTable,
+    &DB::Properties::kNumDeletesImmMemTables,
+    &DB::Properties::kEstimateNumKeys,
+    &DB::Properties::kEstimateTableReadersMem,
+    &DB::Properties::kIsFileDeletionsEnabled,
+    &DB::Properties::kNumSnapshots,
+    &DB::Properties::kOldestSnapshotTime,
+    &DB::Properties::kOldestSnapshotSequence,
+    &DB::Properties::kNumLiveVersions,
+    &DB::Properties::kCurrentSuperVersionNumber,
+    &DB::Properties::kEstimateLiveDataSize,
+    &DB::Properties::kMinLogNumberToKeep,
+    &DB::Properties::kMinObsoleteSstNumberToKeep,
+    &DB::Properties::kBaseLevel,
+    &DB::Properties::kTotalSstFilesSize,
+    &DB::Properties::kLiveSstFilesSize,
+    &DB::Properties::kEstimatePendingCompactionBytes,
+    &DB::Properties::kNumRunningFlushes,
+    &DB::Properties::kNumRunningCompactions,
+    &DB::Properties::kActualDelayedWriteRate,
+    &DB::Properties::kIsWriteStopped,
+    &DB::Properties::kEstimateOldestKeyTime,
+    &DB::Properties::kBlockCacheCapacity,
+    &DB::Properties::kBlockCacheUsage,
+    &DB::Properties::kBlockCachePinnedUsage,
+  };
+  static const string* prefix_properties[] = {
+    &DB::Properties::kNumFilesAtLevelPrefix,
+    &DB::Properties::kCompressionRatioAtLevelPrefix,
+  };
+
   std::ostringstream oss;
 
   auto replace_char=[](string &name) { //adapter prmehtues key name
@@ -2015,51 +2004,30 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh,
     for (auto &c:name) { if (c == '-') c = '_'; }
   };
 
-  for (auto const iter:props_type_info) {
+  auto add_int_properties = [&oss,&replace_char,&db,&cfh](const string* key){
     uint64_t value = 0;
-    if (iter.second == type_unit64) {
-      if (const_cast<DB&>(db).GetIntProperty(cfh, *iter.first, &value)) {
-        string name = *iter.first;
+    if (const_cast<DB&>(db).GetIntProperty(cfh, *key, &value)) {
+      string name = *key;
+      replace_char(name);
+      oss|name|" "|value|"\n";
+    }
+  };
+  for (auto const key:int_properties) { add_int_properties(key); }
+
+  auto add_prefix_properties=[&db,&cfh,&oss,&replace_char](const string *prefix) {
+    const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
+    for (int level = 0; level < num_levels; level++) {
+      string value;
+      string name = *prefix;
+      name.append(std::to_string(level));
+      if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
         replace_char(name);
         oss|name|" "|value|"\n";
       }
-    } else {
-      string value;
-      string name = *iter.first;
-      replace_char(name);
-      if (const_cast<DB&>(db).GetProperty(cfh, *iter.first, &value)) {
-        oss|name|" "|value|"\n";
-      }
-
-      if (iter.first == &DB::Properties::kBlockCacheEntryStats) {
-        std::map<std::string, std::string> value;
-        if (const_cast<DB&>(db).GetMapProperty(cfh, *iter.first, &value)) {
-          for (auto const v_iter:value) {
-            oss|name|":"|v_iter.first|" "|v_iter.second|"\n";
-          }
-        }
-      }
-
-      auto add_param_get_value=[&iter,&db,&cfh,&oss,&replace_char](const string *prefix) {
-        if (iter.first == prefix) {
-          const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
-          for (int level = -1; level < num_levels; level++) {
-            string value;
-            string name = *iter.first;
-            replace_char(name);
-            name.append(std::to_string(level));
-            if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
-              oss|name|" "|value|"\n";
-            }
-          }
-        }
-      };
-
-      add_param_get_value(&DB::Properties::kNumFilesAtLevelPrefix);
-      add_param_get_value(&DB::Properties::kCompressionRatioAtLevelPrefix);
     }
-  }
-
+  };
+  for (auto const key:prefix_properties) { add_prefix_properties(key); }
+  
   return oss.str();
 }
 
