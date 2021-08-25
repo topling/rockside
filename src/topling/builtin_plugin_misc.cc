@@ -2027,7 +2027,7 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh,
     }
   };
   for (auto const key:prefix_properties) { add_prefix_properties(key); }
-  
+
   return oss.str();
 }
 
