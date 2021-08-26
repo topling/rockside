@@ -1953,6 +1953,7 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
 //&DB::Properties::kAggregatedTablePropertiesAtLevel
 
 //&DB::Properties::kBlockCacheEntryStats no response ignore
+
 static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
   static const string* int_properties[] = {
     &DB::Properties::kNumImmutableMemTable,
