@@ -1036,7 +1036,10 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
       oss|"} "|value|"\n";
     };
 
-    for (size_t i = 0; i < bucket_num; i++) {
+    auto compare=[](const elem &left, const elem &right){ return left.cnt < right.cnt; };
+    auto index = std::lower_bound(cumsum[h.first].buckets_, cumsum[h.first].buckets_+bucket_num, cumsum[h.first].buckets_[bucket_num-1], compare);
+    int limit = index - cumsum[h.first].buckets_;
+    for (int i = 0; i <= limit; i++) {
       auto flag = [&] {
         oss | "le=\"" | bucketMapper.BucketLimit(i) | "\"";
       };
@@ -1047,12 +1050,11 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     append_result(sum, empty, current[h.first].sum());
     append_result(count, empty, current[h.first].num());
 
-    auto check_info=[&period,&h,&append_result,&empty,&bucket_num](int limit) {
+    auto check_info=[&period,&h,&append_result,&empty,&bucket_num,&compare](int limit) {
       elem max;
       auto &buckets = period[h.first].buckets_;
       max.cnt = buckets[bucket_num-1].cnt*limit/100;
 
-      auto compare=[](const elem &left, const elem &right){ return left.cnt < right.cnt; };
       auto index = std::lower_bound(buckets, buckets+bucket_num, max, compare);
 
       int i = index - buckets;
@@ -2054,7 +2056,7 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
     Json_DB_Level_Stats(*cfp.db, cfp.cfh, djs, html, dump_options, repo);
 
     if (metric) {
-      return CFPropertiesMetric(*cfp.db, cfp.cfh, djs);
+      return CFPropertiesMetric(*cfp.db, cfp.cfh);
     } else {
       return JsonToString(djs, dump_options);
     }
