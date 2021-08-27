@@ -2016,6 +2016,20 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
   };
   for (auto const key:int_properties) { add_int_properties(key); }
 
+  auto add_map_properties = [&oss,&replace_char,&db,&cfh](const string* key) {
+    std::map<std::string, std::string> value;
+    if (const_cast<DB&>(db).GetMapProperty(cfh, *key, &value)) {
+      string name = *key;
+      replace_char(name);
+      for (auto const v_iter:value) {
+        string suffix = v_iter.first;
+        replace_char(suffix);
+        oss|name|"{flag=\""|suffix|"\"} "|v_iter.second|"\n";
+      }
+    }
+  };
+  add_map_properties(&DB::Properties::kAggregatedTableProperties);
+
   auto add_prefix_properties=[&db,&cfh,&oss,&replace_char](const string *prefix) {
     const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
     for (int level = 0; level < num_levels; level++) {
@@ -2029,6 +2043,16 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
     }
   };
   for (auto const key:prefix_properties) { add_prefix_properties(key); }
+
+  auto add_prefix_map_properties=[&db,&cfh,&oss,&replace_char, add_map_properties](const string *prefix) {
+    const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
+    for (int level = 0; level < num_levels; level++) {
+      string name = *prefix;
+      name.append(std::to_string(level));
+      add_map_properties(&name);
+    }
+  };
+  add_prefix_map_properties(&DB::Properties::kAggregatedTablePropertiesAtLevel);
 
   return oss.str();
 }
