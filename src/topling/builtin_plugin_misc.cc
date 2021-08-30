@@ -1943,18 +1943,13 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
 }
 
 // format not suitable for prometheus
-//&DB::Properties::kLevelStats,
+//&DB::Properties::kLevelStats,   //multi-line string
 //&DB::Properties::kStats,
-//&DB::Properties::kCFStats,
 //&DB::Properties::kCFStatsNoFileHistogram,
 //&DB::Properties::kCFFileHistogram,
 //&DB::Properties::kDBStats,
 //&DB::Properties::kOptionsStatistics,
 //&DB::Properties::kSSTables,
-//&DB::Properties::kAggregatedTableProperties,
-//&DB::Properties::kAggregatedTablePropertiesAtLevel
-
-//&DB::Properties::kBlockCacheEntryStats no response ignore
 
 static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
   static const string* int_properties[] = {
@@ -1998,6 +1993,12 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
     &DB::Properties::kNumFilesAtLevelPrefix,
     &DB::Properties::kCompressionRatioAtLevelPrefix,
   };
+  static const string* map_properties[] = {
+    &DB::Properties::kCFStats,
+    &DB::Properties::kCFFileHistogram,
+    &DB::Properties::kBlockCacheEntryStats,
+    &DB::Properties::kAggregatedTableProperties,
+  };
 
   std::ostringstream oss;
 
@@ -2028,7 +2029,7 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
       }
     }
   };
-  add_map_properties(&DB::Properties::kAggregatedTableProperties);
+  for(auto const key:map_properties) { add_map_properties(key); }
 
   auto add_prefix_properties=[&db,&cfh,&oss,&replace_char](const string *prefix) {
     const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
