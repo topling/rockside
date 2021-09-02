@@ -966,12 +966,24 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
   djs["stats_level"] = enum_stdstr(st->get_stats_level());
 }
 
+static void replace_substr(std::string& s, const std::string& f,
+                           const std::string& t) {
+    assert(not f.empty());
+    for (auto pos = s.find(f);                // find first occurrence of f
+            pos != std::string::npos;         // make sure f was found
+            s.replace(pos, f.size(), t),      // replace with t, and
+            pos = s.find(f, pos + t.size()))  // find next occurrence of f
+    {}
+}
+
 static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozero) {
   using stat = std::array<HistogramStat, HISTOGRAM_ENUM_MAX>;
   using elem = HistogramStat::BucketElem;
   using std::to_string;
 
   std::ostringstream oss;
+  const string str_rocksdb {"rocksdb"};
+  const string str_engine {"engine"};
 
   auto *sth = dynamic_cast<const StatisticsWithOneHistroy*>(st);
   std::unique_ptr<stat> current_ptr(new stat());
@@ -988,6 +1000,7 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     if (!nozero || value) {
       string name = t.second;
       for (auto &c:name) { if (c == '.') c = ':'; }
+      replace_substr(name, str_rocksdb, str_engine);
       oss|name|" "|value|"\n";
     }
   }
@@ -1028,9 +1041,10 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     if (sth->m_discard_histograms[h.first]) {
       continue;
     }
-    auto append_result=[&h,&oss,&bucket_num](const string &suffix, auto flag, const uint64_t value){
+    auto append_result=[&h,&oss,&bucket_num,&str_rocksdb,&str_engine](const string &suffix, auto flag, const uint64_t value){
       string name = h.second;
       for (auto &c:name) { if (c == '.') c = ':'; }
+      replace_substr(name, str_rocksdb, str_engine);
       oss|name|suffix|"{";
       flag();
       oss|"} "|value|"\n";
@@ -1107,15 +1121,6 @@ ROCKSDB_REG_PluginManip("default", Statistics_Manip);
 ROCKSDB_REG_PluginManip("Default", Statistics_Manip);
 ROCKSDB_REG_PluginManip("Statistics", Statistics_Manip);
 
-static void replace_substr(std::string& s, const std::string& f,
-                           const std::string& t) {
-    assert(not f.empty());
-    for (auto pos = s.find(f);                // find first occurrence of f
-            pos != std::string::npos;         // make sure f was found
-            s.replace(pos, f.size(), t),      // replace with t, and
-            pos = s.find(f, pos + t.size()))  // find next occurrence of f
-    {}
-}
 static void chomp(std::string& s) {
   while (!s.empty() && isspace((unsigned char)s.back())) {
     s.pop_back();
@@ -2002,9 +2007,11 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
 
   std::ostringstream oss;
 
-  auto replace_char=[](string &name) { //adapter prmehtues key name
+  const string str_rocksdb{"rocksdb"}, str_engine{"engine"};
+  auto replace_char=[&str_rocksdb,&str_engine](string &name) { //adapter prmehtues key name
     for (auto &c:name) { if (c == '.') c = ':'; }
     for (auto &c:name) { if (c == '-') c = '_'; }
+    replace_substr(name, str_rocksdb, str_engine);
   };
 
   auto add_int_properties = [&oss,&replace_char,&db,&cfh](const string* key){
