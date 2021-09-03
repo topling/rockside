@@ -2273,14 +2273,26 @@ ROCKSDB_FACTORY_REG("DB::OpenForReadOnly", JS_DB_Manip);
 static void AutoCatchUpThreadProc(DB_MultiCF_Impl* impl) {
   DB* db = impl->db;
   std::string dbname = db->GetName();
+  Env* env = Env::Default();
+  long long t0 = env->NowNanos();
+  //long long sleep_sum = 0;
   while (impl->m_catch_up_running) {
     Status s = db->TryCatchUpWithPrimary();
     if (!s.ok()) {
       fprintf(stderr, "ERROR: TryCatchUpWithPrimary(dbname=%s) = %s\n",
               dbname.c_str(), s.ToString().c_str());
     }
-    using std::this_thread::sleep_for;
-    sleep_for(std::chrono::milliseconds(impl->m_catch_up_delay_ms));
+    long long t1 = env->NowNanos();
+    long long dt = impl->m_catch_up_delay_ms * 1000000;
+    if (t1 - t0 < dt) {
+      using std::this_thread::sleep_for;
+      sleep_for(std::chrono::nanoseconds(dt - (t1 - t0)));
+      //sleep_sum += t1 - t0;
+    }
+    else {
+      // do not sleep, catch up again immediately
+    }
+    t0 = t1;
   }
 }
 static void CreateCatchUpThread(DB_MultiCF* mcf) {
