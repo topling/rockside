@@ -549,7 +549,14 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_FACT(js, compaction_thread_limiter);
     ROCKSDB_JSON_OPT_FACT(js, sst_partitioner_factory);
     ROCKSDB_JSON_OPT_FACT(js, compaction_executor_factory);
+    std::shared_ptr<AnyPlugin> html_user_key_coder;
     ROCKSDB_JSON_OPT_FACT(js, html_user_key_coder);
+    if (html_user_key_coder) {
+      this->html_user_key_coder = std::dynamic_pointer_cast<UserKeyCoder>(html_user_key_coder);
+      if (!this->html_user_key_coder) {
+        THROW_InvalidArgument("bad html_user_key_coder = %s" + js["html_user_key_coder"].dump());
+      }
+    }
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
@@ -632,6 +639,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_FACT(js, compaction_thread_limiter);
     ROCKSDB_JSON_SET_FACT(js, sst_partitioner_factory);
     ROCKSDB_JSON_SET_FACT(js, compaction_executor_factory);
+    std::shared_ptr<AnyPlugin> html_user_key_coder = this->html_user_key_coder;
     ROCKSDB_JSON_SET_FACX(js, html_user_key_coder, any_plugin);
   }
 };
@@ -1340,16 +1348,6 @@ std::string Json_dbname(const DB* db, const SidePluginRepo& repo) {
   return iter->second.name;
 }
 
-std::shared_ptr<UserKeyCoder>
-Json_GetUserKeyCoder(const DB& db, ColumnFamilyHandle* cfh,
-                     const SidePluginRepo& repo) {
-  ColumnFamilyDescriptor cfd;
-  Status s = cfh->GetDescriptor(&cfd);
-  ROCKSDB_VERIFY_F(s.ok(), "%s", s.ToString().c_str());
-  auto html_user_key_coder = cfd.options.html_user_key_coder;
-  return std::dynamic_pointer_cast<UserKeyCoder>(html_user_key_coder);
-}
-
 std::string AggregateNames(const std::map<std::string, int>& map, const char* delim);
 static std::string
 Json_DB_CF_SST_HtmlTable(const DB& db, ColumnFamilyHandle* cfh,
@@ -1369,7 +1367,7 @@ try {
       return html;
     }
   }
-  auto coder_sp = Json_GetUserKeyCoder(db, cfh, repo);
+  auto coder_sp = cfh->cfd()->GetLatestCFOptions().html_user_key_coder;
   const UserKeyCoder* coder = coder_sp.get();
 
   auto comp = cfh->GetComparator();
