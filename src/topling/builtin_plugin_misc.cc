@@ -966,12 +966,24 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
   djs["stats_level"] = enum_stdstr(st->get_stats_level());
 }
 
+static void replace_substr(std::string& s, const std::string& f,
+                           const std::string& t) {
+    assert(not f.empty());
+    for (auto pos = s.find(f);                // find first occurrence of f
+            pos != std::string::npos;         // make sure f was found
+            s.replace(pos, f.size(), t),      // replace with t, and
+            pos = s.find(f, pos + t.size()))  // find next occurrence of f
+    {}
+}
+
 static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozero) {
   using stat = std::array<HistogramStat, HISTOGRAM_ENUM_MAX>;
   using elem = HistogramStat::BucketElem;
   using std::to_string;
 
   std::ostringstream oss;
+  const string str_rocksdb {"rocksdb"};
+  const string str_engine {"engine"};
 
   auto *sth = dynamic_cast<const StatisticsWithOneHistroy*>(st);
   std::unique_ptr<stat> current_ptr(new stat());
@@ -988,6 +1000,7 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     if (!nozero || value) {
       string name = t.second;
       for (auto &c:name) { if (c == '.') c = ':'; }
+      replace_substr(name, str_rocksdb, str_engine);
       oss|name|" "|value|"\n";
     }
   }
@@ -1009,7 +1022,7 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
   }
 
   for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
-    for (size_t j = 1; j < bucket_num; j++) { 
+    for (size_t j = 1; j < bucket_num; j++) {
       period[i].buckets_[j].cnt += period[i].buckets_[j-1].cnt;
       period[i].buckets_[j].sum += period[i].buckets_[j-1].sum;
 
@@ -1028,15 +1041,19 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     if (sth->m_discard_histograms[h.first]) {
       continue;
     }
-    auto append_result=[&h,&oss,&bucket_num](const string &suffix, auto flag, const uint64_t value){
+    auto append_result=[&h,&oss,&bucket_num,&str_rocksdb,&str_engine](const string &suffix, auto flag, const uint64_t value){
       string name = h.second;
       for (auto &c:name) { if (c == '.') c = ':'; }
+      replace_substr(name, str_rocksdb, str_engine);
       oss|name|suffix|"{";
       flag();
       oss|"} "|value|"\n";
     };
 
-    for (size_t i = 0; i < bucket_num; i++) {
+    auto compare=[](const elem &left, const elem &right){ return left.cnt < right.cnt; };
+    auto index = std::lower_bound(cumsum[h.first].buckets_, cumsum[h.first].buckets_+bucket_num, cumsum[h.first].buckets_[bucket_num-1], compare);
+    int limit = index - cumsum[h.first].buckets_;
+    for (int i = 0; i <= limit; i++) {
       auto flag = [&] {
         oss | "le=\"" | bucketMapper.BucketLimit(i) | "\"";
       };
@@ -1044,17 +1061,16 @@ static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozer
     }
 
     append_result(bucket, max_flag, cumsum[h.first].buckets_[bucket_num-1].cnt);
-    append_result(sum, empty, cumsum[h.first].sum());
-    append_result(count, empty, cumsum[h.first].num());
+    append_result(sum, empty, current[h.first].sum());
+    append_result(count, empty, current[h.first].num());
 
-    auto check_info=[&period,&h,&append_result,&empty,&bucket_num](int limit) {
+    auto check_info=[&period,&h,&append_result,&empty,&bucket_num,&compare](int limit) {
       elem max;
       auto &buckets = period[h.first].buckets_;
       max.cnt = buckets[bucket_num-1].cnt*limit/100;
 
-      auto compare=[](const elem &left, const elem &right){ return left.cnt < right.cnt; };
       auto index = std::lower_bound(buckets, buckets+bucket_num, max, compare);
-    
+
       int i = index - buckets;
       if (i > 0) i--;
       auto bucket_min = bucketMapper.BucketLimit(i);
@@ -1105,15 +1121,6 @@ ROCKSDB_REG_PluginManip("default", Statistics_Manip);
 ROCKSDB_REG_PluginManip("Default", Statistics_Manip);
 ROCKSDB_REG_PluginManip("Statistics", Statistics_Manip);
 
-static void replace_substr(std::string& s, const std::string& f,
-                           const std::string& t) {
-    assert(not f.empty());
-    for (auto pos = s.find(f);                // find first occurrence of f
-            pos != std::string::npos;         // make sure f was found
-            s.replace(pos, f.size(), t),      // replace with t, and
-            pos = s.find(f, pos + t.size()))  // find next occurrence of f
-    {}
-}
 static void chomp(std::string& s) {
   while (!s.empty() && isspace((unsigned char)s.back())) {
     s.pop_back();
@@ -1940,6 +1947,124 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
   return manip->ToString(*tr, dump_options, null_repo_ref());
 }
 
+// format not suitable for prometheus
+//&DB::Properties::kLevelStats,   //multi-line string
+//&DB::Properties::kStats,
+//&DB::Properties::kCFStatsNoFileHistogram,
+//&DB::Properties::kCFFileHistogram,
+//&DB::Properties::kDBStats,
+//&DB::Properties::kOptionsStatistics,
+//&DB::Properties::kSSTables,
+
+static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
+  static const string* int_properties[] = {
+    &DB::Properties::kNumImmutableMemTable,
+    &DB::Properties::kNumImmutableMemTableFlushed,
+    &DB::Properties::kMemTableFlushPending,
+    &DB::Properties::kCompactionPending,
+    &DB::Properties::kBackgroundErrors,
+    &DB::Properties::kCurSizeActiveMemTable,
+    &DB::Properties::kCurSizeAllMemTables,
+    &DB::Properties::kSizeAllMemTables,
+    &DB::Properties::kNumEntriesActiveMemTable,
+    &DB::Properties::kNumEntriesImmMemTables,
+    &DB::Properties::kNumDeletesActiveMemTable,
+    &DB::Properties::kNumDeletesImmMemTables,
+    &DB::Properties::kEstimateNumKeys,
+    &DB::Properties::kEstimateTableReadersMem,
+    &DB::Properties::kIsFileDeletionsEnabled,
+    &DB::Properties::kNumSnapshots,
+    &DB::Properties::kOldestSnapshotTime,
+    &DB::Properties::kOldestSnapshotSequence,
+    &DB::Properties::kNumLiveVersions,
+    &DB::Properties::kCurrentSuperVersionNumber,
+    &DB::Properties::kEstimateLiveDataSize,
+    &DB::Properties::kMinLogNumberToKeep,
+    &DB::Properties::kMinObsoleteSstNumberToKeep,
+    &DB::Properties::kBaseLevel,
+    &DB::Properties::kTotalSstFilesSize,
+    &DB::Properties::kLiveSstFilesSize,
+    &DB::Properties::kEstimatePendingCompactionBytes,
+    &DB::Properties::kNumRunningFlushes,
+    &DB::Properties::kNumRunningCompactions,
+    &DB::Properties::kActualDelayedWriteRate,
+    &DB::Properties::kIsWriteStopped,
+    &DB::Properties::kEstimateOldestKeyTime,
+    &DB::Properties::kBlockCacheCapacity,
+    &DB::Properties::kBlockCacheUsage,
+    &DB::Properties::kBlockCachePinnedUsage,
+  };
+  static const string* prefix_properties[] = {
+    &DB::Properties::kNumFilesAtLevelPrefix,
+    &DB::Properties::kCompressionRatioAtLevelPrefix,
+  };
+  static const string* map_properties[] = {
+    &DB::Properties::kCFStats,
+    &DB::Properties::kCFFileHistogram,
+    &DB::Properties::kBlockCacheEntryStats,
+    &DB::Properties::kAggregatedTableProperties,
+  };
+
+  std::ostringstream oss;
+
+  const string str_rocksdb{"rocksdb"}, str_engine{"engine"};
+  auto replace_char=[&str_rocksdb,&str_engine](string &name) { //adapter prmehtues key name
+    for (auto &c:name) { if (c == '.') c = ':'; }
+    for (auto &c:name) { if (c == '-') c = '_'; }
+    replace_substr(name, str_rocksdb, str_engine);
+  };
+
+  auto add_int_properties = [&oss,&replace_char,&db,&cfh](const string* key){
+    uint64_t value = 0;
+    if (const_cast<DB&>(db).GetIntProperty(cfh, *key, &value)) {
+      string name = *key;
+      replace_char(name);
+      oss|name|" "|value|"\n";
+    }
+  };
+  for (auto const key:int_properties) { add_int_properties(key); }
+
+  auto add_map_properties = [&oss,&replace_char,&db,&cfh](const string* key) {
+    std::map<std::string, std::string> value;
+    if (const_cast<DB&>(db).GetMapProperty(cfh, *key, &value)) {
+      string name = *key;
+      replace_char(name);
+      for (auto const v_iter:value) {
+        string suffix = v_iter.first;
+        replace_char(suffix);
+        oss|name|"{flag=\""|suffix|"\"} "|v_iter.second|"\n";
+      }
+    }
+  };
+  for(auto const key:map_properties) { add_map_properties(key); }
+
+  auto add_prefix_properties=[&db,&cfh,&oss,&replace_char](const string *prefix) {
+    const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
+    for (int level = 0; level < num_levels; level++) {
+      string value;
+      string name = *prefix;
+      name.append(std::to_string(level));
+      if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
+        replace_char(name);
+        oss|name|" "|value|"\n";
+      }
+    }
+  };
+  for (auto const key:prefix_properties) { add_prefix_properties(key); }
+
+  auto add_prefix_map_properties=[&db,&cfh,&oss,&replace_char, add_map_properties](const string *prefix) {
+    const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
+    for (int level = 0; level < num_levels; level++) {
+      string name = *prefix;
+      name.append(std::to_string(level));
+      add_map_properties(&name);
+    }
+  };
+  add_prefix_map_properties(&DB::Properties::kAggregatedTablePropertiesAtLevel);
+
+  return oss.str();
+}
+
 struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   void Update(CFPropertiesWebView* cfp, const json& js,
               const SidePluginRepo& repo) const final {
@@ -1947,6 +2072,8 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   std::string ToString(const CFPropertiesWebView& cfp, const json& dump_options,
                        const SidePluginRepo& repo) const final {
     bool html = JsonSmartBool(dump_options, "html", true);
+    bool metric = JsonSmartBool(dump_options, "metric", false);
+    if (metric) html = false;
     json djs;
     int file_num = JsonSmartInt(dump_options, "file", -1);
     if (file_num >= 0) {
@@ -1957,8 +2084,14 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
       bool nozero = JsonSmartBool(dump_options, "nozero");
       Json_DB_IntProps(*cfp.db, cfp.cfh, djs, showbad, nozero);
     }
+
     Json_DB_Level_Stats(*cfp.db, cfp.cfh, djs, html, dump_options, repo);
-    return JsonToString(djs, dump_options);
+
+    if (metric) {
+      return CFPropertiesMetric(*cfp.db, cfp.cfh);
+    } else {
+      return JsonToString(djs, dump_options);
+    }
   }
 };
 ROCKSDB_REG_PluginManip("builtin", CFPropertiesWebView_Manip);
