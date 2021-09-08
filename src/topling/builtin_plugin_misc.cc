@@ -2077,7 +2077,10 @@ struct DB_Manip : PluginManipFunc<DB> {
       THROW_NotFound("db ptr is not registered in repo, dbname = " + dbname);
     }
     if (dump_options.contains("compact")) {
-      return RunManualCompact(&db, db.DefaultColumnFamily(), dump_options);
+      if (repo.m_impl->web_compact)
+        return RunManualCompact(&db, db.DefaultColumnFamily(), dump_options);
+      else
+        return "web_compact is not allowed";
     }
     auto ijs = i1->second.params.find("params");
     if (i1->second.params.end() == ijs) {

@@ -306,6 +306,13 @@ static void JS_setenv(const json& main_js) {
   }
 }
 
+struct SideRepoImpl : SidePluginRepo::Impl {
+  void ImportPermissions(const json& main_js) {
+    const json& js = main_js["permissions"];
+    ROCKSDB_JSON_OPT_PROP(js, web_compact);
+  }
+};
+
 Status SidePluginRepo::Import(const json& main_js)
 #if defined(NDEBUG)
 try
@@ -357,6 +364,8 @@ try
 
   Impl_ImportOptions(m_impl->db_options, "DBOptions", main_js, repo);
   Impl_ImportOptions(m_impl->cf_options, "CFOptions", main_js, repo);
+
+  static_cast<SideRepoImpl*>(m_impl.get())->ImportPermissions(main_js);
 
   return Status::OK();
 }
