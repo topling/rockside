@@ -14,6 +14,7 @@
 #include "db/dbformat.h"
 #include "db/column_family.h"
 #include "db/table_cache.h"
+#include "db/version_set.h"
 #include "rocksdb/options.h"
 #include "options/db_options.h"
 #include "rocksdb/utilities/db_ttl.h"
@@ -1349,9 +1350,35 @@ std::string Json_dbname(const DB* db, const SidePluginRepo& repo) {
 }
 
 std::string AggregateNames(const std::map<std::string, int>& map, const char* delim);
-static std::string
-Json_DB_CF_SST_HtmlTable(const DB& db, ColumnFamilyHandle* cfh,
-                         const SidePluginRepo& repo) {
+
+struct ScopeLockVersion {
+  ScopeLockVersion(const ScopeLockVersion&) = delete;
+  ScopeLockVersion& operator=(const ScopeLockVersion&) = delete;
+  ScopeLockVersion(class ColumnFamilyData*, const DB*);
+  ScopeLockVersion(class ColumnFamilyData*, class InstrumentedMutex*);
+  ~ScopeLockVersion();
+  class Version* version;
+  class InstrumentedMutex* mutex;
+};
+
+extern InstrumentedMutex* Get_DB_mutex(const DB*);
+ScopeLockVersion::ScopeLockVersion(ColumnFamilyData* cfd, const DB* db)
+ : ScopeLockVersion(cfd, Get_DB_mutex(db))
+{ }
+ScopeLockVersion::ScopeLockVersion(ColumnFamilyData* cfd, InstrumentedMutex* mtx) {
+  mtx->Lock();
+  version = cfd->current();
+  version->Ref();
+  mtx->Unlock();
+  mutex = mtx;
+}
+ScopeLockVersion::~ScopeLockVersion() {
+  mutex->Lock();
+  version->Unref();
+  mutex->Unlock();
+}
+
+std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd) {
   std::string html;
 #if defined(NDEBUG)
 try {
@@ -1359,26 +1386,24 @@ try {
   char buf[128];
   ColumnFamilyMetaData meta;
   TablePropertiesCollection props;
-  const_cast<DB&>(db).GetColumnFamilyMetaData(cfh, &meta);
+  version->GetColumnFamilyMetaData(&meta);
   {
-    Status s = const_cast<DB&>(db).GetPropertiesOfAllTables(cfh, &props);
+    Status s = version->GetPropertiesOfAllTables(&props);
     if (!s.ok()) {
       html = "GetPropertiesOfAllTables() fail: " + s.ToString();
       return html;
     }
   }
-  auto coder_sp = cfh->cfd()->GetLatestCFOptions().html_user_key_coder;
+  auto coder_sp = cfd->GetLatestCFOptions().html_user_key_coder;
   const UserKeyCoder* coder = coder_sp.get();
 
-  auto comp = cfh->GetComparator();
+  auto comp = cfd->user_comparator();
   struct SstProp : SstFileMetaData, TableProperties {};
   //int max_open_files = const_cast<DB&>(db).GetDBOptions().max_open_files;
   std::vector<SstProp> levels_agg(meta.levels.size());
   std::map<std::string, int> algos_all;
   std::map<std::string, int> path_idm;
   {
-    auto cfhi = static_cast<ColumnFamilyHandleImpl*>(cfh);
-    auto cfd = cfhi->cfd();
     auto iopt = cfd->ioptions();
     for (int id = 0, n = (int)iopt->cf_paths.size(); id < n; ++id) {
       auto& path = iopt->cf_paths[id].path;
@@ -1811,8 +1836,12 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
       prop_to_js(DB::Properties::kSSTables);
       break;
     case 2: // show as html table
-      stjs[HTML_WRAP(DB::Properties::kSSTables)] = Json_DB_CF_SST_HtmlTable(db, cfh, repo);
+    {
+      auto cfd = cfh->cfd();
+      ScopeLockVersion slv(cfd, Get_DB_mutex(&db));
+      stjs[HTML_WRAP(DB::Properties::kSSTables)] = Json_DB_CF_SST_HtmlTable(slv.version, cfd);
       break;
+    }
   }
   //GetAggregatedTableProperties(db, cfh, stjs, -1, html);
   // -1 is for kAggregatedTableProperties
