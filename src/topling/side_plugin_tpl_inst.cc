@@ -358,6 +358,7 @@ explicit_instantiate_rp(DB);
 template class SidePluginRepo::Impl::ObjMap<DB_Ptr>;
 template class SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*>;
 
+explicit_instantiate_serde(AnyPlugin);
 explicit_instantiate_serde(CompactionFilterFactory);
 explicit_instantiate_serde(Comparator);
 explicit_instantiate_serde(SliceTransform);
