@@ -5,6 +5,7 @@
 #include <rocksdb/memtablerep.h>
 #include <rocksdb/rate_limiter.h>
 #include <rocksdb/slice_transform.h>
+#include <db/compaction/compaction_executor.h>
 
 #include <cache/lru_cache.h>
 
@@ -23,6 +24,14 @@ using std::string;
 
 
 AnyPlugin::~AnyPlugin() = default;
+
+std::string
+CompactionParams_html_user_key_decode(const CompactionParams& cp, Slice uk) {
+  if (cp.p_html_user_key_coder)
+    return cp.p_html_user_key_coder->Decode(uk);
+  else
+    return uk.ToString(true); // hex
+}
 
 void HtmlAppendEscapeMin(std::string* d, const char* s, size_t n) {
   for (size_t i = 0; i < n; ++i) {
@@ -62,6 +71,7 @@ void HtmlAppendEscape(std::string* d, const char* s, size_t n) {
   }
 }
 struct HtmlTextUserKeyCoder : public UserKeyCoder {
+  const char* Name() const override { return "HtmlTextUserKeyCoder"; }
   void Update(const json&, const SidePluginRepo&) override {
     ROCKSDB_DIE("This function should not be called");
   }

@@ -546,11 +546,9 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_FACT(js, compaction_thread_limiter);
     ROCKSDB_JSON_OPT_FACT(js, sst_partitioner_factory);
     ROCKSDB_JSON_OPT_FACT(js, compaction_executor_factory);
-    std::shared_ptr<AnyPlugin> html_user_key_coder;
     ROCKSDB_JSON_OPT_FACT(js, html_user_key_coder);
     if (html_user_key_coder) {
-      this->html_user_key_coder = std::dynamic_pointer_cast<UserKeyCoder>(html_user_key_coder);
-      if (!this->html_user_key_coder) {
+      if (!dynamic_cast<UserKeyCoder*>(html_user_key_coder.get())) {
         THROW_InvalidArgument("bad html_user_key_coder = %s" + js["html_user_key_coder"].dump());
       }
     }
@@ -636,7 +634,6 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_FACT(js, compaction_thread_limiter);
     ROCKSDB_JSON_SET_FACT(js, sst_partitioner_factory);
     ROCKSDB_JSON_SET_FACT(js, compaction_executor_factory);
-    std::shared_ptr<AnyPlugin> html_user_key_coder = this->html_user_key_coder;
     ROCKSDB_JSON_SET_FACX(js, html_user_key_coder, any_plugin);
   }
 };
@@ -1345,7 +1342,8 @@ try {
     }
   }
   auto coder_sp = cfd->GetLatestCFOptions().html_user_key_coder;
-  const UserKeyCoder* coder = coder_sp.get();
+  const UserKeyCoder* coder = nullptr;
+  if (coder_sp) coder = dynamic_cast<const UserKeyCoder*>(coder_sp.get());
 
   auto comp = cfd->user_comparator();
   struct SstProp : SstFileMetaData, TableProperties {};
