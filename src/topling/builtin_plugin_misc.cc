@@ -26,14 +26,10 @@
 #include "side_plugin_factory.h"
 #include "side_plugin_internal.h"
 
-#if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
-  #define rocksdb_build_compile_date rocksdb_build_date
-  extern const char* rocksdb_build_git_tag;
-#endif
-
+extern const char* rocksdb_build_git_tag;
 extern const char* rocksdb_build_git_sha;
 extern const char* rocksdb_build_git_date;
-extern const char* rocksdb_build_compile_date;
+extern const char* rocksdb_build_date;
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -2149,21 +2145,30 @@ JS_Add_CFPropertiesWebView_Link(json& djs, bool html,
   auto properties = iter->second;
   ROCKSDB_JSON_SET_FACX(djs, properties, props);
 }
-void JS_RokcsDB_AddVersion(json& djs) {
-#ifdef NDEBUG
-  djs["build_type"] = "release";
-#else
-  djs["build_type"] = "debug";
-#endif
-#if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
-  djs["git_sha"] = rocksdb_build_git_sha;
-  djs["git_tag"] = rocksdb_build_git_date;
-  djs["git_date"] = rocksdb_build_git_date;
-#else
-  djs["git_sha"] = strchr(rocksdb_build_git_sha, ':') + 1;
+#define GITHUB_ROCKSDB "https://github.com/rockeet/rocksdb-private"
+void JS_RokcsDB_AddVersion(json& djs, bool html) {
+  djs["build_type"] = ROCKSDB_IF_DEBUG("debug", "release");
+  auto p_sha = strchr(rocksdb_build_git_sha, ':');
+  auto p_tag = strchr(rocksdb_build_git_tag, ':');
+  auto p_date = strchr(rocksdb_build_date, ':');
+  TERARK_VERIFY(nullptr != p_sha);
+  TERARK_VERIFY(nullptr != p_tag);
+  TERARK_VERIFY(nullptr != p_date);
+  p_sha += 1;
+  p_tag += 1;
+  p_date += 1;
+  if (html) {
+    std::ostringstream sha, tag;
+    sha|"<a href='"|GITHUB_ROCKSDB|"/commit/"|p_sha|"'>"|p_sha|"</a>";
+    tag|"<a href='"|GITHUB_ROCKSDB|"/tree/"  |p_tag|"'>"|p_tag|"</a>";
+    djs["git_sha"] = sha.str();
+    djs["git_tag"] = tag.str();
+  } else {
+    djs["git_sha"] = p_sha;
+    djs["git_tag"] = p_tag;
+  }
   djs["git_date"] = strchr(rocksdb_build_git_date, ':') + 1;
-#endif
-  djs["compile_date"] = rocksdb_build_compile_date;
+  djs["compile_date"] = strchr(rocksdb_build_date, ':') + 1;
   char s[32];
   auto n = snprintf(s, sizeof(s), "%d.%d.%d",
                     ROCKSDB_MAJOR, ROCKSDB_MINOR, ROCKSDB_PATCH);
@@ -2248,7 +2253,7 @@ struct DB_Manip : PluginManipFunc<DB> {
     //Json_DB_IntProps(db, db.DefaultColumnFamily(), djs);
     //Json_DB_Level_Stats(db, db.DefaultColumnFamily(), djs, opt.num_levels, html);
     JS_Add_CFPropertiesWebView_Link(djs, db, html, repo);
-    JS_RokcsDB_AddVersion(djs["version"]);
+    JS_RokcsDB_AddVersion(djs["version"], html);
     return JsonToString(djs, dump_options);
   }
 };
@@ -2380,7 +2385,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
                                       dbname, cf_name, repo);
     }
     //Json_DB_Statistics(dbo.statistics.get(), djs, html);
-    JS_RokcsDB_AddVersion(djs["version"]);
+    JS_RokcsDB_AddVersion(djs["version"], html);
     auto getStr = [](auto fn) -> std::string {
       std::string str;
       Status s = fn(str);
