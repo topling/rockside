@@ -24,6 +24,19 @@ using std::string;
 
 AnyPlugin::~AnyPlugin() = default;
 
+void HtmlAppendEscapeMin(std::string* d, const char* s, size_t n) {
+  for (size_t i = 0; i < n; ++i) {
+    const char c = s[i];
+    switch (c) {
+      default : d->push_back(c);    break;
+      case  0 : d->append("<em>\\0</em>");   break;
+      case '<': d->append("&lt;" ); break;
+      case '>': d->append("&gt;" ); break;
+      case '&': d->append("&amp;"); break;
+    }
+  }
+}
+
 void HtmlAppendEscape(std::string* d, const char* s, size_t n) {
   for (size_t i = 0; i < n; ++i) {
     const char c = s[i];

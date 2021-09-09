@@ -288,9 +288,18 @@ class SidePluginRepo {
 ///@param obj json object to be dumped
 ///@param options options for dump(pretty,indent)
 std::string JsonToString(const json& obj, const json& options);
+
+void HtmlAppendEscapeMin(std::string* d, const char* s, size_t n);
+inline void HtmlAppendEscapeMin(std::string* d, Slice s)
+       { HtmlAppendEscapeMin(d, s.data_, s.size_); }
+inline std::string HtmlEscapeMin(Slice s)
+       { std::string res; HtmlAppendEscapeMin(&res, s); return res; }
+
 void HtmlAppendEscape(std::string* d, const char* s, size_t n);
 inline void HtmlAppendEscape(std::string* d, Slice s)
        { HtmlAppendEscape(d, s.data_, s.size_); }
+inline std::string HtmlEscape(Slice s)
+       { std::string res; HtmlAppendEscape(&res, s); return res; }
 
 class ParseSizeXiB {
   long long m_val;
