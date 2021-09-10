@@ -1399,7 +1399,9 @@ try {
   if (coder_sp) coder = dynamic_cast<const UserKeyCoder*>(coder_sp.get());
 
   auto comp = cfd->user_comparator();
-  struct SstProp : SstFileMetaData, TableProperties {};
+  struct SstProp : SstFileMetaData, TableProperties {
+    SstProp() { smallest_seqno = UINT64_MAX; }
+  };
   //int max_open_files = const_cast<DB&>(db).GetDBOptions().max_open_files;
   std::vector<SstProp> levels_agg(meta.levels.size());
   std::map<std::string, int> algos_all;
@@ -1442,7 +1444,6 @@ try {
   for (int level = 0; level < (int)meta.levels.size(); level++) {
     auto& curr_level = meta.levels[level];
     auto& agg = levels_agg[level];
-    agg.smallest_seqno = UINT64_MAX;
     std::map<std::string, int> algos;
     for (const auto & x : curr_level.files) {
       std::string fullname = x.db_path + x.name;
