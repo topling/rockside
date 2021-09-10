@@ -1911,9 +1911,8 @@ static void Json_DB_IntProps(const DB& db, ColumnFamilyHandle* cfh,
   }
 }
 
-static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh0,
+static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
                                   const json& dump_options, int file_num) {
-  auto cfh = static_cast<ColumnFamilyHandleImpl*>(cfh0);
   auto cfd = cfh->cfd();
   auto tc = cfd->table_cache();
 //auto mut_cfo = cfd->GetCurrentMutableCFOptions(); // must in DB mutex
