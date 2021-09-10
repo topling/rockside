@@ -1664,7 +1664,6 @@ try {
   AppendFmt("all levels summary: file count = %zd, ", meta.file_count);
   AppendFmt("total size = %.3f GB", meta.size/1e9);
   html.append("</p>\n");
-if (levels_agg.size() > 1) {
   html.append("<table border=1>\n");
   writeHeader(true);
   html.append("<tbody>\n");
@@ -1684,7 +1683,6 @@ if (levels_agg.size() > 1) {
   html.append("<tfoot>\n");
   write(all_levels_agg, &all_levels_agg, (int)meta.file_count);
   html.append("</tfoot></table>\n");
-}
 
   for (int level = 0; level < (int)meta.levels.size(); level++) {
     auto& curr_level = meta.levels[level];
