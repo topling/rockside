@@ -2173,25 +2173,29 @@ void JS_RokcsDB_AddVersion(json& djs, bool html) {
   djs["version"] = std::string(s, n);
 }
 
+static std::mutex g_running_manual_compact_mtx;
+static std::map<ColumnFamilyHandle*, DB*> g_running_manual_compact;
 static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
                                     const json& dump_options) {
   DB* db = const_cast<DB*>(dbc);
   DBOptions dbo = db->GetDBOptions();
-  int parallel = 1;
-//  int parallel = JsonSmartInt(dump_options, "parallel",
-//                              dbo.max_background_compactions);
-  for (int i = 0; i < parallel; ++i) {
-    std::thread([=]() {
-      CompactRangeOptions cro;
-      cro.exclusive_manual_compaction = false;
-      db->CompactRange(cro, cfh, nullptr, nullptr);
-    }).detach();
+  g_running_manual_compact_mtx.lock();
+  auto ib = g_running_manual_compact.emplace(cfh, db);
+  g_running_manual_compact_mtx.unlock();
+  if (!ib.second) {
+    return R"({"status": "running"})";
   }
+  std::thread([=]() {
+    CompactRangeOptions cro;
+    cro.exclusive_manual_compaction = false;
+    db->CompactRange(cro, cfh, nullptr, nullptr);
+    g_running_manual_compact_mtx.lock();
+    g_running_manual_compact.erase(cfh);
+    g_running_manual_compact_mtx.unlock();
+  }).detach();
   const std::string& dbname = db->GetName();
   const std::string& cfname = cfh->GetName();
-  char buf[32];
-  return std::string(buf, snprintf(buf, sizeof(buf), "%d", parallel)) +
-       " compact job issued: dbname = " + dbname + ", cfname = " + cfname;
+  return "compact job issued: dbname = " + dbname + ", cfname = " + cfname;
 }
 
 struct DB_Manip : PluginManipFunc<DB> {
