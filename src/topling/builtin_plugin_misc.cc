@@ -1991,17 +1991,6 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
         replace_char(name);
         oss|name|" "|value|"\n";
       }
-
-  auto add_prefix_properties=[&db,&cfh,&oss,&replace_char](const string *prefix) {
-    const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
-    for (int level = 0; level < num_levels; level++) {
-      string value;
-      string name = *prefix;
-      name.append(std::to_string(level));
-      if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
-        replace_char(name);
-        oss|name|" "|value|"\n";
-      }
     }
   };
   for (auto const key:prefix_properties) { add_prefix_properties(key); }
