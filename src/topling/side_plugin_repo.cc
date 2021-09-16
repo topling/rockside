@@ -310,7 +310,7 @@ static void JS_setenv(const json& main_js) {
       fprintf(stderr, "JS_setenv: %s = %s\n", name.c_str(), valstr.c_str());
     }
     if (val.is_object()) {
-      auto iter = val.find("value");
+      iter = val.find("value");
       if (val.end() == iter) {
         THROW_InvalidArgument("setenv[\"" + name + "\"][\"value\"] is missing");
       }
