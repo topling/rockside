@@ -274,6 +274,25 @@ void MergeSubAny(json* target, const json& patch, const string& subname) {
   }
 }
 
+static void DoSetEnv(const std::string& name, const json& val, bool overwrite) {
+  if (val.is_object()) {
+    THROW_InvalidArgument("value of setenv must not be object");
+  }
+  else if (val.is_array()) {
+    THROW_InvalidArgument("value of setenv must not be array");
+  }
+  else if (val.is_string()) {
+    ::setenv(name.c_str(), val.get_ref<const std::string&>().c_str(), overwrite);
+  }
+  else if (val.is_boolean()) {
+    ::setenv(name.c_str(), val.get<bool>() ? "1" : "0", overwrite);
+  }
+  else {
+    const std::string& valstr = val.dump();
+    ::setenv(name.c_str(), valstr.c_str(), overwrite);
+  }
+}
+
 static void JS_setenv(const json& main_js) {
   auto iter = main_js.find("setenv");
   if (main_js.end() == iter) {
@@ -286,22 +305,20 @@ static void JS_setenv(const json& main_js) {
   for (auto& item : envmap.items()) {
     const std::string& name = item.key();
     const json& val = item.value();
-    if (val.is_object() || val.is_array()) {
-      THROW_InvalidArgument("main_js[\"setenv\"] must not be object or array");
-    }
     if (SidePluginRepo::DebugLevel() >= 3) {
       const std::string& valstr = val.dump();
       fprintf(stderr, "JS_setenv: %s = %s\n", name.c_str(), valstr.c_str());
     }
-    if (val.is_string()) {
-      ::setenv(name.c_str(), val.get_ref<const std::string&>().c_str(), true);
-    }
-    else if (val.is_boolean()) {
-      ::setenv(name.c_str(), val.get<bool>() ? "1" : "0", true);
+    if (val.is_object()) {
+      auto iter = val.find("value");
+      if (val.end() == iter) {
+        THROW_InvalidArgument("setenv[\"" + name + "\"][\"value\"] is missing");
+      }
+      bool overwrite = JsonSmartBool(val, "overwrite", false);
+      DoSetEnv(name, iter.value(), overwrite);
     }
     else {
-      const std::string& valstr = val.dump();
-      ::setenv(name.c_str(), valstr.c_str(), true);
+      DoSetEnv(name, val, false);
     }
   }
 }
