@@ -2187,14 +2187,21 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
   ManCompactStatus mcs{::time(NULL), db};
   auto ib = g_running_manual_compact.emplace(cfh, mcs);
   g_running_manual_compact_mtx.unlock();
+  extern int Get_DB_next_job_id(const DB* db);
   if (!ib.second) {
     extern std::string cur_time_stat(time_t start_time, const char* up);
-    extern int Get_DB_next_job_id(const DB* db);
     mcs = ib.first->second;
     json js;
     js["status"] = "running";
     js["next_job_id"] = Get_DB_next_job_id(db);
     js["time"] = cur_time_stat(mcs.start_time_us, "Elapsed");
+    return JsonToString(js, dump_options);
+  }
+  if (JsonSmartInt(dump_options, "refresh", 0)) {
+    json js;
+    js["status"] = "reject";
+    js["next_job_id"] = Get_DB_next_job_id(db);
+    js["description"] = "compact command is rejected because refresh = 1";
     return JsonToString(js, dump_options);
   }
   std::thread([=]() {
