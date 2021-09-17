@@ -2197,11 +2197,11 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
     js["time"] = cur_time_stat(mcs.start_time_us, "Elapsed");
     return JsonToString(js, dump_options);
   }
-  if (JsonSmartInt(dump_options, "refresh", 0)) {
+  if (int refresh = JsonSmartInt(dump_options, "refresh", 0)) {
     json js;
     js["status"] = "reject";
     js["next_job_id"] = Get_DB_next_job_id(db);
-    js["description"] = "compact command is rejected because refresh = 1";
+    js["description"] = "reject because refresh = " + std::to_string(refresh);
     return JsonToString(js, dump_options);
   }
   std::thread([=]() {
