@@ -2173,17 +2173,29 @@ void JS_RokcsDB_AddVersion(json& djs, bool html) {
   djs["version"] = std::string(s, n);
 }
 
+struct ManCompactStatus {
+  time_t start_time_us;
+  DB*    db;
+};
 static std::mutex g_running_manual_compact_mtx;
-static std::map<ColumnFamilyHandle*, DB*> g_running_manual_compact;
+static std::map<ColumnFamilyHandle*, ManCompactStatus> g_running_manual_compact;
 static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
                                     const json& dump_options) {
   DB* db = const_cast<DB*>(dbc);
   DBOptions dbo = db->GetDBOptions();
   g_running_manual_compact_mtx.lock();
-  auto ib = g_running_manual_compact.emplace(cfh, db);
+  ManCompactStatus mcs{::time(NULL), db};
+  auto ib = g_running_manual_compact.emplace(cfh, mcs);
   g_running_manual_compact_mtx.unlock();
   if (!ib.second) {
-    return R"({"status": "running"})";
+    extern std::string cur_time_stat(time_t start_time, const char* up);
+    extern int Get_DB_next_job_id(const DB* db);
+    mcs = ib.first->second;
+    json js;
+    js["status"] = "running";
+    js["next_job_id"] = Get_DB_next_job_id(db);
+    js["time"] = cur_time_stat(mcs.start_time_us, "Elapsed");
+    return JsonToString(js, dump_options);
   }
   std::thread([=]() {
     CompactRangeOptions cro;

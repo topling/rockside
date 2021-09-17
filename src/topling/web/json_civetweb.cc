@@ -44,21 +44,24 @@ int mg_write(mg_connection* conn, Slice s) {
 
 static time_t g_web_start_time = ::time(NULL); // NOLINT
 
-std::string cur_time_stat() {
+std::string cur_time_stat(time_t start_time, const char* up) {
   char buf[64];
   time_t rawtime;
   time(&rawtime);
   struct tm  result;
   struct tm* timeinfo = localtime_r(&rawtime, &result);
   strftime(buf, sizeof(buf), "%F %T", timeinfo);
-  size_t sec = (size_t)difftime(rawtime, g_web_start_time);
+  size_t sec = (size_t)difftime(rawtime, start_time);
   size_t days = sec / 86400; sec %= 86400;
   size_t hours = sec / 3600; sec %= 3600;
   size_t minites = sec / 60; sec %= 60;
-  std::string str; str.resize(256);
-  str.resize(snprintf(&str[0], str.size(), "%s , Up: %zd-%02zd:%02zd:%02zd",
-                      buf, days, hours, minites, sec));
+  std::string str; str.resize(250 + strlen(up));
+  str.resize(snprintf(&str[0], str.size(), "%s , %s: %zd-%02zd:%02zd:%02zd",
+                      buf, up, days, hours, minites, sec));
   return str;
+}
+std::string cur_time_stat() {
+  return cur_time_stat(g_web_start_time, "Up");
 }
 
 static std::string& operator|(std::string& str, Slice x) {
