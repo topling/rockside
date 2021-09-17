@@ -345,6 +345,7 @@ try
   JSON_IMPORT_REPO(AnyPlugin                , any_plugin);
   JSON_IMPORT_REPO(Comparator               , comparator);
   JSON_IMPORT_REPO(Env                      , env);
+  JSON_IMPORT_REPO(FileSystem               , file_system);
   JSON_IMPORT_REPO(Logger                   , info_log);
   JSON_IMPORT_REPO(SliceTransform           , slice_transform);
   JSON_IMPORT_REPO(Cache                    , cache);
@@ -354,7 +355,6 @@ try
   JSON_IMPORT_REPO(ConcurrentTaskLimiter    , compaction_thread_limiter);
   JSON_IMPORT_REPO(EventListener            , event_listener);
   JSON_IMPORT_REPO(FileChecksumGenFactory   , file_checksum_gen_factory);
-  JSON_IMPORT_REPO(FileSystem               , file_system);
   JSON_IMPORT_REPO(FilterPolicy             , filter_policy);
   JSON_IMPORT_REPO(FlushBlockPolicyFactory  , flush_block_policy_factory);
   JSON_IMPORT_REPO(MergeOperator            , merge_operator);

@@ -420,4 +420,7 @@ struct WriteBufferManager_Manip : PluginManipFunc<WriteBufferManager> {
 ROCKSDB_FACTORY_REG("WriteBufferManager", JS_NewWriteBufferManager);
 ROCKSDB_REG_PluginManip("WriteBufferManager", WriteBufferManager_Manip);
 
+ROCKSDB_FACTORY_REG("Default", JS_NewWriteBufferManager);
+ROCKSDB_REG_PluginManip("Default", WriteBufferManager_Manip);
+
 } // ROCKSDB_NAMESPACE
