@@ -1131,6 +1131,12 @@ bool JsonSmartBool(const json& js, const char* subname, bool Default) {
   }
   return Default;
 }
+void JsonSmartBool(bool* result, const json& js, const char* subname) {
+  auto iter = js.find(subname);
+  if (js.end() != iter) {
+    *result = JsonSmartBool(iter.value());
+  }
+}
 
 int JsonSmartInt(const json& js) {
   if (js.is_string()) {
@@ -1159,6 +1165,12 @@ int JsonSmartInt(const json& js, const char* subname, int Default) {
   }
   return Default;
 }
+void JsonSmartInt(int* result, const json& js, const char* subname) {
+  auto iter = js.find(subname);
+  if (js.end() != iter) {
+    *result = JsonSmartInt(iter.value());
+  }
+}
 
 int64_t JsonSmartInt64(const json& js) {
   if (js.is_string()) {
@@ -1186,6 +1198,12 @@ int64_t JsonSmartInt64(const json& js, const char* subname, int64_t Default) {
     return JsonSmartInt64(iter.value());
   }
   return Default;
+}
+void JsonSmartInt64(int64_t* result, const json& js, const char* subname) {
+  auto iter = js.find(subname);
+  if (js.end() != iter) {
+    *result = JsonSmartInt64(iter.value());
+  }
 }
 
 static void JsonToHtml_Object(const json& arr, std::string& html, bool nested);

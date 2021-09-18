@@ -2207,12 +2207,19 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
   struct MyCRO : CompactRangeOptions {
     explicit MyCRO(const json& js) {
       exclusive_manual_compaction = false; // change default to false
-      ROCKSDB_JSON_OPT_PROP(js, exclusive_manual_compaction);
-      ROCKSDB_JSON_OPT_PROP(js, change_level);
-      ROCKSDB_JSON_OPT_PROP(js, target_level);
+      #if 1
+        #define MyCRO_GET(func, field) func(&field, js, #field)
+      #else
+        #define MyCRO_GET(func, field) ROCKSDB_JSON_OPT_PROP(js, field)
+      #endif
+      int max_subcompactions = this->max_subcompactions;
+      MyCRO_GET(JsonSmartBool, exclusive_manual_compaction);
+      MyCRO_GET(JsonSmartBool, change_level);
+      MyCRO_GET(JsonSmartInt , target_level);
+      MyCRO_GET(JsonSmartBool, allow_write_stall);
+      MyCRO_GET(JsonSmartInt , max_subcompactions);
+      this->max_subcompactions = max_subcompactions;
       ROCKSDB_JSON_OPT_ENUM(js, bottommost_level_compaction);
-      ROCKSDB_JSON_OPT_PROP(js, allow_write_stall);
-      ROCKSDB_JSON_OPT_PROP(js, max_subcompactions);
     }
   };
   MyCRO cro(dump_options);
