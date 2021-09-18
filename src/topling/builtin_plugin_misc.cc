@@ -2204,9 +2204,19 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
     js["description"] = "reject because refresh = " + std::to_string(refresh);
     return JsonToString(js, dump_options);
   }
+  struct MyCRO : CompactRangeOptions {
+    explicit MyCRO(const json& js) {
+      exclusive_manual_compaction = false; // change default to false
+      ROCKSDB_JSON_OPT_PROP(js, exclusive_manual_compaction);
+      ROCKSDB_JSON_OPT_PROP(js, change_level);
+      ROCKSDB_JSON_OPT_PROP(js, target_level);
+      ROCKSDB_JSON_OPT_ENUM(js, bottommost_level_compaction);
+      ROCKSDB_JSON_OPT_PROP(js, allow_write_stall);
+      ROCKSDB_JSON_OPT_PROP(js, max_subcompactions);
+    }
+  };
+  MyCRO cro(dump_options);
   std::thread([=]() {
-    CompactRangeOptions cro;
-    cro.exclusive_manual_compaction = false;
     db->CompactRange(cro, cfh, nullptr, nullptr);
     g_running_manual_compact_mtx.lock();
     g_running_manual_compact.erase(cfh);
