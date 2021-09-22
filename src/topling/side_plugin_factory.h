@@ -397,5 +397,7 @@ void JsonRepoSet(json& js, const void* prop,
                  const char* mapname, bool html);
 
 std::string Json_DB_CF_SST_HtmlTable(class Version*, class ColumnFamilyData*);
+std::string Json_DB_CF_SST_HtmlTable(class Version*, class ColumnFamilyData*,
+                                     class TableProperties* all_agg);
 
 } // ROCKSDB_NAMESPACE

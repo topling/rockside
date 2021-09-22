@@ -1379,6 +1379,9 @@ ScopeLockVersion::~ScopeLockVersion() {
 }
 
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd) {
+  return Json_DB_CF_SST_HtmlTable(version, cfd, nullptr);
+}
+std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd, TableProperties* all_agg) {
   std::string html;
 #if defined(NDEBUG)
 try {
@@ -1680,6 +1683,9 @@ try {
     agg_sst(all_levels_agg, curr_agg, &curr_agg, curr_agg.creation_time);
   }
   all_levels_agg.compression_name = AggregateNames(algos_all, "<br>");
+  if (all_agg) {
+    *all_agg = all_levels_agg;
+  }
   html.append("</tbody>\n");
   html.append("<tfoot>\n");
   write(all_levels_agg, &all_levels_agg, (int)meta.file_count);
