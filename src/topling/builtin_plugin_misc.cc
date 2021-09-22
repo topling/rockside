@@ -2183,21 +2183,33 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
                                     const json& dump_options) {
   DB* db = const_cast<DB*>(dbc);
   DBOptions dbo = db->GetDBOptions();
-  g_running_manual_compact_mtx.lock();
   ManCompactStatus mcs{::time(NULL), db};
-  auto ib = g_running_manual_compact.emplace(cfh, mcs);
+  auto refresh = JsonSmartInt(dump_options, "refresh", 0);
+  bool existed = false;
+  g_running_manual_compact_mtx.lock();
+  if (refresh) {
+    auto iter = g_running_manual_compact.find(cfh);
+    if (g_running_manual_compact.end() != iter) {
+      existed = true;
+      mcs = iter->second;
+    }
+  }
+  else {
+    auto ib = g_running_manual_compact.emplace(cfh, mcs);
+    mcs = ib.first->second;
+    existed = !ib.second;
+  }
   g_running_manual_compact_mtx.unlock();
   extern int Get_DB_next_job_id(const DB* db);
-  if (!ib.second) {
+  if (existed) {
     extern std::string cur_time_stat(time_t start_time, const char* up);
-    mcs = ib.first->second;
     json js;
     js["status"] = "running";
     js["next_job_id"] = Get_DB_next_job_id(db);
     js["time"] = cur_time_stat(mcs.start_time_us, "Elapsed");
     return JsonToString(js, dump_options);
   }
-  if (int refresh = JsonSmartInt(dump_options, "refresh", 0)) {
+  if (refresh) {
     json js;
     js["status"] = "reject";
     js["next_job_id"] = Get_DB_next_job_id(db);
