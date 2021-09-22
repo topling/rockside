@@ -1616,10 +1616,10 @@ try {
     html.append("<th>Raw</th>");
 
     html.append("<th>UserKey</th>");
-    html.append("<th>SeqNum</th>");
+    html.append("<th>Seq</th>");
     html.append("<th>Type</th>");
     html.append("<th>UserKey</th>");
-    html.append("<th>SeqNum</th>");
+    html.append("<th>Seq</th>");
     html.append("<th>Type</th>");
     html.append("</tr></thead>");
   };
