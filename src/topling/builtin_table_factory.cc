@@ -336,7 +336,7 @@ Status DispatcherTableFactory::NewTableReader(
   if (m_magic_to_factory.end() != fp_iter) {
     const std::shared_ptr<TableFactory>& factory = fp_iter->second.factory;
     const std::string&                   varname = fp_iter->second.varname;
-    ROCKS_LOG_INFO(info_log, "%s: found factory: %016llX : %s: %s\n",
+    ROCKS_LOG_DEBUG(info_log, "%s: found factory: %016llX : %s: %s\n",
          func, magic, factory->Name(), varname.c_str());
     fp_iter->second.open_cnt++;
     fp_iter->second.sum_open_size += file_size;
