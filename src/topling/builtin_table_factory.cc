@@ -166,7 +166,7 @@ struct BlockBasedTableFactory_Manip : PluginManipFunc<TableFactory> {
       return;
     }
     std::string name = p->Name();
-    THROW_InvalidArgument("Is not DispatcherTable, but is: " + name);
+    THROW_InvalidArgument("Is not BlockBasedTable, but is: " + name);
   }
   std::string ToString(const TableFactory& fac, const json& dump_options,
                        const SidePluginRepo& repo) const final {
@@ -175,7 +175,7 @@ struct BlockBasedTableFactory_Manip : PluginManipFunc<TableFactory> {
       return o.ToJsonStr(dump_options, repo);
     }
     std::string name = fac.Name();
-    THROW_InvalidArgument("Is not TerarkZipTable, but is: " + name);
+    THROW_InvalidArgument("Is not BlockBasedTable, but is: " + name);
   }
 };
 
