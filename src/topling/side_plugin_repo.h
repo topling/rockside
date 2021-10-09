@@ -11,6 +11,9 @@
 #include "rocksdb/status.h"
 #include <memory>
 
+#define ROCKSDB_VERSION \
+       (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH)
+
 namespace ROCKSDB_NAMESPACE {
 
 struct Options;

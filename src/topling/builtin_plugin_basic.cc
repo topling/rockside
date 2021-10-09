@@ -383,7 +383,7 @@ JS_NewGenericRateLimiter(const json& js, const SidePluginRepo& repo) {
   return std::make_shared<GenericRateLimiter>(
       rate_bytes_per_sec, refill_period_us, fairness,
       mode,
-#if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60203
+#if ROCKSDB_VERSION >= 60203
       env->GetSystemClock(),
 #else
       env,
