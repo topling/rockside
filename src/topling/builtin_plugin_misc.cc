@@ -561,7 +561,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_SIZE(js, max_write_buffer_size_to_maintain);
     ROCKSDB_JSON_SET_PROP(js, inplace_update_support);
     ROCKSDB_JSON_SET_PROP(js, inplace_update_num_locks);
-    // ROCKSDB_JSON_SET_PROP(js, inplace_callback); // not need update
+ // ROCKSDB_JSON_SET_PROP(js, inplace_callback); // not need update
     ROCKSDB_JSON_SET_PROP(js, memtable_prefix_bloom_size_ratio);
     ROCKSDB_JSON_SET_PROP(js, memtable_whole_key_filtering);
     ROCKSDB_JSON_SET_PROP(js, memtable_huge_page_size);
@@ -586,8 +586,11 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_SIZE(js, hard_pending_compaction_bytes_limit);
     ROCKSDB_JSON_SET_ENUM(js, compaction_style);
     ROCKSDB_JSON_SET_PROP(js, compaction_pri);
-    ROCKSDB_JSON_SET_NEST(js, compaction_options_universal);
-    ROCKSDB_JSON_SET_NEST(js, compaction_options_fifo);
+    if (kCompactionStyleLevel == compaction_style) {
+      ROCKSDB_JSON_SET_NEST(js, compaction_options_universal);
+    } else if (kCompactionStyleFIFO == compaction_style) {
+      ROCKSDB_JSON_SET_NEST(js, compaction_options_fifo);
+    }
     ROCKSDB_JSON_SET_PROP(js, max_sequential_skip_in_iterations);
     ROCKSDB_JSON_SET_FACT(js, memtable_factory);
     js["table_properties_collector_factories"].clear();
