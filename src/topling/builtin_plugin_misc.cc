@@ -972,124 +972,70 @@ static void replace_substr(std::string& s, const std::string& f,
     {}
 }
 
-static void metrics_DB_Staticstics(const Statistics* st, string& res, bool nozero) {
-  using stat = std::array<HistogramStat, HISTOGRAM_ENUM_MAX>;
-  using elem = HistogramStat::BucketElem;
-  using std::to_string;
+static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
+  using typestat = std::array<HistogramStat, HISTOGRAM_ENUM_MAX>;
 
   std::ostringstream oss;
-  const string str_rocksdb {"rocksdb"};
-  const string str_engine {"engine"};
+
+  auto replace=[](const string &name) {
+    string res = name;
+    const string str_rocksdb {"rocksdb"};
+    const string str_engine {"engine"};
+    for (auto &c:res) { if (c == '.') c = ':'; }
+    replace_substr(res, str_rocksdb, str_engine);
+
+    return res;
+  };
 
   auto *sth = dynamic_cast<const StatisticsWithOneHistroy*>(st);
-  std::unique_ptr<stat> current_ptr(new stat());
-  std::unique_ptr<stat> cumsum_ptr(new stat());
-  stat &current = *current_ptr;
-  stat &cumsum = *cumsum_ptr;
-  sth->GetAggregated(sth->m_last_tickers, current.data());
+  std::unique_ptr<typestat> current_ptr(new typestat());
+  typestat &stat = *current_ptr;
+  sth->GetAggregated(sth->m_last_tickers, stat.data());
   for (const auto& t : TickersNameMap) {
     assert(t.first < TICKER_ENUM_MAX);
-    if (sth->m_discard_tickers[t.first]) {
-      continue;
-    }
+    if (sth->m_discard_tickers[t.first]) continue;
     uint64_t value = sth->m_last_tickers[t.first];
-    if (!nozero || value) {
-      string name = t.second;
-      for (auto &c:name) { if (c == '.') c = ':'; }
-      replace_substr(name, str_rocksdb, str_engine);
-      oss|name|" "|value|"\n";
-    }
+    if (value) oss|replace(t.second)|" "|value|"\n";
   }
 
   auto const bucket_num = bucketMapper.BucketCount();
-  std::unique_ptr<stat> period_ptr(new stat());
-  stat &period = *period_ptr;
-  auto &last = sth->m_last_histogram;
-  for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
-    for (size_t j = 0; j < bucket_num; j++) {
-      period[i].buckets_[j].cnt = current[i].buckets_[j].cnt - last[i].buckets_[j].cnt;
-      period[i].buckets_[j].sum = current[i].buckets_[j].sum - last[i].buckets_[j].sum;
-
-      cumsum[i].buckets_[j].cnt = last[i].buckets_[j].cnt.load();
-      cumsum[i].buckets_[j].sum = last[i].buckets_[j].sum.load();
-    }
-    period[i].num_ = current[i].num_ - last[i].num_;
-    period[i].sum_ = current[i].sum_ - last[i].sum_;
-  }
-
-  for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
-    for (size_t j = 1; j < bucket_num; j++) {
-      period[i].buckets_[j].cnt += period[i].buckets_[j-1].cnt;
-      period[i].buckets_[j].sum += period[i].buckets_[j-1].sum;
-
-      cumsum[i].buckets_[j].cnt += cumsum[i].buckets_[j-1].cnt;
-      cumsum[i].buckets_[j].sum += cumsum[i].buckets_[j-1].sum;
-    }
-  }
-
   const auto empty = [](){};
-  const string sum{"_sum"};
-  const string count{"_count"};
-  const string bucket{"_bucket"};
+  const string suffix_sum{"_sum"};
+  const string suffix_count{"_count"};
+  const string suffix_bucket{"_bucket"};
   const auto max_flag = [&]{oss|"le=\"+Inf\"";}; //bucket 最大是固定的+Inf
   for (const auto& h : HistogramsNameMap) {
     assert(h.first < HISTOGRAM_ENUM_MAX);
-    if (sth->m_discard_histograms[h.first]) {
-      continue;
+    if (sth->m_discard_histograms[h.first]) continue;
+
+    auto const &buckets =  stat[h.first].buckets_;
+    u_int64_t last = 0;
+    size_t limit = 0;
+    for (size_t i = bucketMapper.BucketCount() - 1; i > 0; i--) {
+      if (buckets[i].cnt > 0) { limit = i + 1; break; }
     }
-    auto append_result=[&h,&oss,&bucket_num,&str_rocksdb,&str_engine](const string &suffix, auto flag, const uint64_t value){
-      string name = h.second;
-      for (auto &c:name) { if (c == '.') c = ':'; }
-      replace_substr(name, str_rocksdb, str_engine);
-      oss|name|suffix|"{";
-      flag();
+
+    auto append_result=[&h,&oss,&bucket_num,&replace](const string &suffix, auto label, const uint64_t value){
+      oss|replace(h.second)|suffix|"{";
+      label();
       oss|"} "|value|"\n";
     };
 
-    auto compare=[](const elem &left, const elem &right){ return left.cnt < right.cnt; };
-    auto index = std::lower_bound(cumsum[h.first].buckets_, cumsum[h.first].buckets_+bucket_num, cumsum[h.first].buckets_[bucket_num-1], compare);
-    int limit = index - cumsum[h.first].buckets_;
-    for (int i = 0; i <= limit; i++) {
-      auto flag = [&] {
+    for (size_t i = 0; i < limit; i++) {
+      auto label = [&]() {
         oss | "le=\"" | bucketMapper.BucketLimit(i) | "\"";
       };
-      append_result(bucket, flag, cumsum[h.first].buckets_[i].cnt);
+      last += buckets[i].cnt;
+      append_result(suffix_bucket, label, last);
     }
 
-    append_result(bucket, max_flag, cumsum[h.first].buckets_[bucket_num-1].cnt);
-    append_result(sum, empty, current[h.first].sum());
-    append_result(count, empty, current[h.first].num());
-
-    auto check_info=[&period,&h,&append_result,&empty,&bucket_num,&compare](int limit) {
-      elem max;
-      auto &buckets = period[h.first].buckets_;
-      max.cnt = buckets[bucket_num-1].cnt*limit/100;
-
-      auto index = std::lower_bound(buckets, buckets+bucket_num, max, compare);
-
-      int i = index - buckets;
-      if (i > 0) i--;
-      auto bucket_min = bucketMapper.BucketLimit(i);
-      auto bucket_max = bucketMapper.BucketLimit(i+1);
-      auto check_val = bucket_min;
-      if (buckets[i+1].cnt - buckets[i].cnt > 0) {
-        check_val += (max.cnt - buckets[i].cnt)*(bucket_max - bucket_min)/(buckets[i+1].cnt - buckets[i].cnt);
-      }
-
-      append_result("_check_" + to_string(limit), empty, check_val);
-    };
-
-    check_info(50);
-    check_info(90);
-    check_info(99);
-  }
-
-  for (size_t i = 0; i < HISTOGRAM_ENUM_MAX; i++) {
-    sth->m_last_histogram[i].Clear();
-    sth->m_last_histogram[i].Merge(current[i]);
+    append_result(suffix_bucket, max_flag, last);
+    append_result(suffix_sum, empty, stat[h.first].sum());
+    append_result(suffix_count, empty, stat[h.first].num());
   }
 
   res.append(oss.str());
+  return res;
 }
 
 struct Statistics_Manip : PluginManipFunc<Statistics> {
@@ -1104,7 +1050,7 @@ struct Statistics_Manip : PluginManipFunc<Statistics> {
 
     if (metric) {
       string res;
-      metrics_DB_Staticstics(&db, res, nozero);
+      metrics_DB_Staticstics(&db, res);
       return res;
     } else {
       json djs;
