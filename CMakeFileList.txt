@@ -7,6 +7,8 @@ file(GLOB rockside_src RELATIVE ${PROJECT_SOURCE_DIR}
      sideplugin/rockside/src/topling/*.h
      sideplugin/rockside/src/topling/*.cc)
 
+add_definitions(-DUSE_SERVER_STATS)
+
 if (EXISTS ${PROJECT_SOURCE_DIR}/../rapidyaml/CMakeLists.txt)
   get_filename_component(rapidyaml_abs_dir ${PROJECT_SOURCE_DIR}/../rapidyaml ABSOLUTE)
   message(STATUS "found ${rapidyaml_abs_dir}/CMakeLists.txt")
