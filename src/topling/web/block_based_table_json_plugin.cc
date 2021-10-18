@@ -1,7 +1,7 @@
 #include <string>
 
 #include "table/block_based/block_based_table_reader.h"
-#include "utilities/json/json_plugin_factory.h"
+#include <topling/side_plugin_factory.h>
 
 using namespace ROCKSDB_NAMESPACE;
 
@@ -121,10 +121,10 @@ std::string ToWebViewString(const BlockBasedTable* reader,
 
 struct BlockBasedTableReader_Manip : PluginManipFunc<TableReader> {
   void Update(TableReader*, const json& js,
-              const JsonPluginRepo& repo) const final {}
+              const SidePluginRepo &repo) const final {}
 
   std::string ToString(const TableReader& reader, const json& dump_options,
-                       const JsonPluginRepo& repo) const final {
+                       const SidePluginRepo &) const final {
     // return ToWebViewString(dump_options);
     if (auto rd = dynamic_cast<const BlockBasedTable*>(&reader)) {
       return ToWebViewString(rd, dump_options);
