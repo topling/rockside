@@ -66,7 +66,7 @@ json ToWebViewJson(const BlockBasedTable* reader, const json& dump_options) {
       {"total_size", r->table_properties->filter_size},
       {"entries", "none"},
   });
-    if (r->filter != nullptr) {
+  if (r->filter != nullptr) {
     filter.push_back({"filter_ApproximateMemoryUsage", r->filter->ApproximateMemoryUsage()});
   } else {
     filter.push_back({"filter_ApproximateMemoryUsage", "nullptr"});
