@@ -68,8 +68,7 @@ static std::string& operator|(std::string& str, Slice x) {
   str.append(x.data_, x.size_);
   return str;
 }
-void mg_print_cur_time(mg_connection* conn, const json& query,
-                       const SidePluginRepo* repo) {
+void mg_print_cur_time(mg_connection* conn, const SidePluginRepo* repo) {
   std::string str;
   str.reserve(4096);
   std::string tm_str = cur_time_stat();
@@ -94,8 +93,8 @@ void mg_print_cur_time(mg_connection* conn, const json& query,
   str|"</p>";
   mg_write(conn, str.data(), str.size());
 }
-void mg_print_cur_time(mg_connection* conn, const json& query) {
-  mg_print_cur_time(conn, query, nullptr);
+void mg_print_cur_time(mg_connection* conn) {
+  mg_print_cur_time(conn, nullptr);
 }
 
 std::string ReadPostData(mg_connection* conn) {
@@ -169,7 +168,7 @@ public:
         mg_printf(conn, "<html><head>\n"
           "<link rel='stylesheet' type='text/css' href='/style.css'>\n"
           "<title>%s</title>\n</head>\n<body>\n", m_ns.data_);
-        mg_print_cur_time(conn, query, m_repo);
+        mg_print_cur_time(conn, m_repo);
         if (vec.empty()) {
           mg_printf(conn, "<strong>%s</strong> repo is empty</body></html>\n",
                     m_ns.data_);
@@ -220,7 +219,7 @@ function SetParam(name, value) {
     location.href = url.href;
 }
 </script>)");
-        mg_print_cur_time(conn, query, m_repo);
+        mg_print_cur_time(conn, m_repo);
       }
 #if defined(NDEBUG)
       try {
