@@ -586,7 +586,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_SIZE(js, hard_pending_compaction_bytes_limit);
     ROCKSDB_JSON_SET_ENUM(js, compaction_style);
     ROCKSDB_JSON_SET_PROP(js, compaction_pri);
-    if (kCompactionStyleLevel == compaction_style) {
+    if (kCompactionStyleUniversal == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_universal);
     } else if (kCompactionStyleFIFO == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_fifo);
