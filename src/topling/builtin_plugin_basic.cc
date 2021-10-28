@@ -9,6 +9,7 @@
 
 #include <cache/lru_cache.h>
 
+#include <util/coding_lean.h>
 #include <util/rate_limiter.h>
 
 #include <utilities/table_properties_collectors/compact_on_deletion_collector.h>
@@ -97,6 +98,75 @@ JS_NewHtmlTextUserKeyCoder(const json&, const SidePluginRepo&) {
 }
 ROCKSDB_FACTORY_REG("HtmlTextUserKeyCoder", JS_NewHtmlTextUserKeyCoder);
 ROCKSDB_REG_AnyPluginManip("HtmlTextUserKeyCoder");
+
+struct DbBenchUserKeyCoder : public UserKeyCoder {
+  int prefix_len = 0;
+  int key_size = 16;
+  DbBenchUserKeyCoder(const json& js, const SidePluginRepo&) {
+    ROCKSDB_JSON_OPT_PROP(js, prefix_len);
+    ROCKSDB_JSON_OPT_PROP(js, key_size); // >= prefix_len + 8
+    prefix_len = std::max(prefix_len, 0);
+    key_size = std::max(key_size, prefix_len + 8);
+  }
+  const char* Name() const override { return "DbBenchUserKeyCoder"; }
+  void Update(const json&, const SidePluginRepo&) override {
+    ROCKSDB_DIE("This function should not be called");
+  }
+  std::string ToString(const json&, const SidePluginRepo&) const override {
+    char buf[1024];
+    auto len = snprintf(buf, sizeof(buf), R"(<h3>this is DbBenchUserKeyCoder</h3>
+<h4>prefix_len = %d, key_len = %d</h4>
+<p>Generate key according to the given specification and random number.</p>
+<p>The resulting key will have the following format:</p>
+<pre>
+  - If keys_per_prefix_ is positive, extra trailing bytes are either cut
+    off or padded with '0'.
+    The prefix value is derived from key value.
+    ----------------------------
+    | prefix 00000 | key 00000 |
+    ----------------------------
+</pre>
+<p></p>
+<pre>
+  - If keys_per_prefix_ is 0, the key is simply a binary representation of
+    random number followed by trailing '0's
+    ----------------------------
+    |        key 00000         |
+    ----------------------------
+</pre>
+)", prefix_len, key_size);
+    return std::string(buf, len);
+  }
+  void Encode(Slice, std::string*) const override {
+    ROCKSDB_DIE("This function should not be called");
+  }
+  void Decode(Slice coded, std::string* de) const override {
+    de->clear();
+    de->reserve(key_size * 2 + 32);
+    long long prefix, keyint;
+    memcpy(&prefix, coded.data_, 8);
+    memcpy(&keyint, coded.data_ + prefix_len, 8);
+    if (port::kLittleEndian) {
+      prefix = EndianSwapValue(prefix);
+      keyint = EndianSwapValue(keyint);
+    }
+    char buf[24];
+    if (prefix_len) {
+      sprintf(buf, "%016llX", prefix);
+      de->append("<code>");
+      de->append(buf, 16);
+      de->append("</code>:<code>");
+    }
+    else {
+      de->append("<code>");
+    }
+    sprintf(buf, "%016llX", keyint);
+    de->append(buf, 16);
+    de->append("</code>");
+  }
+};
+ROCKSDB_REG_JSON_REPO_CONS(DbBenchUserKeyCoder, AnyPlugin);
+ROCKSDB_REG_AnyPluginManip("DbBenchUserKeyCoder");
 
 struct LRUCacheOptions_Json : LRUCacheOptions {
   LRUCacheOptions_Json(const json& js, const SidePluginRepo& repo) {
