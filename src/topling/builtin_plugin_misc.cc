@@ -552,6 +552,15 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
         THROW_InvalidArgument("bad html_user_key_coder = %s" + js["html_user_key_coder"].dump());
       }
     }
+    if (kCompactionStyleLevel == compaction_style) {
+      auto iter = js.find("compaction_options_level");
+      if (js.end() != iter) {
+        bool clean_L1 = false;
+        auto& sub = iter.value();
+        ROCKSDB_JSON_OPT_PROP(sub, clean_L1);
+        compaction_options_universal.size_ratio = clean_L1 ? 0 : 1;
+      }
+    }
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
@@ -588,6 +597,9 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_PROP(js, compaction_pri);
     if (kCompactionStyleUniversal == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_universal);
+    } else if (kCompactionStyleLevel == compaction_style) {
+      bool clean_L1 = 0 == compaction_options_universal.size_ratio;
+      ROCKSDB_JSON_SET_PROP(js["compaction_options_level"], clean_L1);
     } else if (kCompactionStyleFIFO == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_fifo);
     }
