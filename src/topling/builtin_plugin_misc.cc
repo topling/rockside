@@ -555,10 +555,10 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     if (kCompactionStyleLevel == compaction_style) {
       auto iter = js.find("compaction_options_level");
       if (js.end() != iter) {
-        bool drain_L1 = false;
+        auto L1_score_boost = compaction_options_universal.size_ratio;
         auto& sub = iter.value();
-        ROCKSDB_JSON_OPT_PROP(sub, drain_L1);
-        compaction_options_universal.size_ratio = drain_L1 ? 0 : 1;
+        ROCKSDB_JSON_OPT_PROP(sub, L1_score_boost);
+        compaction_options_universal.size_ratio = L1_score_boost;
       }
     }
   }
@@ -598,8 +598,8 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     if (kCompactionStyleUniversal == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_universal);
     } else if (kCompactionStyleLevel == compaction_style) {
-      bool drain_L1 = 0 == compaction_options_universal.size_ratio;
-      ROCKSDB_JSON_SET_PROP(js["compaction_options_level"], drain_L1);
+      auto L1_score_boost = compaction_options_universal.size_ratio;
+      ROCKSDB_JSON_SET_PROP(js["compaction_options_level"], L1_score_boost);
     } else if (kCompactionStyleFIFO == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_fifo);
     }
