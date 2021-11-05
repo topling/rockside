@@ -1,6 +1,7 @@
 //
 // Created by leipeng on 2020/7/1.
 //
+#include "logging/logging.h"
 #include "table/block_based/block_based_table_factory.h"
 #include "table/plain/plain_table_factory.h"
 #include "table/table_builder.h"

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <bitset>
 
+#include "logging/logging.h"
 #include "rocksdb/db.h"
 #include "db/dbformat.h"
 #include "db/column_family.h"
