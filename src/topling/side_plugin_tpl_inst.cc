@@ -112,7 +112,7 @@ PluginFactory<Ptr>::NullablePlugin(const std::string& clazz, const json& js,
 static void \
 Func(const char* varname, const char* func_name, \
      const json& js, const SidePluginRepo& repo, Ptr* pp) { \
-  TERARK_DIE("Should not goes here"); \
+  ROCKSDB_DIE("Should not goes here"); \
 }
 
 do_not_instantiate(GetNoAcq, std::shared_ptr<CFPropertiesWebView>)
@@ -168,7 +168,7 @@ GetNoAcq(const char* varname, const char* func_name,
 //
 // if json is an object, it should be { class: class_name, params: ... }
 template<class Ptr>
-static void 
+static void
 GetOrAcq(const char* varname, const char* func_name,
          const json& js, const SidePluginRepo& repo, Ptr* pp) {
   if (js.is_string()) {

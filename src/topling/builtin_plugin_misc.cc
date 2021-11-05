@@ -2116,9 +2116,9 @@ void JS_RokcsDB_AddVersion(json& djs, bool html) {
   auto p_sha = strchr(rocksdb_build_git_sha, ':');
   auto p_tag = strchr(rocksdb_build_git_tag, ':');
   auto p_date = strchr(rocksdb_build_date, ':');
-  TERARK_VERIFY(nullptr != p_sha);
-  TERARK_VERIFY(nullptr != p_tag);
-  TERARK_VERIFY(nullptr != p_date);
+  ROCKSDB_VERIFY(nullptr != p_sha);
+  ROCKSDB_VERIFY(nullptr != p_tag);
+  ROCKSDB_VERIFY(nullptr != p_date);
   p_sha += 1;
   p_tag += 1;
   p_date += 1;
