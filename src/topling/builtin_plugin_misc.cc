@@ -2185,7 +2185,7 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
     return JsonToString(js, dump_options);
   }
   struct MyCRO : CompactRangeOptions {
-    explicit MyCRO(const json& js) {
+    explicit MyCRO(const json& js, int target_path_id) {
       exclusive_manual_compaction = false; // change default to false
       #if 1
         #define MyCRO_GET(func, field) func(&field, js, #field)
@@ -2198,11 +2198,14 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
       MyCRO_GET(JsonSmartInt , target_level);
       MyCRO_GET(JsonSmartBool, allow_write_stall);
       MyCRO_GET(JsonSmartInt , max_subcompactions);
+      MyCRO_GET(JsonSmartInt , target_path_id);
       this->max_subcompactions = max_subcompactions;
+      this->target_path_id = target_path_id;
       ROCKSDB_JSON_OPT_ENUM(js, bottommost_level_compaction);
     }
   };
-  MyCRO cro(dump_options);
+  int default_target_path_id = cfh->cfd()->NumberLevels() - 1;
+  MyCRO cro(dump_options, default_target_path_id);
   std::thread([=]() {
     db->CompactRange(cro, cfh, nullptr, nullptr);
     g_running_manual_compact_mtx.lock();
