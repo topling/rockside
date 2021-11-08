@@ -2204,7 +2204,8 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
       ROCKSDB_JSON_OPT_ENUM(js, bottommost_level_compaction);
     }
   };
-  int default_target_path_id = cfh->cfd()->NumberLevels() - 1;
+  auto& cf_paths = cfh->cfd()->ioptions()->cf_paths;
+  int default_target_path_id = (int)(cf_paths.size() - 1);
   MyCRO cro(dump_options, default_target_path_id);
   std::thread([=]() {
     db->CompactRange(cro, cfh, nullptr, nullptr);
