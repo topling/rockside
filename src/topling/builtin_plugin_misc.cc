@@ -677,13 +677,16 @@ ROCKSDB_REG_PluginManip("CFOptions", CFOptions_Manip);
 
 //////////////////////////////////////////////////////////////////////////////
 
-class StatisticsWithOneHistroy : public StatisticsImpl {
+struct RawStatisticsData {
+  uint64_t tickers[INTERNAL_TICKER_ENUM_MAX] = {0};
+  HistogramStat histograms[INTERNAL_HISTOGRAM_ENUM_MAX];
+};
+
+class StatisticsWithDiscards : public StatisticsImpl {
 public:
   using StatisticsImpl::StatisticsImpl;
   std::bitset<INTERNAL_TICKER_ENUM_MAX>    m_discard_tickers;
   std::bitset<INTERNAL_HISTOGRAM_ENUM_MAX> m_discard_histograms;
-  mutable uint64_t m_last_tickers[INTERNAL_TICKER_ENUM_MAX] = {0};
-  mutable HistogramStat m_last_histogram[INTERNAL_HISTOGRAM_ENUM_MAX];
 };
 
 #define g_tickers_name_to_val g_tickers_name_to_val_func()
@@ -731,7 +734,7 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
   StatsLevel stats_level = kExceptDetailedTimers;
   ROCKSDB_JSON_OPT_ENUM(js, stats_level);
   //auto p = CreateDBStatistics();
-  auto p = std::make_shared<StatisticsWithOneHistroy>(nullptr);
+  auto p = std::make_shared<StatisticsWithDiscards>(nullptr);
   p->set_stats_level(stats_level);
   auto iter = js.find("discard_tickers");
   if (js.end() != iter) {
@@ -739,7 +742,7 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
     if (discard.is_string()) {
       std::shared_ptr<Statistics> discard_tickers;
       ROCKSDB_JSON_GET_FACT_INNER(discard, discard_tickers);
-      auto q = dynamic_cast<StatisticsWithOneHistroy*>(discard_tickers.get());
+      auto q = dynamic_cast<StatisticsWithDiscards*>(discard_tickers.get());
       ROCKSDB_VERIFY(nullptr != q);
       p->m_discard_tickers = q->m_discard_tickers;
     }
@@ -780,7 +783,7 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
     if (discard.is_string()) {
       std::shared_ptr<Statistics> discard_histograms;
       ROCKSDB_JSON_GET_FACT_INNER(discard, discard_histograms);
-      auto q = dynamic_cast<StatisticsWithOneHistroy*>(discard_histograms.get());
+      auto q = dynamic_cast<StatisticsWithDiscards*>(discard_histograms.get());
       ROCKSDB_VERIFY(nullptr != q);
       p->m_discard_histograms = q->m_discard_histograms;
     }
@@ -986,8 +989,6 @@ static void replace_substr(std::string& s, const std::string& f,
 }
 
 static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
-  using typestat = std::array<HistogramStat, HISTOGRAM_ENUM_MAX>;
-
   std::ostringstream oss;
 
   auto replace=[](const string &name) {
@@ -1000,14 +1001,13 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
     return res;
   };
 
-  auto *sth = dynamic_cast<const StatisticsWithOneHistroy*>(st);
-  std::unique_ptr<typestat> current_ptr(new typestat());
-  typestat &stat = *current_ptr;
-  sth->GetAggregated(sth->m_last_tickers, stat.data());
+  auto sth = dynamic_cast<const StatisticsWithDiscards*>(st);
+  auto rsd = std::make_unique<RawStatisticsData>();
+  sth->GetAggregated(rsd->tickers, rsd->histograms);
   for (const auto& t : TickersNameMap) {
     assert(t.first < TICKER_ENUM_MAX);
     if (sth->m_discard_tickers[t.first]) continue;
-    uint64_t value = sth->m_last_tickers[t.first];
+    uint64_t value = rsd->tickers[t.first];
     if (value) oss|replace(t.second)|" "|value|"\n";
   }
 
@@ -1021,7 +1021,7 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
     assert(h.first < HISTOGRAM_ENUM_MAX);
     if (sth->m_discard_histograms[h.first]) continue;
 
-    auto const &buckets =  stat[h.first].buckets_;
+    auto const &buckets = rsd->histograms[h.first].buckets_;
     u_int64_t last = 0;
     size_t limit = 0;
     for (size_t i = bucketMapper.BucketCount() - 1; i > 0; i--) {
@@ -1043,8 +1043,8 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
     }
 
     append_result(suffix_bucket, max_flag, last);
-    append_result(suffix_sum, empty, stat[h.first].sum());
-    append_result(suffix_count, empty, stat[h.first].num());
+    append_result(suffix_sum, empty, rsd->histograms[h.first].sum());
+    append_result(suffix_count, empty, rsd->histograms[h.first].num());
   }
 
   res.append(oss.str());
