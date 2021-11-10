@@ -1025,7 +1025,7 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
     u_int64_t last = 0;
     size_t limit = 0;
     for (size_t i = bucketMapper.BucketCount() - 1; i > 0; i--) {
-      if (buckets[i].cnt > 0) { limit = i + 1; break; }
+      if (buckets[i] > 0) { limit = i + 1; break; }
     }
 
     auto append_result=[&h,&oss,&bucket_num,&replace](const string &suffix, auto label, const uint64_t value){
@@ -1038,7 +1038,7 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
       auto label = [&]() {
         oss | "le=\"" | bucketMapper.BucketLimit(i) | "\"";
       };
-      last += buckets[i].cnt;
+      last += buckets[i];
       append_result(suffix_bucket, label, last);
     }
 
