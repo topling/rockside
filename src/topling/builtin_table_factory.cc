@@ -95,9 +95,8 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
       ROCKSDB_JSON_OPT_FACT(js, persistent_cache);
       ROCKSDB_JSON_OPT_FACT(js, filter_policy);
     }
-#if ROCKSDB_VERSION >= 60203
     ROCKSDB_JSON_OPT_SIZE(js, max_auto_readahead_size);
-#endif
+    ROCKSDB_JSON_OPT_PROP(js, enable_get_random_keys);
   }
 
   json ToJsonObj(const json& dump_options, const SidePluginRepo& repo) const {
@@ -137,9 +136,8 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
       ROCKSDB_JSON_SET_FACT(js, persistent_cache);
       ROCKSDB_JSON_SET_FACT(js, filter_policy);
     }
-#if ROCKSDB_VERSION >= 60203
     ROCKSDB_JSON_SET_SIZE(js, max_auto_readahead_size);
-#endif
+    ROCKSDB_JSON_SET_PROP(js, enable_get_random_keys);
     return js;
   }
   std::string ToJsonStr(const json& dump_options,
