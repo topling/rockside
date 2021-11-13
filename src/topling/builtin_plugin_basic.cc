@@ -493,4 +493,19 @@ ROCKSDB_REG_PluginManip("WriteBufferManager", WriteBufferManager_Manip);
 ROCKSDB_FACTORY_REG("Default", JS_NewWriteBufferManager);
 ROCKSDB_REG_PluginManip("Default", WriteBufferManager_Manip);
 
+/////////////////////////////////////////////////////////////////////////////
+
+json JS_CompactionParamsEncodePtr(const CompactionParams* x) {
+  // pass as object pointer(convert to uintptr_t)
+  // because json does not allow non-utf8 binary data in string,
+  // using encode/decode is tedious, so we keep it simple stupid.
+  return json{{"ptr", uintptr_t(x)}};
+}
+const CompactionParams* JS_CompactionParamsDecodePtr(const json& js) {
+  // "ptr" is passed by ptr's integer value
+  uintptr_t ptr = 0;
+  ROCKSDB_JSON_REQ_PROP(js, ptr);
+  return reinterpret_cast<const CompactionParams*>(ptr);
+}
+
 } // ROCKSDB_NAMESPACE

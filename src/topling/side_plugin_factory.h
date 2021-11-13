@@ -400,4 +400,8 @@ std::string Json_DB_CF_SST_HtmlTable(class Version*, class ColumnFamilyData*);
 std::string Json_DB_CF_SST_HtmlTable(class Version*, class ColumnFamilyData*,
                                      class TableProperties* all_agg);
 
+class CompactionParams;
+json JS_CompactionParamsEncodePtr(const CompactionParams*);
+const CompactionParams* JS_CompactionParamsDecodePtr(const json&);
+
 } // ROCKSDB_NAMESPACE
