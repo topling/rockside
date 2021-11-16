@@ -1274,8 +1274,8 @@ static void Html_AppendTime(std::string& html, char* buf, uint64_t t) {
 }
 
 #define AppendFmt(...) html.append(buf, snprintf(buf, sizeof(buf), __VA_ARGS__))
-static void Html_AppendInternalKey(std::string& html, Slice ikey,
-                                   const UserKeyCoder* coder) {
+void Html_AppendInternalKey(std::string& html, Slice ikey,
+                            const UserKeyCoder* coder) {
   char buf[32];
   ParsedInternalKey pikey;
   Status s = ParseInternalKey(ikey, &pikey, true);
@@ -1906,7 +1906,9 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   TableReader* tr = tc->GetTableReaderFromHandle(ch);
   const auto& zip_algo = tr->GetTableProperties()->compression_name;
   auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), null_repo_ref());
-  return manip->ToString(*tr, dump_options, null_repo_ref());
+  json dump_opt2 = dump_options;
+  dump_opt2["__ptr_cfd__"] = size_t(cfd);
+  return manip->ToString(*tr, dump_opt2, null_repo_ref());
 }
 
 // format not suitable for prometheus

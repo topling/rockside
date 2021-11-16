@@ -1,9 +1,10 @@
 #include <string>
 
 #include "table/block_based/block_based_table_reader.h"
+#include "db/column_family.h"
 #include <topling/side_plugin_factory.h>
 
-using namespace ROCKSDB_NAMESPACE;
+namespace ROCKSDB_NAMESPACE {
 
 // erase all space in string s
 void CleanSpace(std::string& s) {
@@ -43,9 +44,203 @@ std::string Uint64ToTimeString(uint64_t tparam) {
   return ctime(&t);
 }
 
-json ToWebViewJson(const BlockBasedTable* reader, const json& dump_options) {
+void Html_AppendInternalKey(std::string& html, Slice ikey, const UserKeyCoder*);
+
+class AccessBlockBasedTable : public BlockBasedTable {
+public:
+std::string BlockIndexHtml(ColumnFamilyData* cfd) const {
+  char buf[64];
+  std::string html;
+  const bool index_key_includes_seq = rep_->index_key_includes_seq;
+  const bool index_has_first_key = rep_->index_has_first_key;
+  html.append("<h4>DataBlock Index</h4>");
+  {
+    html.append(R"(
+  <style>
+    div * td {
+      text-align: right;
+      font-family: monospace;
+    }
+    div * td.left {
+      text-align: left;
+      font-family: Sans-serif;
+    }
+    div * td.monoleft {
+      text-align: left;
+      font-family: monospace;
+    }
+    div * td.center {
+      text-align: center;
+      font-family: Sans-serif;
+    }
+    .bghighlight {
+      background-color: AntiqueWhite;
+    }
+    .emoji {
+      font-family: "Apple Color Emoji","Segoe UI Emoji",NotoColorEmoji,"Segoe UI Symbol","Android Emoji",EmojiSymbols;
+    }
+    em {
+      color: brown;
+    }
+    .part_user_key {
+      color: DarkBlue;
+    }
+    .hex_key {
+      color: DarkRed
+    }
+  </style>
+)");
+  }
+  if (index_key_includes_seq) {
+    if (index_has_first_key) {
+      html.append(R"(
+<table border=1>
+</thead>
+  <tr>
+    <th rowspan=2>Ord</th>
+    <th rowspan=2>Offset</th>
+    <th rowspan=2>Size</th>
+    <th colspan=3>IndexKey</th>
+    <th colspan=3>FirstKey</th>
+  </tr>
+  <tr>
+    <th>UserKey</th>
+    <th>Seq</th>
+    <th>Type</th>
+    <th>UserKey</th>
+    <th>Seq</th>
+    <th>Type</th>
+  </tr>
+</thead>
+<tbody>
+)");
+    }
+    else {
+      html.append(R"(
+<table border=1>
+</thead>
+  <tr>
+    <th rowspan=2>Ord</th>
+    <th rowspan=2>Offset</th>
+    <th rowspan=2>Size</th>
+    <th colspan=3>IndexKey</th>
+  </tr>
+  <tr>
+    <th>UserKey</th>
+    <th>Seq</th>
+    <th>Type</th>
+  </tr>
+</thead>
+<tbody>
+)");
+    }
+  }
+  else {
+    if (index_has_first_key) {
+      html.append(R"(
+<table border=1>
+</thead>
+  <tr>
+    <th>Ord</th>
+    <th>Offset</th>
+    <th>Size</th>
+    <th>IndexUserKey</th>
+    <th>FirstUserKey</th>
+  </tr>
+</thead>
+<tbody>
+)");
+    }
+    else {
+      html.append(R"(
+<table border=1>
+</thead>
+  <tr>
+    <th>Ord</th>
+    <th>Offset</th>
+    <th>Size</th>
+    <th>IndexUserKey</th>
+  </tr>
+</thead>
+<tbody>
+)");
+    }
+  }
+  auto coder_sp = cfd->GetLatestCFOptions().html_user_key_coder;
+  const UserKeyCoder* coder = nullptr;
+/*
+  const bool is_full_user_key =
+     BlockBasedTableOptions::IndexShorteningMode::kNoShortening ==
+     rep_->table_options.index_shortening;\
+*/
+  if (coder_sp) {
+  //  if (is_full_user_key)
+      // when using coder, index_key must be a full user_key
+      coder = dynamic_cast<const UserKeyCoder*>(coder_sp.get());
+  }
+  bool disable_prefix_seek = false;
+  BlockCacheLookupContext lookup_context{TableReaderCaller::kPrefetch};
+  std::unique_ptr<InternalIteratorBase<IndexValue>> index_iter(NewIndexIterator(
+      ReadOptions(), disable_prefix_seek,
+      /*input_iter=*/nullptr, /*get_context=*/nullptr, &lookup_context));
+  size_t num = 0;
+  index_iter->SeekToFirst();
+  for (; index_iter->Valid(); index_iter->Next(), num++) {
+    Slice index_key = index_iter->key();
+    IndexValue iv = index_iter->value();
+    size_t offset = size_t(iv.handle.offset());
+    size_t size = size_t(iv.handle.size());
+    html.append("<tr>");
+    html.append(buf, sprintf(buf, "<td align=right>%zd</td>", num));
+    html.append(buf, sprintf(buf, "<td align=right>%zd</td>", offset));
+    html.append(buf, sprintf(buf, "<td align=right>%zd</td>", size));
+    if (index_key_includes_seq) {
+      // coder must handle part key
+      Html_AppendInternalKey(html, index_key, coder);
+    }
+    else {
+     #if 0 // coder do not handle part key
+      html.append("<td class='monoleft");
+      if (coder) {
+        html.append("'>");
+        html.append(coder->Decode(index_key));
+      } else if (std::all_of(index_key.begin(), index_key.end(), isprint)) {
+        if (!is_full_user_key) html.append(" part_user_key");
+        html.append("'>");
+        html.append(index_key.data_, index_key.size_);
+      } else if (std::count_if(index_key.begin(), index_key.end(), isprint) >= index_key.size()*7/8) {
+        if (!is_full_user_key) html.append(" part_user_key");
+        html.append("'>");
+        HtmlAppendEscape(&html, index_key);
+      } else { // non print-able is too many
+        html.append(" hex_key'>");
+        html.append(Slice(index_key).ToString(true));
+      }
+     #else
+      html.append("<td class='monoleft'>");
+      if (coder)
+        html.append(coder->Decode(index_key));
+      else
+        html.append(Slice(index_key).ToString(true));
+     #endif
+      html.append("</td>");
+    }
+    if (index_has_first_key) {
+      Html_AppendInternalKey(html, iv.first_internal_key, coder);
+    }
+    html.append("</tr>\n");
+  }
+/*
+  // num == rep_->table_properties->num_data_blocks;
+  return std::string(buf, sprintf(buf, "<h4>Entries: %zd</h4>\n", num)) +
+          std::move(html);
+*/
+  return html;
+}
+
+json ToWebViewJson(const json& dump_options) const {
   json djs;
-  const BlockBasedTable::Rep* r = reader->get_rep();
+  const BlockBasedTable::Rep* r = get_rep();
 
   djs["global_seqno"] = (int64_t)r->global_seqno;
 
@@ -55,22 +250,18 @@ json ToWebViewJson(const BlockBasedTable* reader, const json& dump_options) {
   });
   json index = json::object({
       {"total_size", r->table_properties->index_size},
-      {"entries", "none"},
+      //{"entries", "none"},
+      {"ApproximateMemoryUsage",
+         r->index_reader ? json(r->index_reader->ApproximateMemoryUsage())
+                         : json("nullptr") }
   });
-  if (r->index_reader != nullptr) {
-    index.push_back({"index_ApproximateMemoryUsage", r->index_reader->ApproximateMemoryUsage()});
-  } else {
-    index.push_back({"index_ApproximateMemoryUsage", "nullptr"});
-  }
   json filter = json::object({
       {"total_size", r->table_properties->filter_size},
-      {"entries", "none"},
+      //{"entries", "none"},
+      {"ApproximateMemoryUsage",
+         r->filter ? json(r->filter->ApproximateMemoryUsage())
+                   : json("nullptr") }
   });
-  if (r->filter != nullptr) {
-    filter.push_back({"filter_ApproximateMemoryUsage", r->filter->ApproximateMemoryUsage()});
-  } else {
-    filter.push_back({"filter_ApproximateMemoryUsage", "nullptr"});
-  }
   djs["blocks"] = json::object({
       {"data", data},
       {"index", index},
@@ -94,21 +285,28 @@ json ToWebViewJson(const BlockBasedTable* reader, const json& dump_options) {
   djs["kv_info"]["raw"] = json::object({
       {"key_size", r->table_properties->raw_key_size},
       {"value_size", r->table_properties->raw_value_size},
-      {"k/v", (double)r->table_properties->raw_key_size /
-                  r->table_properties->raw_value_size},
+      {"k/(k+v)", (double)r->table_properties->raw_key_size /
+                  (r->table_properties->raw_key_size +
+                   r->table_properties->raw_value_size)},
       {"total_size",
        r->table_properties->raw_key_size + r->table_properties->raw_value_size},
   });
 
 
-  djs["ApproximateMemoryUsage"] = reader->ApproximateMemoryUsage();
+  djs["ApproximateMemoryUsage"] = ApproximateMemoryUsage();
+
+  auto cfd = (ColumnFamilyData*)(dump_options["__ptr_cfd__"].get<size_t>());
+  djs["BlockIndex"] = BlockIndexHtml(cfd);
 
   return djs;
 }
+}; // AccessBlockBasedTable
 
+static
 std::string ToWebViewString(const BlockBasedTable* reader,
                             const json& dump_options) {
-  auto djs = ToWebViewJson(reader, dump_options);
+  auto acc = static_cast<const AccessBlockBasedTable*>(reader);
+  auto djs = acc->ToWebViewJson(dump_options);
   // return R"EOS(<style>
   //       table {
   //           background-image:
@@ -143,3 +341,5 @@ ROCKSDB_REG_PluginManip("LZ4HC", BlockBasedTableReader_Manip);
 ROCKSDB_REG_PluginManip("Xpress", BlockBasedTableReader_Manip);
 ROCKSDB_REG_PluginManip("ZSTD", BlockBasedTableReader_Manip);
 ROCKSDB_REG_PluginManip("ZSTDNotFinal", BlockBasedTableReader_Manip);
+
+} // namespace ROCKSDB_NAMESPACE
