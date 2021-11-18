@@ -1,3 +1,0 @@
-[submodule "3rdparty/rapidyaml"]
-	path = 3rdparty/rapidyaml
-	url = https://github.com/rockeet/rapidyaml.git
