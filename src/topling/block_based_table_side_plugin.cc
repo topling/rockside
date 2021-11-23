@@ -243,6 +243,9 @@ json ToWebViewJson(const json& dump_options) const {
   const BlockBasedTable::Rep* r = get_rep();
 
   djs["global_seqno"] = (int64_t)r->global_seqno;
+  djs["level"] = r->level;
+  djs["cf_id"] = r->table_properties->column_family_id;
+  djs["cf_name"] = r->table_properties->column_family_name;
 
   json data = json::object({
       {"size", r->table_properties->data_size},
@@ -250,13 +253,23 @@ json ToWebViewJson(const json& dump_options) const {
   });
   json index = json::object({
       {"total_size", r->table_properties->index_size},
+      {"index_type", enum_stdstr(r->index_type)},
+      {"index_has_first_key", r->index_has_first_key},
+      {"index_key_includes_seq", r->index_key_includes_seq},
+      {"index_value_is_full", r->index_value_is_full},
       //{"entries", "none"},
       {"ApproximateMemoryUsage",
          r->index_reader ? json(r->index_reader->ApproximateMemoryUsage())
                          : json("nullptr") }
   });
+  if (BlockBasedTableOptions::kHashSearch == r->index_type) {
+    index["hash_index_allow_collision"] = r->hash_index_allow_collision;
+  }
   json filter = json::object({
+      {"filter_type", enum_stdstr(r->filter_type)},
       {"total_size", r->table_properties->filter_size},
+      {"whole_key_filtering", r->whole_key_filtering},
+      {"prefix_filtering", r->prefix_filtering},
       //{"entries", "none"},
       {"ApproximateMemoryUsage",
          r->filter ? json(r->filter->ApproximateMemoryUsage())
@@ -294,6 +307,11 @@ json ToWebViewJson(const json& dump_options) const {
 
 
   djs["ApproximateMemoryUsage"] = ApproximateMemoryUsage();
+  if (r->fragmented_range_dels)
+    djs["num_unfragmented_tombstones"] =
+          r->fragmented_range_dels->num_unfragmented_tombstones();
+  djs["blocks_maybe_compressed"] = r->blocks_maybe_compressed;
+  djs["blocks_definitely_zstd_compressed"] = r->blocks_definitely_zstd_compressed;
 
   auto cfd = (ColumnFamilyData*)(dump_options["__ptr_cfd__"].get<size_t>());
   djs["BlockIndex"] = BlockIndexHtml(cfd);
