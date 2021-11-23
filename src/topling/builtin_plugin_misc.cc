@@ -1813,14 +1813,16 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
       break;
     }
   }
+  /// atp is short for Aggregated-Table-Properties
+  int atp = JsonSmartInt(dump_options, "atp", 1);
   //GetAggregatedTableProperties(db, cfh, stjs, -1, html);
   // -1 is for kAggregatedTableProperties
-  if (JsonSmartBool(dump_options, "aggregated-table-properties-txt")) {
+  if (atp >= 3) {
     const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
     for (int level = -1; level < num_levels; level++) {
       GetAggregatedTableProperties(db, cfh, stjs, level, html);
     }
-  } else {
+  } else if (atp >= 2) {
     bool nozero = JsonSmartBool(dump_options, "nozero");
     GetAggregatedTablePropertiesTab(db, cfh, stjs, html, nozero);
   }
