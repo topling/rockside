@@ -18,7 +18,7 @@ Cache:
       num_shard_bits: -1
       strict_capacity_limit: false
       metadata_charge_policy: kFullChargeCacheMetadata
-  lru-cache-4G:
+  lru_cache:
     class: LRUCache
     params:
       capacity: 4G
@@ -68,7 +68,7 @@ TableFactory:
       index_block_restart_interval: 1
       metadata_block_size: 4K
       enable_index_compression: true
-      block_cache: "${lru-cache-4G}"
+      block_cache: "${lru_cache}"
       block_cache_compressed:
       persistent_cache:
       filter_policy:
