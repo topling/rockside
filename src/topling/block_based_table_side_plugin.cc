@@ -276,6 +276,10 @@ json ToWebViewJson(const json& dump_options) const {
                    : json("nullptr") }
   });
   djs["blocks"] = json::object({
+      {"flags", {
+        {"blocks_maybe_compressed", r->blocks_maybe_compressed},
+        {"blocks_definitely_zstd_compressed", r->blocks_definitely_zstd_compressed}
+      }},
       {"data", data},
       {"index", index},
       {"filter", filter},
@@ -310,8 +314,6 @@ json ToWebViewJson(const json& dump_options) const {
   if (r->fragmented_range_dels)
     djs["num_unfragmented_tombstones"] =
           r->fragmented_range_dels->num_unfragmented_tombstones();
-  djs["blocks_maybe_compressed"] = r->blocks_maybe_compressed;
-  djs["blocks_definitely_zstd_compressed"] = r->blocks_definitely_zstd_compressed;
 
   auto cfd = (ColumnFamilyData*)(dump_options["__ptr_cfd__"].get<size_t>());
   djs["BlockIndex"] = BlockIndexHtml(cfd);
