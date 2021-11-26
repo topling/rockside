@@ -1,0 +1,121 @@
+{
+    "http": {
+      "document_root": "/",
+      "listening_ports": "8081"
+    },
+    "setenv": {
+      "DictZipBlobStore_zipThreads": 8,
+      "StrSimpleEnvNameNotOverwrite": "StringValue",
+      "IntSimpleEnvNameNotOverwrite": 16384,
+      "OverwriteThisEnv": {
+          "//comment": "overwrite is default to false",
+          "overwrite": true,
+          "value": "force overwrite this env by overwrite true"
+      }
+    },
+    "Cache": {
+      "clock-cache-default": {
+        "class-needs-TBB": "ClockCache",
+        "class": "LRUCache",
+        "params": {
+          "capacity": 0,
+          "num_shard_bits": -1,
+          "strict_capacity_limit": false,
+          "metadata_charge_policy": "kFullChargeCacheMetadata"
+        }
+      },
+      "lru_cache": {
+        "class": "LRUCache",
+        "params": {
+          "capacity": "4G",
+          "num_shard_bits": -1,
+          "strict_capacity_limit": false,
+          "high_pri_pool_ratio": 0.5,
+          "use_adaptive_mutex": false,
+          "metadata_charge_policy": "kFullChargeCacheMetadata"
+        }
+      }
+    },
+    "Statistics": {
+      "stat": "default"
+    },
+    "TableFactory": {
+      "bb": {
+        "class": "BlockBasedTable",
+        "params": {
+          "checksum": "kCRC32c",
+          "block_size": "4K",
+          "block_restart_interval": 16,
+          "index_block_restart_interval": 1,
+          "metadata_block_size": "4K",
+          "enable_index_compression": true,
+          "block_cache": "${lru_cache}",
+          "block_cache_compressed": null,
+          "persistent_cache": null,
+          "filter_policy": null
+        }
+      },
+      "dispatch": {
+        "class": "DispatcherTable",
+        "params": {
+          "default": "bb",
+          "readers": {
+            "BlockBasedTable": "bb"
+          },
+          "level_writers": ["bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb"]
+        }
+      }
+    },
+    "CFOptions": {
+      "default": {
+        "max_write_buffer_number": 4,
+        "write_buffer_size": "128M",
+        "target_file_size_base": "16M",
+        "target_file_size_multiplier": 2,
+        "table_factory": "dispatch",
+        "compression_per_level": [
+          "kNoCompression",
+          "kNoCompression",
+          "kNoCompression",
+          "kZlibCompression",
+          "kZlibCompression",
+          "kZlibCompression",
+          "kZlibCompression",
+          "kZlibCompression"
+        ],
+        "level0_slowdown_writes_trigger": 20,
+        "level0_stop_writes_trigger": 36,
+        "//level0_file_num_compaction_trigger": -1,
+        "ttl": 0
+      }
+    },
+    "DBOptions": {
+      "dbo": {
+        "//bytes_per_sync": "2M",
+        "create_if_missing": true,
+        "create_missing_column_families": true,
+        "db_paths" : "/dev/shm/db_mcf",
+        "max_background_compactions": 20,
+        "max_subcompactions": 1,
+        "max_level1_subcompactions": 7,
+        "inplace_update_support": false,
+        "WAL_size_limit_MB": 0,
+        "statistics": "$stat",
+        "allow_mmap_reads": true
+      }
+    },
+    "databases": {
+      "db_mcf": {
+        "method": "DB::Open",
+        "params": {
+          "db_options": "$dbo",
+          "column_families": {
+            "default": "$default"
+          },
+          "//comments": "//path is optional, if not defined, use name as path",
+          "path": "/nvme1/leipeng/db_local_compact"
+        }
+      }
+    },
+    "open": "db_mcf"
+}
