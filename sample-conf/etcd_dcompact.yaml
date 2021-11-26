@@ -49,7 +49,7 @@ Statistics:
       - rocksdb.read.block.get.micros
       - rocksdb.write.raw.block.micros
       # comment end of array
-      stats_level: kExceptDetailedTimers
+      stats_level: kAll
 MemTableRepFactory:
   cspp:
     class: cspp

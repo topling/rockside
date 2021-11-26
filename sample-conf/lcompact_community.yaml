@@ -1,5 +1,6 @@
 http:
-  document_root: "/"
+  # normally parent path of db path
+  document_root: "/nvme-shared/leipeng"
   listening_ports: '8081'
 setenv:
   DictZipBlobStore_zipThreads: 8
@@ -28,7 +29,7 @@ Cache:
       use_adaptive_mutex: false
       metadata_charge_policy: kFullChargeCacheMetadata
 Statistics:
-  stat: default
+  stat-strings: default
 TableFactory:
   bb:
     class: BlockBasedTable
@@ -84,13 +85,13 @@ DBOptions:
     #bytes_per_sync: 2M
     create_if_missing: true
     create_missing_column_families: true
-    db_paths: "/dev/shm/db_mcf"
+    #db_paths: "/dev/shm/db_mcf"
     max_background_compactions: 20
     max_subcompactions: 1
     max_level1_subcompactions: 7
     inplace_update_support: false
     WAL_size_limit_MB: 0
-    statistics: "$stat"
+    statistics: "${stat-strings}"
     allow_mmap_reads: true
 databases:
   db_mcf:
@@ -100,5 +101,5 @@ databases:
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path
-      path: "/nvme1/leipeng/db_local_compact"
+      path: "/nvme-shared/leipeng/db_local_compact"
 open: db_mcf

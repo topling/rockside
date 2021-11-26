@@ -1,5 +1,6 @@
 http:
-  document_root: "/"
+  # normally parent path of db path
+  document_root: "/nvme-shared/leipeng/"
   listening_ports: '8081'
 setenv:
   DictZipBlobStore_zipThreads: 8
@@ -28,7 +29,38 @@ Cache:
       use_adaptive_mutex: false
       metadata_charge_policy: kFullChargeCacheMetadata
 Statistics:
-  stat: default
+    class: default
+    params:
+      discard_tickers:
+      #comment: 可以仅指定前缀，必须是以 . 为边界的前缀，例如下面两个必须分别指定
+      - rocksdb.block.cache
+      - rocksdb.block.cachecompressed
+      # comment: 上面两个也可以用下面这一个概括
+      - rocksdb.block
+      # 精确指定
+      - rocksdb.memtable.payload.bytes.at.flush
+      - rocksdb.memtable.garbage.bytes.at.flush
+      # pika 未使用 txn
+      - rocksdb.txn
+      - rocksdb.blobdb
+      - rocksdb.row.cache
+      - rocksdb.number.block
+      - rocksdb.bloom.filter
+      - rocksdb.persistent
+      - rocksdb.sim.block.cache
+      discard_histograms:
+      # comment: ....
+      - rocksdb.blobdb
+      - rocksdb.bytes.compressed
+      - rocksdb.bytes.decompressed
+      - rocksdb.num.index.and.filter.blocks.read.per.level
+      - rocksdb.num.data.blocks.read.per.level
+      - rocksdb.compression.times.nanos
+      - rocksdb.decompression.times.nanos
+      - rocksdb.read.block.get.micros
+      - rocksdb.write.raw.block.micros
+      # comment end of array
+      stats_level: kAll
 TableFactory:
   fast:
     class: ToplingFastTable
@@ -115,7 +147,7 @@ DBOptions:
     #bytes_per_sync: 2M
     create_if_missing: true
     create_missing_column_families: true
-    db_paths: "/dev/shm/db_mcf"
+    #db_paths: "/dev/shm/db_mcf"
     max_background_compactions: 20
     max_subcompactions: 1
     max_level1_subcompactions: 7
@@ -131,5 +163,5 @@ databases:
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path
-      path: "/nvme1/leipeng/db_local_compact"
+      path: "/nvme-shared/leipeng/db_local_compact"
 open: db_mcf
