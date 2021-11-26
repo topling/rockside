@@ -325,7 +325,11 @@ static void JS_setenv(const json& main_js) {
 
 struct SideRepoImpl : SidePluginRepo::Impl {
   void ImportPermissions(const json& main_js) {
-    const json& js = main_js["permissions"];
+    auto iter = main_js.find("permissions");
+    if (main_js.end() == iter) {
+      return;
+    }
+    const json& js = iter.value();
     ROCKSDB_JSON_OPT_PROP(js, web_compact);
   }
 };
