@@ -184,6 +184,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, allow_fallocate);
     ROCKSDB_JSON_OPT_PROP(js, is_fd_close_on_exec);
     ROCKSDB_JSON_OPT_PROP(js, skip_log_error_on_recovery);
+    stats_dump_period_sec = 0; // change default to 0
+    stats_persist_period_sec = 0; // change default to 0
+    persist_stats_to_disk = false; // change default to false
     ROCKSDB_JSON_OPT_PROP(js, stats_dump_period_sec);
     ROCKSDB_JSON_OPT_PROP(js, stats_persist_period_sec);
     ROCKSDB_JSON_OPT_PROP(js, persist_stats_to_disk);
