@@ -139,7 +139,7 @@
         "inplace_update_support": false,
         "WAL_size_limit_MB": 0,
         "statistics": "${stat-strings}",
-        "allow_mmap_reads": true
+        "allow_mmap_reads": false
       }
     },
     "databases": {
