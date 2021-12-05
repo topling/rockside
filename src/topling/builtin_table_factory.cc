@@ -82,7 +82,9 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_OPT_PROP(js, index_block_restart_interval);
     ROCKSDB_JSON_OPT_SIZE(js, metadata_block_size);
     ROCKSDB_JSON_OPT_PROP(js, partition_filters);
+    ROCKSDB_JSON_OPT_PROP(js, optimize_filters_for_memory);
     ROCKSDB_JSON_OPT_PROP(js, use_delta_encoding);
+    ROCKSDB_JSON_OPT_PROP(js, use_raw_size_as_estimated_file_size);
     ROCKSDB_JSON_OPT_PROP(js, read_amp_bytes_per_bit);
     ROCKSDB_JSON_OPT_PROP(js, whole_key_filtering);
     ROCKSDB_JSON_OPT_PROP(js, verify_compression);
@@ -123,7 +125,9 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_SET_PROP(js, index_block_restart_interval);
     ROCKSDB_JSON_SET_SIZE(js, metadata_block_size);
     ROCKSDB_JSON_SET_PROP(js, partition_filters);
+    ROCKSDB_JSON_SET_PROP(js, optimize_filters_for_memory);
     ROCKSDB_JSON_SET_PROP(js, use_delta_encoding);
+    ROCKSDB_JSON_SET_PROP(js, use_raw_size_as_estimated_file_size);
     ROCKSDB_JSON_SET_PROP(js, read_amp_bytes_per_bit);
     ROCKSDB_JSON_SET_PROP(js, whole_key_filtering);
     ROCKSDB_JSON_SET_PROP(js, verify_compression);
