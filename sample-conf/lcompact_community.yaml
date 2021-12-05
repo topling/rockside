@@ -39,6 +39,7 @@ TableFactory:
       block_restart_interval: 16
       index_block_restart_interval: 1
       metadata_block_size: 4K
+      use_raw_size_as_estimated_file_size: true
       enable_index_compression: true
       block_cache: "${lru_cache}"
       block_cache_compressed:
@@ -70,7 +71,7 @@ CFOptions:
     compression_per_level:
     - kNoCompression
     - kNoCompression
-    - kNoCompression
+    - kZlibCompression
     - kZlibCompression
     - kZlibCompression
     - kZlibCompression
@@ -86,7 +87,7 @@ DBOptions:
     create_if_missing: true
     create_missing_column_families: true
     #db_paths: "/dev/shm/db_mcf"
-    max_background_compactions: 20
+    max_background_compactions: 40
     max_subcompactions: 1
     max_level1_subcompactions: 7
     inplace_update_support: false
