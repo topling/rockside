@@ -1000,7 +1000,6 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
     const string str_engine {"engine"};
     for (auto &c:res) { if (c == '.') c = ':'; }
     replace_substr(res, str_rocksdb, str_engine);
-
     return res;
   };
 
@@ -2007,12 +2006,11 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
   };
   for(auto const key:map_properties) { add_map_properties(key); }
 
-  auto add_prefix_properties=[&db,&cfh,&oss,&replace_char](const string *prefix) {
+  auto add_prefix_properties=[&db,cfh,&oss,&replace_char](const string *prefix) {
     const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
     for (int level = 0; level < num_levels; level++) {
       string value;
-      string name = *prefix;
-      name.append(std::to_string(level));
+      string name = *prefix + std::to_string(level);
       if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
         replace_char(name);
         oss|name|" "|value|"\n";
@@ -2021,11 +2019,10 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
   };
   for (auto const key:prefix_properties) { add_prefix_properties(key); }
 
-  auto add_prefix_map_properties=[&db,&cfh,&oss,&replace_char, add_map_properties](const string *prefix) {
+  auto add_prefix_map_properties=[&db,cfh,&oss,add_map_properties](const string *prefix) {
     const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
     for (int level = 0; level < num_levels; level++) {
-      string name = *prefix;
-      name.append(std::to_string(level));
+      string name = *prefix + std::to_string(level);
       add_map_properties(&name);
     }
   };
