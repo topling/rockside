@@ -72,10 +72,15 @@ void mg_print_cur_time(mg_connection* conn, const SidePluginRepo* repo) {
   std::string str;
   str.reserve(4096);
   std::string tm_str = cur_time_stat();
+  const char* space = (const char*)memchr(tm_str.data(), ' ', tm_str.size());
   const char* comma = (const char*)memchr(tm_str.data(), ',', tm_str.size());
   str|"<p id='time_stat_line'>";
+  str|"<a href='/'>";
+  str.append(tm_str.c_str(), space);
+  str|"</a>";
+  str|" "; // space
   str|"<a href='javascript:SetParam(`refresh`,`3`)'>";
-  str.append(tm_str.data(), comma - 1 - tm_str.data());
+  str.append(space + 1, comma);
   str|"</a>";
   str|" , ";
   str|"<a href='javascript:SetParam(`refresh`,`0`)'>Up</a>: ";
