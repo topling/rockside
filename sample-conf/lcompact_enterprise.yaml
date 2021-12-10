@@ -1,9 +1,9 @@
 http:
   # normally parent path of db path
-  document_root: "/nvme-shared/leipeng/"
+  document_root: /dev/shm/strings
   listening_ports: '8081'
 setenv:
-  DictZipBlobStore_zipThreads: 8
+  DictZipBlobStore_zipThreads: 32
   StrSimpleEnvNameNotOverwrite: StringValue
   IntSimpleEnvNameNotOverwrite: 16384
   OverwriteThisEnv:
@@ -29,6 +29,7 @@ Cache:
       use_adaptive_mutex: false
       metadata_charge_policy: kFullChargeCacheMetadata
 Statistics:
+  stat-strings:
     class: default
     params:
       discard_tickers:
@@ -61,6 +62,17 @@ Statistics:
       - rocksdb.write.raw.block.micros
       # comment end of array
       stats_level: kAll
+MemTableRepFactory:
+  cspp:
+    class: cspp
+    params:
+      mem_cap: 8G
+      use_vm: false
+      token_use_idle: true
+  skiplist:
+    class: SkipList
+    params:
+      lookahead: 0
 TableFactory:
   fast:
     class: ToplingFastTable
@@ -107,7 +119,7 @@ TableFactory:
   dispatch:
     class: DispatcherTable
     params:
-      default: bb
+      default: fast
       readers:
         ToplingFastTable: fast
         ToplingZipTable: zip
@@ -115,7 +127,7 @@ TableFactory:
       level_writers:
       - fast
       - fast
-      - bb
+      - fast
       - zip
       - zip
       - zip
@@ -125,19 +137,13 @@ TableFactory:
 CFOptions:
   default:
     max_write_buffer_number: 4
+    memtable_factory: "${cspp}"
     write_buffer_size: 128M
     target_file_size_base: 16M
     target_file_size_multiplier: 2
     table_factory: dispatch
-    compression_per_level:
-    - kNoCompression
-    - kNoCompression
-    - kNoCompression
-    - kZlibCompression
-    - kZlibCompression
-    - kZlibCompression
-    - kZlibCompression
-    - kZlibCompression
+    compaction_options_level:
+      L1_score_boost: 10
     level0_slowdown_writes_trigger: 20
     level0_stop_writes_trigger: 36
     #level0_file_num_compaction_trigger: -1
@@ -148,20 +154,20 @@ DBOptions:
     create_if_missing: true
     create_missing_column_families: true
     #db_paths: "/dev/shm/db_mcf"
-    max_background_compactions: 20
+    max_background_compactions: 40
     max_subcompactions: 1
     max_level1_subcompactions: 7
     inplace_update_support: false
     WAL_size_limit_MB: 0
-    statistics: "$stat"
+    statistics: "${stat-strings}"
     allow_mmap_reads: true
 databases:
-  db_mcf:
+  strings:
     method: DB::Open
     params:
       db_options: "$dbo"
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path
-      path: "/nvme-shared/leipeng/db_local_compact"
-open: db_mcf
+      path: /dev/shm/strings
+open: strings

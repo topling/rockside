@@ -1,6 +1,6 @@
 {
     "http": {
-      "document_root": "/nvme-shared/leipeng",
+      "document_root": "/dev/shm",
       "listening_ports": "8081"
     },
     "setenv": {
@@ -77,6 +77,15 @@
         }
       }
     },
+    "FilterPolicy": {
+      "bloom_filter": {
+        "class": "BloomFilter",
+        "params": {
+          "bits_per_key": 10,
+          "use_block_based_builder": false
+        }
+      }
+    },
     "TableFactory": {
       "bb": {
         "class": "BlockBasedTable",
@@ -91,7 +100,7 @@
           "block_cache": "${lru_cache}",
           "block_cache_compressed": null,
           "persistent_cache": null,
-          "filter_policy": null
+          "filter_policy": "${bloom_filter}"
         }
       },
       "dispatch": {
@@ -115,12 +124,12 @@
         "compression_per_level": [
           "kNoCompression",
           "kNoCompression",
-          "kZlibCompression",
-          "kZlibCompression",
-          "kZlibCompression",
-          "kZlibCompression",
-          "kZlibCompression",
-          "kZlibCompression"
+          "kZSTD",
+          "kZSTD",
+          "kZSTD",
+          "kZSTD",
+          "kZSTD",
+          "kZSTD"
         ],
         "level0_slowdown_writes_trigger": 20,
         "level0_stop_writes_trigger": 36,
@@ -133,7 +142,7 @@
         "//bytes_per_sync": "2M",
         "create_if_missing": true,
         "create_missing_column_families": true,
-        "//db_paths" : "/dev/shm/db_mcf",
+        "//db_paths" : "/dev/shm/strings",
         "max_background_compactions": 40,
         "max_subcompactions": 1,
         "max_level1_subcompactions": 7,
@@ -144,7 +153,7 @@
       }
     },
     "databases": {
-      "db_mcf": {
+      "strings": {
         "method": "DB::Open",
         "params": {
           "db_options": "$dbo",
@@ -152,9 +161,9 @@
             "default": "$default"
           },
           "//comments": "//path is optional, if not defined, use name as path",
-          "path": "/nvme-shared/leipeng/db_local_compact"
+          "path": "/dev/shm/strings"
         }
       }
     },
-    "open": "db_mcf"
+    "open": "strings"
 }

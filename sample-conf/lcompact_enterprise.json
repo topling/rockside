@@ -1,10 +1,10 @@
 {
     "http": {
-      "document_root": "/nvme-shared/leipeng",
+      "document_root": "/dev/shm",
       "listening_ports": "8081"
     },
     "setenv": {
-      "DictZipBlobStore_zipThreads": 8,
+      "DictZipBlobStore_zipThreads": 32,
       "StrSimpleEnvNameNotOverwrite": "StringValue",
       "IntSimpleEnvNameNotOverwrite": 16384,
       "OverwriteThisEnv": {
@@ -77,6 +77,22 @@
         }
       }
     },
+    "MemTableRepFactory": {
+      "cspp": {
+        "class": "cspp",
+        "params": {
+          "mem_cap": "8G",
+          "use_vm": false,
+          "token_use_idle": true
+        }
+      },
+      "skiplist": {
+        "class": "SkipList",
+        "params": {
+          "lookahead": 0
+        }
+      }
+    },
     "TableFactory": {
       "fast": {
         "class": "ToplingFastTable",
@@ -136,7 +152,7 @@
             "BlockBasedTable": "bb"
           },
           "level_writers": [
-            "fast", "fast", "bb",
+            "fast", "fast", "fast",
             "zip", "zip", "zip", "zip", "zip", "zip"
           ]
         }
@@ -145,20 +161,12 @@
     "CFOptions": {
       "default": {
         "max_write_buffer_number": 4,
+        "memtable_factory": "${cspp}",
         "write_buffer_size": "128M",
         "target_file_size_base": "16M",
         "target_file_size_multiplier": 2,
         "table_factory": "dispatch",
-        "compression_per_level": [
-          "kNoCompression",
-          "kNoCompression",
-          "kNoCompression",
-          "kZlibCompression",
-          "kZlibCompression",
-          "kZlibCompression",
-          "kZlibCompression",
-          "kZlibCompression"
-        ],
+        "compaction_options_level": { "L1_score_boost": 10 },
         "level0_slowdown_writes_trigger": 20,
         "level0_stop_writes_trigger": 36,
         "//level0_file_num_compaction_trigger": -1,
@@ -170,7 +178,7 @@
         "//bytes_per_sync": "2M",
         "create_if_missing": true,
         "create_missing_column_families": true,
-        "//db_paths" : "/dev/shm/db_mcf",
+        "//db_paths" : "/dev/shm/strings",
         "max_background_compactions": 20,
         "max_subcompactions": 1,
         "max_level1_subcompactions": 7,
@@ -181,7 +189,7 @@
       }
     },
     "databases": {
-      "db_mcf": {
+      "strings": {
         "method": "DB::Open",
         "params": {
           "db_options": "$dbo",
@@ -189,9 +197,9 @@
             "default": "$default"
           },
           "//comments": "//path is optional, if not defined, use name as path",
-          "path": "/nvme-shared/leipeng/db_local_compact"
+          "path": "/dev/shm/strings"
         }
       }
     },
-    "open": "db_mcf"
+    "open": "strings"
 }

@@ -1,6 +1,6 @@
 http:
   # normally parent path of db path
-  document_root: "/nvme-shared/leipeng"
+  document_root: /dev/shm
   listening_ports: '8081'
 setenv:
   DictZipBlobStore_zipThreads: 8
@@ -22,7 +22,7 @@ Cache:
   lru_cache:
     class: LRUCache
     params:
-      capacity: 4G
+      capacity: 256G
       num_shard_bits: -1
       strict_capacity_limit: false
       high_pri_pool_ratio: 0.5
@@ -30,6 +30,12 @@ Cache:
       metadata_charge_policy: kFullChargeCacheMetadata
 Statistics:
   stat-strings: default
+FilterPolicy:
+  bloom_filter:
+    class: BloomFilter
+    params:
+      bits_per_key: 10
+      use_block_based_builder: false
 TableFactory:
   bb:
     class: BlockBasedTable
@@ -44,7 +50,7 @@ TableFactory:
       block_cache: "${lru_cache}"
       block_cache_compressed:
       persistent_cache:
-      filter_policy:
+      #filter_policy: "${bloom_filter}"
   dispatch:
     class: DispatcherTable
     params:
@@ -71,12 +77,12 @@ CFOptions:
     compression_per_level:
     - kNoCompression
     - kNoCompression
-    - kZlibCompression
-    - kZlibCompression
-    - kZlibCompression
-    - kZlibCompression
-    - kZlibCompression
-    - kZlibCompression
+    - kZSTD
+    - kZSTD
+    - kZSTD
+    - kZSTD
+    - kZSTD
+    - kZSTD
     level0_slowdown_writes_trigger: 20
     level0_stop_writes_trigger: 36
     #level0_file_num_compaction_trigger: -1
@@ -86,7 +92,7 @@ DBOptions:
     #bytes_per_sync: 2M
     create_if_missing: true
     create_missing_column_families: true
-    #db_paths: "/dev/shm/db_mcf"
+    #db_paths: "/dev/shm/strings"
     max_background_compactions: 40
     max_subcompactions: 1
     max_level1_subcompactions: 7
@@ -95,12 +101,12 @@ DBOptions:
     statistics: "${stat-strings}"
     allow_mmap_reads: false
 databases:
-  db_mcf:
+  strings:
     method: DB::Open
     params:
       db_options: "$dbo"
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path
-      path: "/nvme-shared/leipeng/db_local_compact"
-open: db_mcf
+      path: /dev/shm/strings
+open: strings
