@@ -1,7 +1,7 @@
 http:
   # normally parent path of db path
   document_root: /dev/shm/strings
-  listening_ports: '8081'
+  listening_ports: '2011'
 setenv:
   DictZipBlobStore_zipThreads: 32
   StrSimpleEnvNameNotOverwrite: StringValue
@@ -66,7 +66,7 @@ MemTableRepFactory:
   cspp:
     class: cspp
     params:
-      mem_cap: 8G
+      mem_cap: 1G
       use_vm: false
       token_use_idle: true
   skiplist:
@@ -138,7 +138,7 @@ CFOptions:
   default:
     max_write_buffer_number: 4
     memtable_factory: "${cspp}"
-    write_buffer_size: 128M
+    write_buffer_size: 256M
     target_file_size_base: 16M
     target_file_size_multiplier: 2
     table_factory: dispatch
