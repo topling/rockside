@@ -1,0 +1,167 @@
+{
+    "http": {
+      "document_root": "/dev/shm",
+      "listening_ports": "2011"
+    },
+    "setenv": {
+      "DictZipBlobStore_zipThreads": 32,
+      "StrSimpleEnvNameNotOverwrite": "StringValue",
+      "IntSimpleEnvNameNotOverwrite": 16384,
+      "OverwriteThisEnv": {
+          "//comment": "overwrite is default to false",
+          "overwrite": true,
+          "value": "force overwrite this env by overwrite true"
+      }
+    },
+    "Cache": {
+      "clock-cache-default": {
+        "class-needs-TBB": "ClockCache",
+        "class": "LRUCache",
+        "params": {
+          "capacity": 0,
+          "num_shard_bits": -1,
+          "strict_capacity_limit": false,
+          "metadata_charge_policy": "kFullChargeCacheMetadata"
+        }
+      },
+      "lru_cache": {
+        "class": "LRUCache",
+        "params": {
+          "capacity": "4G",
+          "num_shard_bits": -1,
+          "strict_capacity_limit": false,
+          "high_pri_pool_ratio": 0.5,
+          "use_adaptive_mutex": false,
+          "metadata_charge_policy": "kFullChargeCacheMetadata"
+        }
+      }
+    },
+    "Statistics": {
+      "stat-strings" : {
+        "class": "default",
+        "params": {
+          "discard_tickers": [
+            "# comment",
+            "// comment: 可以仅指定前缀，必须是以 . 为边界的前缀，例如下面两个必须分别指定",
+            "rocksdb.block.cache",
+            "rocksdb.block.cachecompressed",
+            "# comment: 上面两个也可以用下面这一个概括",
+            "rocksdb.block",
+            "# 精确指定",
+            "rocksdb.memtable.payload.bytes.at.flush",
+            "rocksdb.memtable.garbage.bytes.at.flush",
+            "# pika 未使用 txn",
+            "rocksdb.txn",
+            "rocksdb.blobdb",
+            "rocksdb.row.cache",
+            "rocksdb.number.block",
+            "rocksdb.bloom.filter",
+            "rocksdb.persistent",
+            "rocksdb.sim.block.cache"
+          ],
+          "discard_histograms": [
+            "# comment: ....",
+            "rocksdb.blobdb",
+            "rocksdb.bytes.compressed",
+            "rocksdb.bytes.decompressed",
+            "rocksdb.num.index.and.filter.blocks.read.per.level",
+            "rocksdb.num.data.blocks.read.per.level",
+            "rocksdb.compression.times.nanos",
+            "rocksdb.decompression.times.nanos",
+            "rocksdb.read.block.get.micros",
+            "rocksdb.write.raw.block.micros",
+            "# comment end of array"
+          ],
+          "stats_level": "kAll",
+          "//stats_level": "kExceptDetailedTimers"
+        }
+      }
+    },
+    "MemTableRepFactory": {
+      "cspp": {
+        "class": "cspp",
+        "params": {
+          "mem_cap": "1G",
+          "use_vm": false,
+          "token_use_idle": true
+        }
+      },
+      "skiplist": {
+        "class": "SkipList",
+        "params": {
+          "lookahead": 0
+        }
+      }
+    },
+    "TableFactory": {
+      "bb": {
+        "class": "BlockBasedTable",
+        "params": {
+          "checksum": "kCRC32c",
+          "block_size": "4K",
+          "block_restart_interval": 16,
+          "index_block_restart_interval": 1,
+          "metadata_block_size": "4K",
+          "enable_index_compression": true,
+          "block_cache": "${lru_cache}",
+          "block_cache_compressed": null,
+          "persistent_cache": null,
+          "filter_policy": null
+        }
+      },
+      "dispatch": {
+        "class": "DispatcherTable",
+        "params": {
+          "default": "bb",
+          "readers": {
+            "BlockBasedTable": "bb"
+          },
+          "level_writers": ["bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb"]
+        }
+      }
+    },
+    "CFOptions": {
+      "default": {
+        "max_write_buffer_number": 4,
+        "memtable_factory": "${cspp}",
+        "write_buffer_size": "256M",
+        "target_file_size_base": "16M",
+        "target_file_size_multiplier": 2,
+        "table_factory": "dispatch",
+        "compaction_options_level": { "L1_score_boost": 10 },
+        "level0_slowdown_writes_trigger": 20,
+        "level0_stop_writes_trigger": 36,
+        "//level0_file_num_compaction_trigger": -1,
+        "ttl": 0
+      }
+    },
+    "DBOptions": {
+      "dbo": {
+        "//bytes_per_sync": "2M",
+        "create_if_missing": true,
+        "create_missing_column_families": true,
+        "//db_paths" : "/dev/shm/strings",
+        "max_background_compactions": 20,
+        "max_subcompactions": 1,
+        "max_level1_subcompactions": 7,
+        "inplace_update_support": false,
+        "WAL_size_limit_MB": 0,
+        "statistics": "${stat-strings}",
+        "allow_mmap_reads": true
+      }
+    },
+    "databases": {
+      "strings": {
+        "method": "DB::Open",
+        "params": {
+          "db_options": "$dbo",
+          "column_families": {
+            "default": "$default"
+          },
+          "//comments": "//path is optional, if not defined, use name as path",
+          "path": "/dev/shm/strings"
+        }
+      }
+    },
+    "open": "strings"
+}
