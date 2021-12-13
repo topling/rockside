@@ -81,7 +81,7 @@
       "cspp": {
         "class": "cspp",
         "params": {
-          "mem_cap": "1G",
+          "mem_cap": "2G",
           "use_vm": false,
           "token_use_idle": true
         }
