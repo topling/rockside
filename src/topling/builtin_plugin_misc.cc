@@ -142,6 +142,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, create_missing_column_families);
     ROCKSDB_JSON_OPT_PROP(js, error_if_exists);
     ROCKSDB_JSON_OPT_PROP(js, paranoid_checks);
+    ROCKSDB_JSON_OPT_PROP(js, flush_verify_memtable_count);
     ROCKSDB_JSON_OPT_PROP(js, track_and_verify_wals_in_manifest);
     ROCKSDB_JSON_OPT_FACT(js, env);
     ROCKSDB_JSON_OPT_FACT(js, rate_limiter);
@@ -192,6 +193,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, persist_stats_to_disk);
     ROCKSDB_JSON_OPT_SIZE(js, stats_history_buffer_size);
     ROCKSDB_JSON_OPT_PROP(js, advise_random_on_open);
+    ROCKSDB_JSON_OPT_PROP(js, experimental_mempurge_threshold);
     ROCKSDB_JSON_OPT_SIZE(js, db_write_buffer_size);
     ROCKSDB_JSON_OPT_FACT(js, write_buffer_manager);
     ROCKSDB_JSON_OPT_ENUM(js, access_hint_on_compaction_start);
@@ -242,10 +244,13 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, allow_data_in_errors);
     ROCKSDB_JSON_OPT_PROP(js, db_host_id);
     //ROCKSDB_JSON_OPT_ESET(js, checksum_handoff_file_types); // EnumSet
+    //ROCKSDB_JSON_OPT_FACT(js, compaction_service);
+    ROCKSDB_JSON_OPT_ENUM(js, lowest_used_cache_tier);
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
     ROCKSDB_JSON_SET_PROP(js, paranoid_checks);
+    ROCKSDB_JSON_SET_PROP(js, flush_verify_memtable_count);
     ROCKSDB_JSON_SET_PROP(js, track_and_verify_wals_in_manifest);
     ROCKSDB_JSON_SET_FACT(js, env);
     ROCKSDB_JSON_SET_FACT(js, rate_limiter);
@@ -293,6 +298,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, advise_random_on_open);
     ROCKSDB_JSON_SET_SIZE(js, db_write_buffer_size);
     ROCKSDB_JSON_SET_FACT(js, write_buffer_manager);
+    ROCKSDB_JSON_SET_PROP(js, experimental_mempurge_threshold);
     ROCKSDB_JSON_SET_ENUM(js, access_hint_on_compaction_start);
     ROCKSDB_JSON_SET_PROP(js, new_table_reader_for_compaction_inputs);
     ROCKSDB_JSON_SET_SIZE(js, compaction_readahead_size);
@@ -341,6 +347,8 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, allow_data_in_errors);
     ROCKSDB_JSON_SET_PROP(js, db_host_id);
     //ROCKSDB_JSON_SET_ESET(js, checksum_handoff_file_types); // EnumSet
+    //ROCKSDB_JSON_SET_FACT(js, compaction_service);
+    ROCKSDB_JSON_SET_ENUM(js, lowest_used_cache_tier);
   }
 };
 ROCKSDB_REG_JSON_REPO_CONS("DBOptions", DBOptions_Json, DBOptions);
@@ -388,10 +396,12 @@ struct CompactionOptionsFIFO_Json : CompactionOptionsFIFO {
   explicit CompactionOptionsFIFO_Json(const json& js) {
     ROCKSDB_JSON_OPT_PROP(js, max_table_files_size);
     ROCKSDB_JSON_OPT_PROP(js, allow_compaction);
+    ROCKSDB_JSON_OPT_PROP(js, age_for_warm);
   }
   void SaveToJson(json& js) const {
     ROCKSDB_JSON_SET_PROP(js, max_table_files_size);
     ROCKSDB_JSON_SET_PROP(js, allow_compaction);
+    ROCKSDB_JSON_SET_PROP(js, age_for_warm);
   }
 };
 CompactionOptionsFIFO_Json NestForBase(const CompactionOptionsFIFO&);
@@ -427,6 +437,7 @@ struct CompressionOptions_Json : CompressionOptions {
     ROCKSDB_JSON_OPT_PROP(js, zstd_max_train_bytes);
     ROCKSDB_JSON_OPT_PROP(js, parallel_threads);
     ROCKSDB_JSON_OPT_PROP(js, enabled);
+    ROCKSDB_JSON_OPT_SIZE(js, max_dict_buffer_bytes);
   }
   void SaveToJson(json& js) const {
     ROCKSDB_JSON_SET_PROP(js, window_bits);
@@ -436,6 +447,7 @@ struct CompressionOptions_Json : CompressionOptions {
     ROCKSDB_JSON_SET_PROP(js, zstd_max_train_bytes);
     ROCKSDB_JSON_SET_PROP(js, parallel_threads);
     ROCKSDB_JSON_SET_PROP(js, enabled);
+    ROCKSDB_JSON_SET_SIZE(js, max_dict_buffer_bytes);
   }
 };
 CompressionOptions_Json NestForBase(const CompressionOptions&);
@@ -516,12 +528,21 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     }
     ROCKSDB_JSON_OPT_PROP(js, max_successive_merges);
     ROCKSDB_JSON_OPT_PROP(js, optimize_filters_for_hits);
+    ROCKSDB_JSON_OPT_PROP(js, check_flush_compaction_key_order);
     ROCKSDB_JSON_OPT_PROP(js, paranoid_file_checks);
     ROCKSDB_JSON_OPT_PROP(js, force_consistency_checks);
     ROCKSDB_JSON_OPT_PROP(js, report_bg_io_stats);
     ROCKSDB_JSON_OPT_PROP(js, ttl);
     ROCKSDB_JSON_OPT_PROP(js, periodic_compaction_seconds);
     ROCKSDB_JSON_OPT_PROP(js, sample_for_compression);
+    ROCKSDB_JSON_OPT_ENUM(js, bottommost_temperature);
+    ROCKSDB_JSON_OPT_PROP(js, enable_blob_files);
+    ROCKSDB_JSON_OPT_SIZE(js, min_blob_size);
+    ROCKSDB_JSON_OPT_SIZE(js, blob_file_size);
+    ROCKSDB_JSON_OPT_ENUM(js, blob_compression_type);
+    ROCKSDB_JSON_OPT_PROP(js, enable_blob_garbage_collection);
+    ROCKSDB_JSON_OPT_PROP(js, blob_garbage_collection_age_cutoff);
+    ROCKSDB_JSON_OPT_PROP(js, blob_garbage_collection_force_threshold);
     ROCKSDB_JSON_OPT_PROP(js, max_mem_compaction_level);
     ROCKSDB_JSON_OPT_PROP(js, soft_rate_limit);
     ROCKSDB_JSON_OPT_PROP(js, hard_rate_limit);
@@ -620,12 +641,21 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     }
     ROCKSDB_JSON_SET_PROP(js, max_successive_merges);
     ROCKSDB_JSON_SET_PROP(js, optimize_filters_for_hits);
+    ROCKSDB_JSON_SET_PROP(js, check_flush_compaction_key_order);
     ROCKSDB_JSON_SET_PROP(js, paranoid_file_checks);
     ROCKSDB_JSON_SET_PROP(js, force_consistency_checks);
     ROCKSDB_JSON_SET_PROP(js, report_bg_io_stats);
     ROCKSDB_JSON_SET_PROP(js, ttl);
     ROCKSDB_JSON_SET_PROP(js, periodic_compaction_seconds);
     ROCKSDB_JSON_SET_PROP(js, sample_for_compression);
+    ROCKSDB_JSON_SET_ENUM(js, bottommost_temperature);
+    ROCKSDB_JSON_SET_PROP(js, enable_blob_files);
+    ROCKSDB_JSON_SET_SIZE(js, min_blob_size);
+    ROCKSDB_JSON_SET_SIZE(js, blob_file_size);
+    ROCKSDB_JSON_SET_ENUM(js, blob_compression_type);
+    ROCKSDB_JSON_SET_PROP(js, enable_blob_garbage_collection);
+    ROCKSDB_JSON_SET_PROP(js, blob_garbage_collection_age_cutoff);
+    ROCKSDB_JSON_SET_PROP(js, blob_garbage_collection_force_threshold);
     ROCKSDB_JSON_SET_PROP(js, max_mem_compaction_level);
     ROCKSDB_JSON_SET_PROP(js, soft_rate_limit);
     ROCKSDB_JSON_SET_PROP(js, hard_rate_limit);
