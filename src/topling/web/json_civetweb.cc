@@ -294,7 +294,7 @@ NewRepoHandler(const char* clazz, SidePluginRepo* repo,
   m_server->addHandler("/" #clazz, *p);  \
   m_server->addHandler("/" #varname, *p);  \
   m_clean.push_back([p](){ delete p; }); \
-} while (0)                             \
+} while (0)
 
 class JsonCivetServer::Impl {
 public:
