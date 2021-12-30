@@ -145,6 +145,8 @@ public:
               //"Connection: close\r\n"
               "\r\n");
 
+try {
+//---------------------------------------------------------------------------
     const mg_request_info* req = mg_get_request_info(conn);
     json query = from_query_string(req->query_string);
     const char* uri = req->local_uri;
@@ -267,6 +269,15 @@ function SetParam(name, value) {
       mg_printf(conn, R"({status:"NotFound", namespace:"%s", objname:"%s"})",
                 m_ns.data_, name);
     }
+//---------------------------------------------------------------------------
+}
+catch (const std::exception& ex) {
+  mg_printf(conn, "Caught Exception = %s\n", ex.what());
+}
+catch (const rocksdb::Status& st) {
+  mg_printf(conn, "Caught rocksdb::Status = %s\n", st.ToString().c_str());
+}
+//---------------------------------------------------------------------------
     return true;
   }
 };
