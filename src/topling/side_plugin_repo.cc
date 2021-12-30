@@ -1110,8 +1110,10 @@ bool JsonSmartBool(const json& js) {
     if (strcasecmp(s.c_str(), "off") == 0) return false;
     if (strcasecmp(s.c_str(), "yes") == 0) return true;
     if (strcasecmp(s.c_str(), "no") == 0) return false;
-    if (isdigit((unsigned char)s[0])) {
-      return atoi(s.c_str()) != 0;
+    char* endptr = nullptr;
+    long val = strtol(s.c_str(), &endptr, 10);
+    if (endptr && '\0' == *endptr) {
+      return 0 != val;
     }
     throw std::invalid_argument("JsonSmartBool: bad js = " + s);
   }
