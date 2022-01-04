@@ -85,7 +85,7 @@ CFOptions:
     - kZSTD
     level0_slowdown_writes_trigger: 20
     level0_stop_writes_trigger: 36
-    #level0_file_num_compaction_trigger: -1
+    level0_file_num_compaction_trigger: -1
     ttl: 0
 DBOptions:
   dbo:
