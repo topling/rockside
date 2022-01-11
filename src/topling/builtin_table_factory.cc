@@ -56,6 +56,20 @@ NewRibbonFilterPolicyJson(const json& js, const SidePluginRepo&) {
 ROCKSDB_FACTORY_REG("RibbonFilter", NewRibbonFilterPolicyJson);
 ROCKSDB_FACTORY_REG("Ribbon"      , NewRibbonFilterPolicyJson);
 
+struct MetadataCacheOptions_Json : MetadataCacheOptions {
+  explicit MetadataCacheOptions_Json(const json& js) {
+    ROCKSDB_JSON_OPT_ENUM(js, top_level_index_pinning);
+    ROCKSDB_JSON_OPT_ENUM(js, partition_pinning);
+    ROCKSDB_JSON_OPT_ENUM(js, unpartitioned_pinning);
+  }
+  void SaveToJson(json& js) const {
+    ROCKSDB_JSON_SET_ENUM(js, top_level_index_pinning);
+    ROCKSDB_JSON_SET_ENUM(js, partition_pinning);
+    ROCKSDB_JSON_SET_ENUM(js, unpartitioned_pinning);
+  }
+};
+MetadataCacheOptions_Json NestForBase(const MetadataCacheOptions&);
+
 struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
   BlockBasedTableOptions_Json(const json& js, const SidePluginRepo& repo) {
     Update(js, repo);
@@ -67,7 +81,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_OPT_PROP(js, cache_index_and_filter_blocks_with_high_priority);
     ROCKSDB_JSON_OPT_PROP(js, pin_l0_filter_and_index_blocks_in_cache);
     ROCKSDB_JSON_OPT_PROP(js, pin_top_level_index_and_filter);
-    ROCKSDB_JSON_OPT_PROP(js, pin_l0_filter_and_index_blocks_in_cache);
+    ROCKSDB_JSON_OPT_NEST(js, metadata_cache_options);
     ROCKSDB_JSON_OPT_ENUM(js, index_type);
     ROCKSDB_JSON_OPT_ENUM(js, data_block_index_type);
     ROCKSDB_JSON_OPT_ENUM(js, index_shortening);
@@ -112,7 +126,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_SET_PROP(js, cache_index_and_filter_blocks_with_high_priority);
     ROCKSDB_JSON_SET_PROP(js, pin_l0_filter_and_index_blocks_in_cache);
     ROCKSDB_JSON_SET_PROP(js, pin_top_level_index_and_filter);
-    ROCKSDB_JSON_SET_PROP(js, pin_l0_filter_and_index_blocks_in_cache);
+    ROCKSDB_JSON_SET_NEST(js, metadata_cache_options);
     ROCKSDB_JSON_SET_ENUM(js, index_type);
     ROCKSDB_JSON_SET_ENUM(js, data_block_index_type);
     ROCKSDB_JSON_SET_ENUM(js, index_shortening);
