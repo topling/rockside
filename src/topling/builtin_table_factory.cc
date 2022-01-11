@@ -81,6 +81,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_OPT_PROP(js, block_restart_interval);
     ROCKSDB_JSON_OPT_PROP(js, index_block_restart_interval);
     ROCKSDB_JSON_OPT_SIZE(js, metadata_block_size);
+    ROCKSDB_JSON_OPT_PROP(js, reserve_table_builder_memory);
     ROCKSDB_JSON_OPT_PROP(js, partition_filters);
     ROCKSDB_JSON_OPT_PROP(js, optimize_filters_for_memory);
     ROCKSDB_JSON_OPT_PROP(js, use_delta_encoding);
@@ -98,6 +99,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
       ROCKSDB_JSON_OPT_FACT(js, filter_policy);
     }
     ROCKSDB_JSON_OPT_SIZE(js, max_auto_readahead_size);
+    ROCKSDB_JSON_OPT_ENUM(js, prepopulate_block_cache);
     ROCKSDB_JSON_OPT_PROP(js, enable_get_random_keys);
   }
 
@@ -124,6 +126,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_SET_PROP(js, block_restart_interval);
     ROCKSDB_JSON_SET_PROP(js, index_block_restart_interval);
     ROCKSDB_JSON_SET_SIZE(js, metadata_block_size);
+    ROCKSDB_JSON_SET_PROP(js, reserve_table_builder_memory);
     ROCKSDB_JSON_SET_PROP(js, partition_filters);
     ROCKSDB_JSON_SET_PROP(js, optimize_filters_for_memory);
     ROCKSDB_JSON_SET_PROP(js, use_delta_encoding);
@@ -141,6 +144,7 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
       ROCKSDB_JSON_SET_FACT(js, filter_policy);
     }
     ROCKSDB_JSON_SET_SIZE(js, max_auto_readahead_size);
+    ROCKSDB_JSON_SET_ENUM(js, prepopulate_block_cache);
     ROCKSDB_JSON_SET_PROP(js, enable_get_random_keys);
     return js;
   }
