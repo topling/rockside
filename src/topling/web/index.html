@@ -3,7 +3,20 @@
     <title>SidePlugins</title>
     <link rel="stylesheet" type="text/css" href="/style.css">
     </head>
+    <script>
+        function grafana() {
+            let url = new URL(location.href);
+            let idx = url.host.lastIndexOf(":8000");
+            if (idx > 0) {
+                let gra = url.host.substr(0, idx) + ":3000";
+                location.href = "http://" + gra;
+            } else {
+                alert("not at online site");
+            }
+        }
+    </script>
     <body>
+        <p><a href="https://topling.cn">Topling Inc.</a> This is <strong>Engine Inspector</strong>, for metrics, see <a href='javascript:grafana()'>Grafana</a>!</p>
         <p>Frequent SidePlugins</p>
         <table border=1><tbody>
             <tr align="left">
