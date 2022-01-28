@@ -2242,6 +2242,23 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
   int default_target_path_id = (int)(cf_paths.size() - 1);
   MyCRO cro(dump_options, default_target_path_id);
   std::thread([=]() {
+#if defined(_GNU_SOURCE) && defined(__GLIBC__)                               \
+    && ((__GLIBC__ > 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 12)))
+/* pthread_setname_np first appeared in glibc in version 2.12 */
+ #if defined(__MACH__)
+	/* OS X only current thread name can be changed */
+	(void)pthread_setname_np("web-compact");
+ #else
+	(void)pthread_setname_np(pthread_self(), "web-compact");
+ #endif
+#elif defined(__linux__)
+	/* On Linux we can use the prctl function.
+	 * When building for Linux Standard Base (LSB) use
+	 * NO_THREAD_NAME. However, thread names are a big
+	 * help for debugging, so the stadard is to set them.
+	 */
+	(void)prctl(PR_SET_NAME, "web-compact", 0, 0, 0);
+#endif
     db->CompactRange(cro, cfh, nullptr, nullptr);
     g_running_manual_compact_mtx.lock();
     g_running_manual_compact.erase(cfh);
