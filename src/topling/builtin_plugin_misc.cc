@@ -1554,6 +1554,15 @@ try {
     AppendFmt("<td>%" PRIu64"</td>", x.num_reads_sampled);
     if (fcnt >= 0) {
       AppendFmt("<td>%d</td>", fcnt);
+      if (fcnt && p) {
+        auto kv_zip_size = p->index_size + p->data_size;
+        auto kv_raw_size = p->raw_key_size + p->raw_value_size;
+        AppendFmt("<td>%s</td>", SizeToString(kv_zip_size/fcnt).c_str());
+        AppendFmt("<td>%s</td>", SizeToString(kv_raw_size/fcnt).c_str());
+      } else {
+        html.append("<td>0</td>");
+        html.append("<td>0</td>");
+      }
     }
     html.append("</tr>\n");
   };
@@ -1582,6 +1591,8 @@ try {
     html.append("<th rowspan=2>NumReads<br>Sampled</th>");
     if (with_fcnt) {
       html.append("<th rowspan=2>File<br>CNT</th>");
+      html.append("<th rowspan=2>Avg File<br>Zip Size</th>");
+      html.append("<th rowspan=2>Avg File<br>Raw Size</th>");
     }
     html.append("</tr>");
     html.append("<tr>");
@@ -1660,7 +1671,10 @@ try {
   );
   html.append("<p>");
   AppendFmt("all levels summary: file count = %zd, ", meta.file_count);
-  AppendFmt("total size = %.3f GB", meta.size/1e9);
+  AppendFmt("total size = %.3f GB, ", meta.size/1e9);
+  if (meta.file_count > 1) {
+    AppendFmt("avg size = %.3f GB", meta.size/1e9/meta.file_count);
+  }
   html.append("</p>\n");
   html.append("<table border=1>\n");
   writeHeader(true);
