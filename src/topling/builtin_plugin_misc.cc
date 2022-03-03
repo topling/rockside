@@ -2283,6 +2283,27 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
   return "compact job issued: dbname = " + dbname + ", cfname = " + cfname;
 }
 
+static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
+                                  const json& dump_options) {
+  DB* db = const_cast<DB*>(dbc);
+  DBOptions dbo = db->GetDBOptions();
+  struct MyFO : FlushOptions {
+    explicit MyFO(const json& js) {
+      //MyCRO_GET(JsonSmartBool, wait);
+      wait = true; // not allow wait to be false
+      MyCRO_GET(JsonSmartBool, allow_write_stall);
+    }
+  };
+  MyFO fo(dump_options);
+  Status s = db->Flush(fo, cfh);
+  if (s.ok()) {
+    return R"({"status": "OK"})";
+  }
+  else {
+    return R"({"status": ")" + s.ToString() + R"("})";
+  }
+}
+
 struct DB_Manip : PluginManipFunc<DB> {
   void Update(DB* db, const json& js,
               const SidePluginRepo& repo) const final {
@@ -2306,6 +2327,9 @@ struct DB_Manip : PluginManipFunc<DB> {
         return RunManualCompact(&db, db.DefaultColumnFamily(), dump_options);
       else
         return "web_compact is not allowed";
+    }
+    if (dump_options.contains("flush")) {
+      return RunManualFlush(&db, db.DefaultColumnFamily(), dump_options);
     }
     auto ijs = i1->second.params.find("params");
     if (i1->second.params.end() == ijs) {
@@ -2366,6 +2390,9 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
       dbname = iter->second.name;
     }
     if (dump_options.contains("compact")) {
+      if (!repo.m_impl->web_compact) {
+        return "web_compact is not allowed";
+      }
       std::string cfname = dump_options["compact"];
       auto cfh = db.Get(cfname);
       if (nullptr == cfh) {
@@ -2373,6 +2400,15 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
                        + ", cfname = " + cfname);
       }
       return RunManualCompact(db.db, cfh, dump_options);
+    }
+    if (dump_options.contains("flush")) {
+      std::string cfname = dump_options["flush"];
+      auto cfh = db.Get(cfname);
+      if (nullptr == cfh) {
+        THROW_NotFound("cf_name is not registered in repo, dbname = " + dbname
+                       + ", cfname = " + cfname);
+      }
+      return RunManualFlush(db.db, cfh, dump_options);
     }
     auto i1 = dbmap.p2name.find(db.db);
     if (dbmap.p2name.end() == i1) {
