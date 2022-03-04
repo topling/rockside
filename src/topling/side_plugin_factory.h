@@ -188,6 +188,9 @@ void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
     manip->Update(GetRawPtr(p), js, repo);
   }
 }
+void PluginUpdate(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>&,
+                  const json&, const SidePluginRepo&);
+
 template<class Ptr>
 std::string
 PluginToString(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,

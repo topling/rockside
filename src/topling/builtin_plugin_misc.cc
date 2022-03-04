@@ -17,6 +17,7 @@
 #include "db/table_cache.h"
 #include "db/version_set.h"
 #include "rocksdb/options.h"
+#include "rocksdb/convenience.h"
 #include "options/db_options.h"
 #include "rocksdb/utilities/db_ttl.h"
 #include "rocksdb/utilities/transaction_db.h"
@@ -2159,7 +2160,7 @@ JS_Add_CFPropertiesWebView_Link(json& djs, bool html,
   auto properties = iter->second;
   ROCKSDB_JSON_SET_FACX(djs, properties, props);
 }
-#define GITHUB_ROCKSDB "https://github.com/rockeet/rocksdb-private"
+#define GITHUB_ROCKSDB "https://github.com/topling/toplingdb"
 void JS_RokcsDB_AddVersion(json& djs, bool html) {
   djs["build_type"] = ROCKSDB_IF_DEBUG("debug", "release");
   auto p_sha = strchr(rocksdb_build_git_sha, ':');
@@ -2304,9 +2305,50 @@ static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
   }
 }
 
+void PluginUpdate(const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
+                  const json& js, const SidePluginRepo& repo) {
+  auto iter = map.p2name.find(p.db);
+  if (map.p2name.end() != iter) {
+    if (p.dbm) {
+      auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.params, repo);
+      manip->Update(p.dbm, js, repo);
+    }
+    else {
+      auto manip = PluginManip<DB>::AcquirePlugin(iter->second.params, repo);
+      manip->Update(p.db, js, repo);
+    }
+  }
+}
+
+static
+void UpdateDBOptions(DB* db, const json& js, const SidePluginRepo& repo) {
+  if (js.is_string()) {
+    std::unordered_map<std::string, std::string> optMap;
+    StringToMap(js.get<std::string>(), &optMap);
+    db->SetDBOptions(optMap);
+  }
+  else {
+    THROW_NotSupported("json is not supported for set DBOptions: " + js.dump());
+  }
+}
+static
+void UpdateCFOptions(DB* db, ColumnFamilyHandle* cfh,
+                     const json& js, const SidePluginRepo& repo) {
+  if (js.is_string()) {
+    std::unordered_map<std::string, std::string> optMap;
+    StringToMap(js.get<std::string>(), &optMap);
+    db->SetOptions(cfh, optMap);
+  }
+  else {
+    THROW_NotSupported("json is not supported for set CFOptions: " + js.dump());
+  }
+}
+
 struct DB_Manip : PluginManipFunc<DB> {
   void Update(DB* db, const json& js,
               const SidePluginRepo& repo) const final {
+    UpdateCFOptions(db, db->DefaultColumnFamily(), js, repo);
+    UpdateDBOptions(db, js, repo);
   }
   std::string ToString(const DB& db, const json& dump_options,
                        const SidePluginRepo& repo) const final {
@@ -2373,14 +2415,28 @@ static constexpr auto JS_DB_Manip = &PluginManipSingleton<DB_Manip>;
 struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
   void Update(DB_MultiCF* db, const json& js,
               const SidePluginRepo& repo) const final {
-    THROW_NotSupported("");
+    std::string cfname, cfo, dbo;
+    ROCKSDB_JSON_OPT_PROP(js, cfname);
+    ROCKSDB_JSON_OPT_PROP(js, cfo);
+    ROCKSDB_JSON_OPT_PROP(js, dbo);
+    if (!cfname.empty() && !cfo.empty()) {
+      for (ColumnFamilyHandle* cfh : db->cf_handles) {
+        if (cfh->GetName() == cfname) {
+          UpdateCFOptions(db->db, cfh, cfo, repo);
+          return;
+        }
+      }
+      THROW_NotFound("cfname = " + cfname);
+    }
+    if (!dbo.empty()) {
+      UpdateDBOptions(db->db, dbo, repo);
+    }
   }
   std::string ToString(const DB_MultiCF& db, const json& dump_options,
                        const SidePluginRepo& repo) const final {
     json djs;
     auto dbo = static_cast<DBOptions_Json&&>(db.db->GetDBOptions());
     const auto& dbmap = repo.m_impl->db;
-    //const std::string& dbname = db.db->GetName();
     std::string dbname;
     {
       auto iter = repo.m_impl->db.p2name.find(db.db);
