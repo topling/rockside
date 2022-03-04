@@ -91,6 +91,12 @@
         "params": {
           "lookahead": 0
         }
+      },
+      "dyna": {
+        "class": "Dyna",
+        "params": {
+          "real_fac": "${cspp}"
+        }
       }
     },
     "TableFactory": {
@@ -123,7 +129,7 @@
     "CFOptions": {
       "default": {
         "max_write_buffer_number": 4,
-        "memtable_factory": "${cspp}",
+        "memtable_factory": "${dyna}",
         "write_buffer_size": "256M",
         "target_file_size_base": "16M",
         "target_file_size_multiplier": 2,
