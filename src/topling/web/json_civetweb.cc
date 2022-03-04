@@ -139,6 +139,13 @@ public:
   }
 
   bool handleGet(CivetServer *server, struct mg_connection *conn) override {
+    return handleMethod(server, conn, false);
+  }
+  bool handlePost(CivetServer* server, struct mg_connection* conn) override {
+    return handleMethod(server, conn, true);
+  }
+  bool handleMethod(CivetServer *server, struct mg_connection *conn,
+                    bool needsUpdate) {
     mg_printf(conn,
               "HTTP/1.1 200 OK\r\n"
               "Content-Type: text/html; charset=utf-8\r\n"
@@ -234,6 +241,11 @@ function SetParam(name, value) {
         using namespace std::chrono;
         bool html_time = JsonSmartBool(query, "html_time");
         auto t1 = steady_clock::now();
+        if (needsUpdate) {
+          std::string body_jstr = ReadPostData(conn);
+          json body_js = json::parse(body_jstr);
+          PluginUpdate(p, *m_map, body_js, *m_repo);
+        }
         std::string str = PluginToString(p, *m_map, query, *m_repo);
         auto t2 = steady_clock::now();
         mg_write(conn, str.data(), str.size());
