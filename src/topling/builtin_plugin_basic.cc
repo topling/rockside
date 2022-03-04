@@ -403,6 +403,70 @@ NewHashLinkListMemTableRepFactoryJson(const json& js, const SidePluginRepo&) {
 ROCKSDB_FACTORY_REG("HashLinkListRep", NewHashLinkListMemTableRepFactoryJson);
 ROCKSDB_FACTORY_REG("HashLinkList", NewHashLinkListMemTableRepFactoryJson);
 
+struct DynaMemTableFactory : public MemTableRepFactory {
+  shared_ptr<MemTableRepFactory> real_fac = nullptr;
+  std::string orig_name;
+  std::mutex  m_mtx;
+  auto Get_real_fac_iter(const json& js, const SidePluginRepo& repo) {
+    auto iter = js.find("real_fac");
+    if (js.end() == iter) {
+      THROW_InvalidArgument("missing required field 'real_fac'");
+    }
+    if (!iter.value().is_string()) {
+      THROW_InvalidArgument("required field 'real_fac' must be string");
+    }
+    return iter;
+  }
+  DynaMemTableFactory(const json& js, const SidePluginRepo& repo) {
+    auto iter = Get_real_fac_iter(js, repo);
+    orig_name = iter.value().get<std::string>();
+  }
+  void Update(const json& js, const SidePluginRepo& repo) {
+    auto iter = Get_real_fac_iter(js, repo);
+    auto& inner = iter.value();
+    std::lock_guard<std::mutex> lock(m_mtx);
+    ROCKSDB_JSON_OPT_FACT_INNER(inner, real_fac);
+  }
+  std::string ToString(const json& d, const SidePluginRepo& repo) const {
+    const bool html = JsonSmartBool(d, "html", true);
+    json djs;
+    ROCKSDB_JSON_SET_PROP(djs, orig_name);
+    ROCKSDB_JSON_SET_FACX(djs, real_fac, memtable_factory);
+    return JsonToString(djs, d);
+  }
+  void BackPatch(const SidePluginRepo& repo) {
+    ROCKSDB_VERIFY(nullptr == real_fac);
+    json js = { {"real_fac", orig_name } };
+    Update(js, repo);
+  }
+  MemTableRep*
+  CreateMemTableRep(const MemTableRep::KeyComparator& kc, Allocator* a,
+                    const SliceTransform* st, Logger* logger) override {
+    return real_fac->CreateMemTableRep(kc, a, st, logger);
+  }
+  MemTableRep*
+  CreateMemTableRep(const MemTableRep::KeyComparator& kc, Allocator* a,
+                    const SliceTransform* st, Logger* logger,
+                    uint32_t cf_id) override {
+    return real_fac->CreateMemTableRep(kc, a, st, logger, cf_id);
+  }
+  bool IsInsertConcurrentlySupported() const override {
+    return real_fac->IsInsertConcurrentlySupported();
+  }
+  bool CanHandleDuplicatedKey() const override {
+    return real_fac->CanHandleDuplicatedKey();
+  }
+  const char* Name() const override { return "Dyna"; }
+};
+// with dispatch, we can check conf at first place
+void DynaMemTableBackPatch(MemTableRepFactory* f, const SidePluginRepo& repo) {
+  auto dispatcher = dynamic_cast<DynaMemTableFactory*>(f);
+  assert(nullptr != dispatcher);
+  dispatcher->BackPatch(repo);
+}
+ROCKSDB_REG_JSON_REPO_CONS("Dyna", DynaMemTableFactory, MemTableRepFactory);
+ROCKSDB_REG_EasyProxyManip("Dyna", DynaMemTableFactory, MemTableRepFactory);
+
 //////////////////////////////////////////////////////////////////////////////
 
 static shared_ptr<TablePropertiesCollectorFactory>

@@ -383,6 +383,14 @@ try
     }
   }
 
+  extern void DynaMemTableBackPatch(MemTableRepFactory*, const SidePluginRepo&);
+  for (auto& kv : *m_impl->memtable_factory.name2p) {
+    if (Slice(kv.second->Name()) == "Dyna") {
+      auto tf = kv.second.get();
+      DynaMemTableBackPatch(tf, repo);
+    }
+  }
+
   Impl_ImportOptions(m_impl->db_options, "DBOptions", main_js, repo);
   Impl_ImportOptions(m_impl->cf_options, "CFOptions", main_js, repo);
 
