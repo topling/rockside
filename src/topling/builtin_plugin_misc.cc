@@ -2415,19 +2415,27 @@ static constexpr auto JS_DB_Manip = &PluginManipSingleton<DB_Manip>;
 struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
   void Update(DB_MultiCF* db, const json& js,
               const SidePluginRepo& repo) const final {
-    std::string cfname, cfo, dbo;
-    ROCKSDB_JSON_OPT_PROP(js, cfname);
-    ROCKSDB_JSON_OPT_PROP(js, cfo);
-    ROCKSDB_JSON_OPT_PROP(js, dbo);
-    if (!cfname.empty() && !cfo.empty()) {
-      for (ColumnFamilyHandle* cfh : db->cf_handles) {
-        if (cfh->GetName() == cfname) {
-          UpdateCFOptions(db->db, cfh, cfo, repo);
-          return;
-        }
+    auto iter = js.find("cfo");
+    if (js.end() != iter) {
+      const json& cfo = iter.value();
+      if (!cfo.is_object()) {
+        THROW_InvalidArgument("cfo must be an object");
       }
-      THROW_NotFound("cfname = " + cfname);
+      for (auto& kv : cfo.items()) {
+        const std::string& cfname = kv.key();
+        ColumnFamilyHandle* cfh = db->Get(cfname);
+        if (!cfh) // check all cfname, to avoid partial update
+          THROW_NotFound("cfname = " + cfname);
+      }
+      for (auto& kv : cfo.items()) {
+        const std::string& cfname = kv.key();
+        const json& one_cfo = kv.value();
+        ColumnFamilyHandle* cfh = db->Get(cfname);
+        UpdateCFOptions(db->db, cfh, one_cfo, repo);
+      }
     }
+    std::string dbo;
+    ROCKSDB_JSON_OPT_PROP(js, dbo);
     if (!dbo.empty()) {
       UpdateDBOptions(db->db, dbo, repo);
     }
