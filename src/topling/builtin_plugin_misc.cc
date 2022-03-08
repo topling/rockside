@@ -2400,8 +2400,8 @@ struct DB_Manip : PluginManipFunc<DB> {
     if (cfo_name.empty()) cfo_name = "json varname: (defined inline)";
     djs["DBOptions"][0] = dbo_name; dbo.SaveToJson(djs["DBOptions"][1], repo, html);
     djs["CFOptions"][0] = dbo_name; cfo.SaveToJson(djs["CFOptions"][1], repo, html);
-    djs["CFOptions"][1]["MaxMemCompactionLevel"] = const_cast<DB&>(db).MaxMemCompactionLevel();
-    djs["CFOptions"][1]["Level0StopWriteTrigger"] = const_cast<DB&>(db).Level0StopWriteTrigger();
+    //djs["CFOptions"][1]["MaxMemCompactionLevel"] = const_cast<DB&>(db).MaxMemCompactionLevel();
+    //djs["CFOptions"][1]["Level0StopWriteTrigger"] = const_cast<DB&>(db).Level0StopWriteTrigger();
     //Json_DB_Statistics(dbo.statistics.get(), djs, html);
     //Json_DB_IntProps(db, db.DefaultColumnFamily(), djs);
     //Json_DB_Level_Stats(db, db.DefaultColumnFamily(), djs, opt.num_levels, html);
@@ -2556,8 +2556,8 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
 	      //result_cfo_js[cf_name][1]["params"] = ijs.value();
         cfo.SaveToJson(result_cfo_js[cf_name][1], repo, html);
       }
-      result_cfo_js[cf_name][1]["MaxMemCompactionLevel"] = db.db->MaxMemCompactionLevel(cf);
-      result_cfo_js[cf_name][1]["Level0StopWriteTrigger"] = db.db->Level0StopWriteTrigger(cf);
+      //result_cfo_js[cf_name][1]["MaxMemCompactionLevel"] = db.db->MaxMemCompactionLevel(cf);
+      //result_cfo_js[cf_name][1]["Level0StopWriteTrigger"] = db.db->Level0StopWriteTrigger(cf);
       //Json_DB_IntProps(*db.db, cf, cf_props[cf_name]);
       //Json_DB_Level_Stats(*db.db, cf, cf_props[cf_name], cfo.num_levels, html);
       JS_Add_CFPropertiesWebView_Link(cf_props[cf_name], html,
