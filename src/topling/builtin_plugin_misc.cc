@@ -2321,11 +2321,15 @@ void PluginUpdate(const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& m
 }
 
 static
+void UpdateDBOptions(DB* db, const string& str, const SidePluginRepo& repo) {
+  std::unordered_map<string, string> optMap;
+  StringToMap(str, &optMap);
+  db->SetDBOptions(optMap);
+}
+static
 void UpdateDBOptions(DB* db, const json& js, const SidePluginRepo& repo) {
   if (js.is_string()) {
-    std::unordered_map<std::string, std::string> optMap;
-    StringToMap(js.get<std::string>(), &optMap);
-    db->SetDBOptions(optMap);
+    UpdateDBOptions(db, js.get_ref<const std::string&>(), repo);
   }
   else {
     THROW_NotSupported("json is not supported for set DBOptions: " + js.dump());
@@ -2336,7 +2340,7 @@ void UpdateCFOptions(DB* db, ColumnFamilyHandle* cfh,
                      const json& js, const SidePluginRepo& repo) {
   if (js.is_string()) {
     std::unordered_map<std::string, std::string> optMap;
-    StringToMap(js.get<std::string>(), &optMap);
+    StringToMap(js.get_ref<const std::string&>(), &optMap);
     db->SetOptions(cfh, optMap);
   }
   else {
