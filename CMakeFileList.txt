@@ -1,5 +1,6 @@
 
 file(GLOB rockside_src RELATIVE ${PROJECT_SOURCE_DIR}
+     sideplugin/rockside/sample/*.cc
      sideplugin/rockside/src/topling/web/*.h
      sideplugin/rockside/src/topling/web/*.inl
      sideplugin/rockside/src/topling/web/*.c
