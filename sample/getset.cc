@@ -53,5 +53,6 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "now visit the web(defined in json/yaml conf file)\n");
   fprintf(stderr, "press enter to exit\n");
   getchar(); // wait for enter
+  repo.CloseAllDB();
   return 0;
 }

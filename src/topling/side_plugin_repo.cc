@@ -166,12 +166,15 @@ static void Impl_ImportOptions(SidePluginRepo::Impl::ObjMap<Ptr>& field,
 }
 
 void SidePluginRepo::CleanResetRepo() {
+  ROCKSDB_VERIFY_F(m_impl->db.name2p->empty(), "db not closed");
   m_impl.reset(new Impl);
 }
 SidePluginRepo::SidePluginRepo() noexcept {
   m_impl.reset(new Impl);
 }
-SidePluginRepo::~SidePluginRepo() = default;
+SidePluginRepo::~SidePluginRepo() {
+  ROCKSDB_VERIFY_F(m_impl->db.name2p->empty(), "db not closed");
+}
 
 // yaml or json
 Status SidePluginRepo::ImportAutoFile(const Slice& fname) {
