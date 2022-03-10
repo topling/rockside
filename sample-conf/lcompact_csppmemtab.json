@@ -161,6 +161,8 @@
         "method": "DB::Open",
         "params": {
           "db_options": "$dbo",
+          "cf_options comment": "make it ok for SidePluginRepo::OpenDB(DB**)",
+          "cf_options": "$default",
           "column_families": {
             "default": "$default"
           },

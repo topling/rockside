@@ -130,6 +130,7 @@ databases:
     method: DB::Open
     params:
       db_options: "$dbo"
+      cf_options: "$default" # make it ok for SidePluginRepo::OpenDB(DB**)
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path
