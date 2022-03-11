@@ -424,15 +424,15 @@ struct DynaMemTableFactory : public MemTableRepFactory {
   void Update(const json& js, const SidePluginRepo& repo) {
     auto iter = Get_real_fac_iter(js, repo);
     auto& inner = iter.value();
-    shared_ptr<MemTableRepFactory> real_fac2;
+    shared_ptr<MemTableRepFactory> real_fac; // intentional same name
     {
       std::lock_guard<std::mutex> lock(m_mtx);
-      ROCKSDB_JSON_OPT_FACT_INNER(inner, real_fac2);
+      ROCKSDB_JSON_OPT_FACT_INNER(inner, real_fac);
     }
-    if (dynamic_cast<DynaMemTableFactory*>(real_fac2.get())) {
+    if (dynamic_cast<DynaMemTableFactory*>(real_fac.get())) {
       THROW_InvalidArgument("real_fac must not be DynaMemTableFactory");
     }
-    real_fac = real_fac2;
+    this->real_fac = real_fac;
   }
   std::string ToString(const json& d, const SidePluginRepo& repo) const {
     const bool html = JsonSmartBool(d, "html", true);
