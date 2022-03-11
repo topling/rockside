@@ -246,7 +246,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, db_host_id);
     //ROCKSDB_JSON_OPT_ESET(js, checksum_handoff_file_types); // EnumSet
     //ROCKSDB_JSON_OPT_FACT(js, compaction_service);
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_OPT_ENUM(js, lowest_used_cache_tier);
+   #endif
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
@@ -349,7 +351,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, db_host_id);
     //ROCKSDB_JSON_SET_ESET(js, checksum_handoff_file_types); // EnumSet
     //ROCKSDB_JSON_SET_FACT(js, compaction_service);
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_SET_ENUM(js, lowest_used_cache_tier);
+   #endif
   }
 };
 ROCKSDB_REG_JSON_REPO_CONS("DBOptions", DBOptions_Json, DBOptions);
@@ -543,7 +547,9 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_ENUM(js, blob_compression_type);
     ROCKSDB_JSON_OPT_PROP(js, enable_blob_garbage_collection);
     ROCKSDB_JSON_OPT_PROP(js, blob_garbage_collection_age_cutoff);
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_OPT_PROP(js, blob_garbage_collection_force_threshold);
+   #endif
     ROCKSDB_JSON_OPT_PROP(js, max_mem_compaction_level);
     ROCKSDB_JSON_OPT_PROP(js, soft_rate_limit);
     ROCKSDB_JSON_OPT_PROP(js, hard_rate_limit);
@@ -656,7 +662,9 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_ENUM(js, blob_compression_type);
     ROCKSDB_JSON_SET_PROP(js, enable_blob_garbage_collection);
     ROCKSDB_JSON_SET_PROP(js, blob_garbage_collection_age_cutoff);
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_SET_PROP(js, blob_garbage_collection_force_threshold);
+   #endif
     ROCKSDB_JSON_SET_PROP(js, max_mem_compaction_level);
     ROCKSDB_JSON_SET_PROP(js, soft_rate_limit);
     ROCKSDB_JSON_SET_PROP(js, hard_rate_limit);
