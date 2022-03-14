@@ -182,7 +182,7 @@ ROCKSDB_FACTORY_REG("BlockBasedTable", NewBlockBasedTableFactoryFromJson);
 ROCKSDB_FACTORY_REG("BlockBased", NewBlockBasedTableFactoryFromJson);
 
 struct BlockBasedTableFactory_Manip : PluginManipFunc<TableFactory> {
-  void Update(TableFactory* p, const json& js,
+  void Update(TableFactory* p, const json&, const json& js,
               const SidePluginRepo& repo) const final {
     if (auto t = dynamic_cast<BlockBasedTableFactory*>(p)) {
       auto o = static_cast<const BlockBasedTableOptions_Json&>(t->table_options());
@@ -867,7 +867,7 @@ NewDispatcherTableFactoryJson(const json& js, const SidePluginRepo& repo) {
 }
 
 struct DispatcherTableFactory_Manip : PluginManipFunc<TableFactory> {
-  void Update(TableFactory* p, const json& js,
+  void Update(TableFactory* p, const json&, const json& js,
               const SidePluginRepo& repo) const final {
     if (auto t = dynamic_cast<DispatcherTableFactory*>(p)) {
       t->UpdateOptions(js, repo);

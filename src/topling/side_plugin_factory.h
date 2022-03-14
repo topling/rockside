@@ -161,7 +161,7 @@ struct PluginManipFunc {
   PluginManipFunc& operator=(const PluginManipFunc&) = delete;
   PluginManipFunc() = default;
   virtual ~PluginManipFunc() {}
-  virtual void Update(Object*, const json&, const SidePluginRepo&) const = 0;
+  virtual void Update(Object*, const json& query, const json& body, const SidePluginRepo&) const = 0;
   virtual std::string ToString(const Object&, const json&, const SidePluginRepo&) const = 0;
   using InterfaceType = PluginManipFunc;
 };
@@ -180,16 +180,17 @@ template<class Object>
 using PluginManip = PluginFactory<const PluginManipFunc<Object>*>;
 template<class Ptr>
 void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
-                  const json& js, const SidePluginRepo& repo) {
+                  const json& query, const json& body,
+                  const SidePluginRepo& repo) {
   using Object = RemovePtr<Ptr>;
   auto iter = map.p2name.find(GetRawPtr(p));
   if (map.p2name.end() != iter) {
     auto manip = PluginManip<Object>::AcquirePlugin(iter->second.params, repo);
-    manip->Update(GetRawPtr(p), js, repo);
+    manip->Update(GetRawPtr(p), query, body, repo);
   }
 }
 void PluginUpdate(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>&,
-                  const json&, const SidePluginRepo&);
+                  const json& query, const json& body, const SidePluginRepo&);
 
 template<class Ptr>
 std::string
@@ -233,7 +234,7 @@ template<class Object>
 using SerDeFactory = PluginFactory<std::shared_ptr<SerDeFunc<Object> > >;
 
 struct AnyPluginManip : public PluginManipFunc<AnyPlugin> {
-  void Update(AnyPlugin*, const json&, const SidePluginRepo&) const final;
+  void Update(AnyPlugin*, const json&, const json&, const SidePluginRepo&) const final;
   std::string ToString(const AnyPlugin&, const json& dump_options,
                        const SidePluginRepo&) const final;
 };
@@ -246,10 +247,10 @@ struct AnyPluginManip : public PluginManipFunc<AnyPlugin> {
 /// EasyProxyManip is a proxy which forward Update() & ToString() to Concrete
 template<class Concrete, class Interface>
 struct EasyProxyManip : public PluginManipFunc<Interface> {
-  void Update(Interface* x, const json& j, const SidePluginRepo& r)
+  void Update(Interface* x, const json& q, const json& j, const SidePluginRepo& r)
   const final {
     assert(dynamic_cast<Concrete*>(x) != nullptr);
-    return static_cast<Concrete*>(x)->Update(j, r);
+    return static_cast<Concrete*>(x)->Update(q, j, r);
   }
   std::string ToString(const Interface& x, const json& dump_options,
                        const SidePluginRepo& r) const final {

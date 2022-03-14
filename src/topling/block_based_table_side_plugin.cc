@@ -338,8 +338,10 @@ std::string ToWebViewString(const BlockBasedTable* reader,
 }
 
 struct BlockBasedTableReader_Manip : PluginManipFunc<TableReader> {
-  void Update(TableReader*, const json& js,
-              const SidePluginRepo &repo) const final {}
+  void Update(TableReader*, const json&, const json& js,
+              const SidePluginRepo &repo) const final {
+    THROW_NotFound("Reader is read only");
+  }
 
   std::string ToString(const TableReader& reader, const json& dump_options,
                        const SidePluginRepo &) const final {

@@ -358,15 +358,8 @@ struct DBOptions_Json : DBOptions {
 };
 ROCKSDB_REG_JSON_REPO_CONS("DBOptions", DBOptions_Json, DBOptions);
 struct DBOptions_Manip : PluginManipFunc<DBOptions> {
-  void Update(DBOptions* p, const json& js, const SidePluginRepo& repo)
+  void Update(DBOptions* p, const json&, const json& js, const SidePluginRepo& repo)
   const final {
-    auto iter = js.find("objname");
-    if (js.end() == iter) {
-      THROW_Corruption("missing js[\"objname\"]");
-    }
-    //auto& objname = iter.value().get_ref<const std::string&>();
-    //std::shared_ptr<DBOptions> dbo = repo[objname];
-
     static_cast<DBOptions_Json*>(p)->Update(js, repo);
   }
   std::string ToString(const DBOptions& x, const json& dump_options,
@@ -701,7 +694,7 @@ using CFOptions_Json = ColumnFamilyOptions_Json;
 ROCKSDB_REG_JSON_REPO_CONS("ColumnFamilyOptions", CFOptions_Json, CFOptions);
 ROCKSDB_REG_JSON_REPO_CONS("CFOptions", CFOptions_Json, CFOptions);
 struct CFOptions_Manip : PluginManipFunc<ColumnFamilyOptions> {
-  void Update(ColumnFamilyOptions* p, const json& js,
+  void Update(ColumnFamilyOptions* p, const json&, const json& js,
               const SidePluginRepo& repo) const final {
     static_cast<ColumnFamilyOptions_Json*>(p)->Update(js, repo); // NOLINT
   }
@@ -1093,8 +1086,9 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
 }
 
 struct Statistics_Manip : PluginManipFunc<Statistics> {
-  void Update(Statistics* db, const json& js,
+  void Update(Statistics* db, const json&, const json& js,
               const SidePluginRepo& repo) const final {
+    THROW_NotSupported("TODO");
   }
   std::string ToString(const Statistics& db, const json& dump_options,
                        const SidePluginRepo& repo) const final {
@@ -2085,8 +2079,9 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
 }
 
 struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
-  void Update(CFPropertiesWebView* cfp, const json& js,
+  void Update(CFPropertiesWebView* cfp, const json&, const json& js,
               const SidePluginRepo& repo) const final {
+    THROW_NotSupported("Just for view");
   }
   std::string ToString(const CFPropertiesWebView& cfp, const json& dump_options,
                        const SidePluginRepo& repo) const final {
@@ -2314,16 +2309,16 @@ static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
 }
 
 void PluginUpdate(const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
-                  const json& js, const SidePluginRepo& repo) {
+                  const json& query, const json& body, const SidePluginRepo& repo) {
   auto iter = map.p2name.find(p.db);
   if (map.p2name.end() != iter) {
     if (p.dbm) {
       auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.params, repo);
-      manip->Update(p.dbm, js, repo);
+      manip->Update(p.dbm, query, body, repo);
     }
     else {
       auto manip = PluginManip<DB>::AcquirePlugin(iter->second.params, repo);
-      manip->Update(p.db, js, repo);
+      manip->Update(p.db, query, body, repo);
     }
   }
 }
@@ -2357,7 +2352,7 @@ void UpdateCFOptions(DB* db, ColumnFamilyHandle* cfh,
 }
 
 struct DB_Manip : PluginManipFunc<DB> {
-  void Update(DB* db, const json& js,
+  void Update(DB* db, const json& query, const json& js,
               const SidePluginRepo& repo) const final {
     UpdateCFOptions(db, db->DefaultColumnFamily(), js, repo);
     UpdateDBOptions(db, js, repo);
@@ -2425,7 +2420,7 @@ struct DB_Manip : PluginManipFunc<DB> {
 static constexpr auto JS_DB_Manip = &PluginManipSingleton<DB_Manip>;
 
 struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
-  void Update(DB_MultiCF* db, const json& js,
+  void Update(DB_MultiCF* db, const json& q, const json& js,
               const SidePluginRepo& repo) const final {
     auto iter = js.find("cfo");
     if (js.end() != iter) {

@@ -97,7 +97,7 @@ static void Impl_Import(SidePluginRepo::Impl::ObjMap<Ptr>& field,
       #if defined(NDEBUG)
         try {
       #endif
-          PluginUpdate(existing, field, value, repo);
+          PluginUpdate(existing, field, json(), value, repo);
           oi_iter->second.params.merge_patch(value);
           continue; // done for current item
       #if defined(NDEBUG)
@@ -149,7 +149,7 @@ static void Impl_ImportOptions(SidePluginRepo::Impl::ObjMap<Ptr>& field,
       if (field.p2name.end() == oi_iter) {
         THROW_Corruption("p2name[ptr_of(\"" + option_name + "\")] is missing");
       }
-      PluginUpdate(existing, field, params_js, repo);
+      PluginUpdate(existing, field, {}, params_js, repo);
       oi_iter->second.params["params"].merge_patch(params_js);
     }
     else {
@@ -974,9 +974,9 @@ SidePluginRepo::Impl::Impl() {
 SidePluginRepo::Impl::~Impl() {
 }
 
-void AnyPluginManip::Update(AnyPlugin* p, const json& js,
+void AnyPluginManip::Update(AnyPlugin* p, const json& q, const json& js,
                             const SidePluginRepo& repo) const {
-  p->Update(js, repo);
+  p->Update(q, js, repo);
 }
 std::string AnyPluginManip::ToString(const AnyPlugin& ap,
                                      const json& dump_options,

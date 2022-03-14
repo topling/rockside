@@ -76,7 +76,7 @@ public:
   AnyPlugin() {}
   virtual ~AnyPlugin();
   virtual const char* Name() const = 0;
-  virtual void Update(const json&, const SidePluginRepo&) = 0;
+  virtual void Update(const json& query, const json& body, const SidePluginRepo&) = 0;
   virtual std::string ToString(const json&, const SidePluginRepo&) const = 0;
 };
 struct UserKeyCoder : public AnyPlugin {

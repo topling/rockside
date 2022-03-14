@@ -244,7 +244,7 @@ function SetParam(name, value) {
         if (needsUpdate) {
           std::string body_jstr = ReadPostData(conn);
           json body_js = json::parse(body_jstr);
-          PluginUpdate(p, *m_map, body_js, *m_repo);
+          PluginUpdate(p, *m_map, query, body_js, *m_repo);
         }
         std::string str = PluginToString(p, *m_map, query, *m_repo);
         auto t2 = steady_clock::now();

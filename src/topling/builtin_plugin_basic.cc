@@ -73,7 +73,7 @@ void HtmlAppendEscape(std::string* d, const char* s, size_t n) {
 }
 struct HtmlTextUserKeyCoder : public UserKeyCoder {
   const char* Name() const override { return "HtmlTextUserKeyCoder"; }
-  void Update(const json&, const SidePluginRepo&) override {
+  void Update(const json&, const json&, const SidePluginRepo&) override {
     ROCKSDB_DIE("This function should not be called");
   }
   std::string ToString(const json&, const SidePluginRepo&) const override {
@@ -109,7 +109,7 @@ struct DbBenchUserKeyCoder : public UserKeyCoder {
     key_size = std::max(key_size, prefix_len + 8);
   }
   const char* Name() const override { return "DbBenchUserKeyCoder"; }
-  void Update(const json&, const SidePluginRepo&) override {
+  void Update(const json&, const json&, const SidePluginRepo&) override {
     ROCKSDB_DIE("This function should not be called");
   }
   std::string ToString(const json&, const SidePluginRepo&) const override {
@@ -197,9 +197,18 @@ JS_NewLRUCache(const json& js, const SidePluginRepo& repo) {
 ROCKSDB_FACTORY_REG("LRUCache", JS_NewLRUCache);
 
 struct LRUCache_Manip : PluginManipFunc<Cache> {
-  void Update(Cache* p, const json& js, const SidePluginRepo& repo)
+  void Update(Cache* cache, const json&, const json& js, const SidePluginRepo&)
   const override {
-
+    if (js.contains("capacity")) {
+      size_t capacity = 0;
+      ROCKSDB_JSON_OPT_SIZE(js, capacity);
+      cache->SetCapacity(capacity);
+    }
+    if (js.contains("strict_capacity")) {
+      bool strict_capacity = false;
+      ROCKSDB_JSON_OPT_PROP(js, strict_capacity);
+      cache->SetStrictCapacityLimit(strict_capacity);
+    }
   }
 
   string ToString(const Cache& r, const json& dump_options, const SidePluginRepo& repo)
@@ -421,7 +430,7 @@ struct DynaMemTableFactory : public MemTableRepFactory {
     auto iter = Get_real_fac_iter(js, repo);
     orig_name = iter.value().get<std::string>();
   }
-  void Update(const json& js, const SidePluginRepo& repo) {
+  void Update(const json&, const json& js, const SidePluginRepo& repo) {
     auto iter = Get_real_fac_iter(js, repo);
     auto& inner = iter.value();
     shared_ptr<MemTableRepFactory> real_fac; // intentional same name
@@ -444,7 +453,7 @@ struct DynaMemTableFactory : public MemTableRepFactory {
   void BackPatch(const SidePluginRepo& repo) {
     ROCKSDB_VERIFY(nullptr == real_fac);
     json js = { {"real_fac", orig_name } };
-    Update(js, repo);
+    Update({}, js, repo);
   }
   MemTableRep*
   CreateMemTableRep(const MemTableRep::KeyComparator& kc, Allocator* a,
@@ -544,8 +553,13 @@ JS_NewWriteBufferManager(const json& js, const SidePluginRepo& repo) {
   return std::make_shared<WriteBufferManager>(buffer_size, cache);
 }
 struct WriteBufferManager_Manip : PluginManipFunc<WriteBufferManager> {
-  void Update(WriteBufferManager*, const json&, const SidePluginRepo&) const final {
-    // TODO:
+  void Update(WriteBufferManager* wbm,
+              const json&, const json& js, const SidePluginRepo&) const final {
+    size_t buffer_size = 0;
+    ROCKSDB_JSON_REQ_SIZE(js, buffer_size);
+    if (buffer_size) {
+      wbm->SetBufferSize(buffer_size);
+    }
   }
   std::string ToString(const WriteBufferManager& wbm, const json& dump_options,
                        const SidePluginRepo& repo) const final {
