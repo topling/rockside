@@ -2351,12 +2351,60 @@ void UpdateCFOptions(DB* db, ColumnFamilyHandle* cfh,
   }
 }
 
+static std::mutex g_trace_file_mtx;
+static std::map<DB*, std::string> g_trace_file_map;
+struct BegTrace : TraceOptions {
+  BegTrace(const json& js, DB* db,
+      Status (DB::*fn)(const TraceOptions&, std::unique_ptr<TraceWriter>&&)) {
+    ROCKSDB_JSON_OPT_SIZE(js, max_trace_file_size);
+    ROCKSDB_JSON_OPT_PROP(js, sampling_frequency);
+    ROCKSDB_JSON_OPT_ENUM(js, filter);
+   #if ROCKSDB_VERSION >= 60280
+    ROCKSDB_JSON_OPT_PROP(js, preserve_write_order);
+   #endif
+
+    std::string file;
+    std::unique_ptr<TraceWriter> fp;
+    ROCKSDB_JSON_REQ_PROP(js, file);
+    if (file.empty()) {
+      THROW_InvalidArgument("missing required param 'file'");
+    }
+    Status s = NewFileTraceWriter(Env::Default(), EnvOptions(), file, &fp);
+    if (!s.ok()) {
+      THROW_InvalidArgument(s.ToString());
+    }
+    s = (db->*fn)(*this, std::move(fp));
+    if (!s.ok()) {
+      THROW_InvalidArgument(s.ToString());
+    }
+  }
+};
+static void DoTrace(const std::string& cmd,
+    DB* db, const json& query, const json& js, const SidePluginRepo& repo) {
+ #define BegTraceFunc(func) else if (#func == cmd) BegTrace(js, db, &DB::func)
+ #define EndTraceFunc(func) else if (#func == cmd) db->func()
+  if (false) {}
+  BegTraceFunc(StartTrace);
+  BegTraceFunc(StartIOTrace);
+  BegTraceFunc(StartBlockCacheTrace);
+  EndTraceFunc(EndTrace);
+  EndTraceFunc(EndIOTrace);
+  EndTraceFunc(EndBlockCacheTrace);
+}
 struct DB_Manip : PluginManipFunc<DB> {
   void Update(DB* db, const json& query, const json& js,
               const SidePluginRepo& repo) const final {
-    UpdateCFOptions(db, db->DefaultColumnFamily(), js, repo);
-    UpdateDBOptions(db, js, repo);
+    std::string cmd;
+    ROCKSDB_JSON_OPT_PROP(query, cmd);
+    if (cmd.empty()) {
+      UpdateCFOptions(db, db->DefaultColumnFamily(), js, repo);
+      UpdateDBOptions(db, js, repo);
+    }
+    else {
+      DoTrace(cmd, db, query, js, repo);
+    }
   }
+
   std::string ToString(const DB& db, const json& dump_options,
                        const SidePluginRepo& repo) const final {
     Options opt = db.GetOptions();
@@ -2422,6 +2470,12 @@ static constexpr auto JS_DB_Manip = &PluginManipSingleton<DB_Manip>;
 struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
   void Update(DB_MultiCF* db, const json& q, const json& js,
               const SidePluginRepo& repo) const final {
+    std::string cmd;
+    ROCKSDB_JSON_OPT_PROP(q, cmd);
+    if (!cmd.empty()) {
+      DoTrace(cmd, db->db, q, js, repo);
+      return;
+    }
     auto iter = js.find("cfo");
     if (js.end() != iter) {
       const json& cfo = iter.value();
