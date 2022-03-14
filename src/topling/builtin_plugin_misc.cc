@@ -2351,8 +2351,6 @@ void UpdateCFOptions(DB* db, ColumnFamilyHandle* cfh,
   }
 }
 
-static std::mutex g_trace_file_mtx;
-static std::map<DB*, std::string> g_trace_file_map;
 struct BegTrace : TraceOptions {
   BegTrace(const json& js, DB* db,
       Status (DB::*fn)(const TraceOptions&, std::unique_ptr<TraceWriter>&&)) {
