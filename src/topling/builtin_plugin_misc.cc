@@ -18,6 +18,7 @@
 #include "db/version_set.h"
 #include "rocksdb/options.h"
 #include "rocksdb/convenience.h"
+#include "rocksdb/iostats_context.h"
 #include "options/db_options.h"
 #include "rocksdb/utilities/db_ttl.h"
 #include "rocksdb/utilities/transaction_db.h"
@@ -2377,7 +2378,8 @@ struct BegTrace : TraceOptions {
     }
   }
 };
-static void DoTrace(const std::string& cmd,
+
+static void DoCmd(const std::string& cmd,
     DB* db, const json& query, const json& js, const SidePluginRepo& repo) {
  #define BegTraceFunc(func) else if (#func == cmd) BegTrace(js, db, &DB::func)
  #define EndTraceFunc(func) else if (#func == cmd) db->func()
@@ -2388,7 +2390,50 @@ static void DoTrace(const std::string& cmd,
   EndTraceFunc(EndTrace);
   EndTraceFunc(EndIOTrace);
   EndTraceFunc(EndBlockCacheTrace);
+  else if ("ResetPerf" == cmd) {
+    ROCKSDB_JSON_OPT_ENUM(js, perf_level);
+    SetPerfLevel(perf_level);
+    perf_context.Reset();
+  }
+  else if ("ResetIOPerf" == cmd) {
+    ROCKSDB_JSON_OPT_ENUM(js, perf_level);
+    SetPerfLevel(perf_level);
+    get_iostats_context()->Reset();
+  }
 }
+
+static void JsonPerfCtx(const json& query, json& djs,
+                        std::function<string(bool)> tostr) {
+  bool nozero = JsonSmartBool(query, "nozero", true);
+  std::string res = tostr(nozero);
+  std::vector<std::pair<Slice, Slice> > fields;
+  split(res, ", ", fields);
+  ROCKSDB_JSON_SET_ENUM(djs, perf_level);
+  for (auto& kv : fields) {
+    kv.first.trim();
+    kv.second.trim();
+    djs[kv.first.ToString()] = kv.second.ToString();
+  }
+}
+
+static bool MayHandleCmd(DB* db, json& djs, const json& query) {
+  if (query.contains("cmd")) {
+    std::string cmd;
+    ROCKSDB_JSON_OPT_PROP(query, cmd);
+    if ("GetPerf" == cmd) {
+      JsonPerfCtx(query, djs,
+        [](bool nozero) { return perf_context.ToString(nozero); });
+      return true;
+    }
+    else if ("GetIOPerf" == cmd) {
+      JsonPerfCtx(query, djs,
+        [](bool nozero) { return get_iostats_context()->ToString(nozero); });
+      return true;
+    }
+  }
+  return false;
+}
+
 struct DB_Manip : PluginManipFunc<DB> {
   void Update(DB* db, const json& query, const json& js,
               const SidePluginRepo& repo) const final {
@@ -2399,7 +2444,7 @@ struct DB_Manip : PluginManipFunc<DB> {
       UpdateDBOptions(db, js, repo);
     }
     else {
-      DoTrace(cmd, db, query, js, repo);
+      DoCmd(cmd, db, query, js, repo);
     }
   }
 
@@ -2425,6 +2470,9 @@ struct DB_Manip : PluginManipFunc<DB> {
     }
     if (dump_options.contains("flush")) {
       return RunManualFlush(&db, db.DefaultColumnFamily(), dump_options);
+    }
+    if (MayHandleCmd(const_cast<DB*>(&db), djs, dump_options)) {
+      return JsonToString(djs, dump_options);
     }
     auto ijs = i1->second.params.find("params");
     if (i1->second.params.end() == ijs) {
@@ -2471,7 +2519,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     std::string cmd;
     ROCKSDB_JSON_OPT_PROP(q, cmd);
     if (!cmd.empty()) {
-      DoTrace(cmd, db->db, q, js, repo);
+      DoCmd(cmd, db->db, q, js, repo);
       return;
     }
     auto iter = js.find("cfo");
@@ -2532,6 +2580,9 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
                        + ", cfname = " + cfname);
       }
       return RunManualFlush(db.db, cfh, dump_options);
+    }
+    if (MayHandleCmd(db.db, djs, dump_options)) {
+      return JsonToString(djs, dump_options);
     }
     auto i1 = dbmap.p2name.find(db.db);
     if (dbmap.p2name.end() == i1) {
