@@ -104,6 +104,7 @@ struct SidePluginRepo::Impl {
 
   JsonCivetServer http;
   bool web_compact = false;
+  bool web_write = false;
 };
 
 ///@note on principle, the factory itself is stateless, but its product

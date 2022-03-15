@@ -2379,11 +2379,24 @@ struct BegTrace : TraceOptions {
   }
 };
 
-static void DoCmd(const std::string& cmd,
+static void DoPostCmd(const std::string& cmd,
     DB* db, const json& query, const json& js, const SidePluginRepo& repo) {
+  //fprintf(stderr, "web_write = %d\n\n", repo.m_impl->web_write);
+  //fprintf(stderr, "query = %s\n", query.dump(2).c_str());
+  //fprintf(stderr, "js = %s\n", js.dump(2).c_str());
+  if ("set" == cmd) {
+    if (!repo.m_impl->web_write) {
+      return;
+    }
+    std::string key, value;
+    ROCKSDB_JSON_REQ_PROP(js, key);
+    ROCKSDB_JSON_REQ_PROP(js, value);
+    Status s = db->Put(WriteOptions(), key, value);
+    if (!s.ok())
+      throw s;
+  }
  #define BegTraceFunc(func) else if (#func == cmd) BegTrace(js, db, &DB::func)
  #define EndTraceFunc(func) else if (#func == cmd) db->func()
-  if (false) {}
   BegTraceFunc(StartTrace);
   BegTraceFunc(StartIOTrace);
   BegTraceFunc(StartBlockCacheTrace);
@@ -2416,20 +2429,37 @@ static void JsonPerfCtx(const json& query, json& djs,
   }
 }
 
-static bool MayHandleCmd(DB* db, json& djs, const json& query) {
-  if (query.contains("cmd")) {
-    std::string cmd;
-    ROCKSDB_JSON_OPT_PROP(query, cmd);
-    if ("GetPerf" == cmd) {
-      JsonPerfCtx(query, djs,
-        [](bool nozero) { return perf_context.ToString(nozero); });
-      return true;
+static bool MayHandleGetCmd(DB* db, json& djs, const json& query,
+                            const SidePluginRepo& repo) {
+  std::string cmd;
+  ROCKSDB_JSON_OPT_PROP(query, cmd);
+  if (cmd.empty()) return false;
+  if ("GetPerf" == cmd) {
+    JsonPerfCtx(query, djs,
+      [](bool nozero) { return perf_context.ToString(nozero); });
+    return true;
+  }
+  if ("GetIOPerf" == cmd) {
+    JsonPerfCtx(query, djs,
+      [](bool nozero) { return get_iostats_context()->ToString(nozero); });
+    return true;
+  }
+  if ("get" == cmd) {
+    std::string key, value;
+    ROCKSDB_JSON_REQ_PROP(query, key);
+    Status s = db->Get(ReadOptions(), key, &value);
+    if (s.ok()) {
+      djs["status"] = "OK";
+      djs["value"] = value;
     }
-    else if ("GetIOPerf" == cmd) {
-      JsonPerfCtx(query, djs,
-        [](bool nozero) { return get_iostats_context()->ToString(nozero); });
-      return true;
+    else {
+      djs["status"] = s.ToString();
     }
+    return true;
+  }
+  if ("set" == cmd) {
+    djs["status"] = repo.m_impl->web_write ? "OK" : "web_write is disallowed";
+    return true;
   }
   return false;
 }
@@ -2444,7 +2474,7 @@ struct DB_Manip : PluginManipFunc<DB> {
       UpdateDBOptions(db, js, repo);
     }
     else {
-      DoCmd(cmd, db, query, js, repo);
+      DoPostCmd(cmd, db, query, js, repo);
     }
   }
 
@@ -2471,7 +2501,7 @@ struct DB_Manip : PluginManipFunc<DB> {
     if (dump_options.contains("flush")) {
       return RunManualFlush(&db, db.DefaultColumnFamily(), dump_options);
     }
-    if (MayHandleCmd(const_cast<DB*>(&db), djs, dump_options)) {
+    if (MayHandleGetCmd(const_cast<DB*>(&db), djs, dump_options, repo)) {
       return JsonToString(djs, dump_options);
     }
     auto ijs = i1->second.params.find("params");
@@ -2519,7 +2549,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     std::string cmd;
     ROCKSDB_JSON_OPT_PROP(q, cmd);
     if (!cmd.empty()) {
-      DoCmd(cmd, db->db, q, js, repo);
+      DoPostCmd(cmd, db->db, q, js, repo);
       return;
     }
     auto iter = js.find("cfo");
@@ -2581,7 +2611,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
       }
       return RunManualFlush(db.db, cfh, dump_options);
     }
-    if (MayHandleCmd(db.db, djs, dump_options)) {
+    if (MayHandleGetCmd(db.db, djs, dump_options, repo)) {
       return JsonToString(djs, dump_options);
     }
     auto i1 = dbmap.p2name.find(db.db);

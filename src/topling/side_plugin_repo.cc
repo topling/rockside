@@ -334,6 +334,7 @@ struct SideRepoImpl : SidePluginRepo::Impl {
     }
     const json& js = iter.value();
     ROCKSDB_JSON_OPT_PROP(js, web_compact);
+    ROCKSDB_JSON_OPT_PROP(js, web_write);
   }
 };
 
@@ -1364,9 +1365,11 @@ std::string JsonToString(const json& obj, const json& options) {
   if (options.end() != iter) {
     indent = JsonSmartInt(iter.value());
   }
+/*
   if (-1 != indent) {
     fprintf(stderr, "INFO: JsonToString: indent = %d\n", indent);
   }
+*/
   if (JsonSmartBool(options, "html", true))
     return JsonToHtml(obj);
   else

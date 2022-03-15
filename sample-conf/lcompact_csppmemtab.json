@@ -13,6 +13,10 @@
           "value": "force overwrite this env by overwrite true"
       }
     },
+    "permissions": {
+      "web_compact": true,
+      "web_write": true
+    },
     "Cache": {
       "clock-cache-default": {
         "class-needs-TBB": "ClockCache",
