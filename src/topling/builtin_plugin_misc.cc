@@ -615,7 +615,12 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_PROP(js, target_file_size_multiplier);
     ROCKSDB_JSON_SET_PROP(js, level_compaction_dynamic_level_bytes);
     ROCKSDB_JSON_SET_PROP(js, max_bytes_for_level_multiplier);
-    ROCKSDB_JSON_SET_PROP(js, max_bytes_for_level_multiplier_additional);
+    if (html) {
+      js["max_bytes_for_level_multiplier_additional"] =
+     json(max_bytes_for_level_multiplier_additional).dump();
+    } else {
+      ROCKSDB_JSON_SET_PROP(js, max_bytes_for_level_multiplier_additional);
+    }
     ROCKSDB_JSON_SET_SIZE(js, max_compaction_bytes);
     ROCKSDB_JSON_SET_SIZE(js, soft_pending_compaction_bytes_limit);
     ROCKSDB_JSON_SET_SIZE(js, hard_pending_compaction_bytes_limit);
