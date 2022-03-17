@@ -677,7 +677,9 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_SIZE(js, write_buffer_size);
     ROCKSDB_JSON_SET_ENUM(js, compression);
     ROCKSDB_JSON_SET_ENUM(js, bottommost_compression);
-    ROCKSDB_JSON_SET_NEST(js, bottommost_compression_opts);
+    if (kDisableCompressionOption != bottommost_compression) {
+      ROCKSDB_JSON_SET_NEST(js, bottommost_compression_opts);
+    }
     ROCKSDB_JSON_SET_NEST(js, compression_opts);
     ROCKSDB_JSON_SET_PROP(js, level0_file_num_compaction_trigger);
     ROCKSDB_JSON_SET_FACX(js, prefix_extractor, slice_transform);
