@@ -42,9 +42,16 @@ ifeq (${DEBUG_LEVEL}, 2)
   OBJ_DIR := ${BUILD_ROOT}/dbg
 endif
 
-INCS := -I../../../include -I../../.. -I../src -I${TOPLING_CORE_DIR}/src -I${TOPLING_CORE_DIR}/boost-include
+TOPLINGDB_HOME := ../../..
+ROCKSIDE_HOME := ..
+
+INCS := -I${TOPLINGDB_HOME}/include -I${TOPLINGDB_HOME} \
+        -I${ROCKSIDE_HOME}/src \
+		-I${TOPLING_CORE_DIR}/src \
+		-I${TOPLING_CORE_DIR}/boost-include
+
 CXXFLAGS += ${INCS}
-LDFLAGS += -L../../.. \
+LDFLAGS += -L${TOPLINGDB_HOME} \
            -l${LIBROCKSDB} \
            -L${TOPLING_CORE_DIR}/${BUILD_ROOT}/lib_shared \
            -lterark-{zbs,fsa,core}-${COMPILER}-${BUILD_TYPE_SIG}
