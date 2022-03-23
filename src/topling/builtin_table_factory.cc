@@ -331,6 +331,8 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   m_json_obj = js; // backup
   m_json_str = js.dump();
   m_is_back_patched = false;
+  ignoreInputCompressionMatchesOutput = false;
+  ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
 }
 
 const char* DispatcherTableFactory::Name() const {
@@ -458,6 +460,9 @@ static std::string str_input_levels(const Compaction* c) {
 }
 
 bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) const {
+  if (ignoreInputCompressionMatchesOutput) {
+    return true;
+  }
   auto get_fac = [&](int level) {
     level = std::min(level, int(m_level_writers.size()) - 1);
     if (level < 0) {
@@ -522,10 +527,13 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
     if (level_writers_js.empty()) {
       THROW_InvalidArgument("level_writers must be a non-empty json array");
     }
+    m_level_writers.reserve(level_writers_js.size());
     for (auto& item : level_writers_js.items()) {
+      char varname[32];
+      sprintf(varname, "level_writers[%zd]", m_level_writers.size());
       auto& options = item.value();
       auto p = PluginFactorySP<TableFactory>::
-        ObtainPlugin("default", ROCKSDB_FUNC, options, repo);
+        GetPlugin(varname, ROCKSDB_FUNC, options, repo);
       if (!p) {
         THROW_InvalidArgument(
             "ObtainPlugin returns null, options = " + options.dump());
@@ -786,7 +794,39 @@ MetricStr(const json& dump_options, const SidePluginRepo& repo) const {
 }
 
 void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo& repo) {
-
+  ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
+  auto iter = js.find("level_writers");
+  if (js.end() != iter) {
+    auto& level_writers_js = iter.value();
+    if (!level_writers_js.is_array()) {
+      THROW_InvalidArgument("level_writers must be a json array");
+    }
+    if (level_writers_js.empty()) {
+      THROW_InvalidArgument("level_writers must be a non-empty json array");
+    }
+    size_t num = std::min(level_writers_js.size(), m_level_writers.size());
+    for (size_t i = 0; i < num; ++i) {
+      char varname[32];
+      sprintf(varname, "level_writers[%zd]", i);
+      auto& options = level_writers_js[i];
+      if (options.is_null()) {
+        continue; // dont change level_writers[i]
+      }
+      if (options.is_string()) {
+         auto& str = options.get_ref<const std::string&>();
+         if (str.empty() || "null" == str || "nullptr" == str) {
+           continue; // dont change level_writers[i]
+         }
+      }
+      auto p = PluginFactorySP<TableFactory>::
+        GetPlugin(varname, ROCKSDB_FUNC, options, repo);
+      if (!p) {
+        THROW_InvalidArgument(
+            "GetPlugin returns null, options = " + options.dump());
+      }
+      m_level_writers[i] = p;
+    }
+  }
 }
 
 static const seconds g_durations[6] = {

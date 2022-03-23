@@ -87,6 +87,7 @@ protected:
   json m_json_obj{}; // reset to null after back patched
   mutable std::map<uint64_t, ReaderFactory> m_magic_to_factory;
   bool m_is_back_patched;
+  bool ignoreInputCompressionMatchesOutput;
   friend class DispatcherTableBuilder;
 };
 
