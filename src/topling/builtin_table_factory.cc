@@ -683,6 +683,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
     lwjs.push_back(std::move(wjs));
   };
   json js;
+  ROCKSDB_JSON_SET_PROP(js["options"], ignoreInputCompressionMatchesOutput);
   for (size_t i = 0, n = m_level_writers.size(); i < n; ++i) {
     auto& tf = m_level_writers[i];
     auto iter = p2name.find(tf.get());
