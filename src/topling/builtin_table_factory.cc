@@ -506,7 +506,7 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   if (m_json_obj.end() != iter) {
     auto& subjs = iter.value();
     m_default_writer = PluginFactorySP<TableFactory>::
-      ObtainPlugin("default", ROCKSDB_FUNC, subjs, repo);
+      GetPlugin("default", ROCKSDB_FUNC, subjs, repo);
     if (!m_default_writer) {
       THROW_InvalidArgument("fail get defined default writer = " + subjs.dump());
     }
@@ -827,6 +827,16 @@ void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo&
       }
       m_level_writers[i] = p;
     }
+  }
+  iter = js.find("default");
+  if (js.end() != iter) {
+    auto& subjs = iter.value();
+    auto default_writer = PluginFactorySP<TableFactory>::
+      GetPlugin("default", ROCKSDB_FUNC, subjs, repo);
+    if (!default_writer) {
+      THROW_InvalidArgument("fail get defined default writer = " + subjs.dump());
+    }
+    m_default_writer = default_writer;
   }
 }
 
