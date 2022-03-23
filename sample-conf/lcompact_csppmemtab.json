@@ -119,6 +119,14 @@
           "filter_policy": null
         }
       },
+      "bb16k": {
+        "class": "BlockBasedTable",
+        "params": {
+          "enable_index_compression": true,
+          "block_size": "16K",
+          "block_cache": "${lru_cache}"
+        }
+      },
       "dispatch": {
         "class": "DispatcherTable",
         "params": {
