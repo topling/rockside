@@ -2366,7 +2366,11 @@ struct BegTrace : TraceOptions {
       Status (DB::*fn)(const TraceOptions&, std::unique_ptr<TraceWriter>&&)) {
     ROCKSDB_JSON_OPT_SIZE(js, max_trace_file_size);
     ROCKSDB_JSON_OPT_PROP(js, sampling_frequency);
-    ROCKSDB_JSON_OPT_ENUM(js, filter);
+
+    TraceFilterType filter_flags = TraceFilterType(this->filter);
+    ROCKSDB_JSON_OPT_ESET_3(js, filter_flags, "filter");
+    this->filter = filter_flags;
+
    #if ROCKSDB_VERSION >= 60280
     ROCKSDB_JSON_OPT_PROP(js, preserve_write_order);
    #endif

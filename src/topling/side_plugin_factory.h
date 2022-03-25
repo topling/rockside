@@ -349,6 +349,19 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
       if (!enum_value(__val, &prop)) \
         THROW_InvalidArgument("bad " #prop " = " + __val); \
   }} while (0)
+
+#define ROCKSDB_JSON_OPT_ESET(js, prop, pname) \
+        ROCKSDB_JSON_OPT_ESET_3(js, prop, #prop)
+#define ROCKSDB_JSON_OPT_ESET_3(js, prop, pname) do { \
+    auto __iter = js.find(pname); \
+    if (js.end() != __iter) {                \
+      if (!__iter.value().is_string())       \
+        THROW_InvalidArgument("enum \"" pname "\" must be json string"); \
+      const auto& __val = __iter.value().get_ref<const std::string&>(); \
+      if (!enum_flags(__val, &prop)) \
+        THROW_InvalidArgument("bad " pname " = " + __val); \
+  }} while (0)
+
 #define ROCKSDB_JSON_OPT_NEST(js, prop) \
   do try { \
     auto __iter = js.find(#prop); \
