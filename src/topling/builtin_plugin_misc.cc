@@ -166,7 +166,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, wal_dir);
     ROCKSDB_JSON_OPT_PROP(js, delete_obsolete_files_period_micros);
     ROCKSDB_JSON_OPT_PROP(js, max_background_jobs);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_OPT_PROP(js, base_background_compactions);
+   #endif
     ROCKSDB_JSON_OPT_PROP(js, max_background_compactions);
     ROCKSDB_JSON_OPT_PROP(js, max_subcompactions);
     ROCKSDB_JSON_OPT_PROP(js, max_level1_subcompactions);
@@ -186,7 +188,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, use_direct_io_for_flush_and_compaction);
     ROCKSDB_JSON_OPT_PROP(js, allow_fallocate);
     ROCKSDB_JSON_OPT_PROP(js, is_fd_close_on_exec);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_OPT_PROP(js, skip_log_error_on_recovery);
+   #endif
     stats_dump_period_sec = 0; // change default to 0
     stats_persist_period_sec = 0; // change default to 0
     persist_stats_to_disk = false; // change default to false
@@ -199,7 +203,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_SIZE(js, db_write_buffer_size);
     ROCKSDB_JSON_OPT_FACT(js, write_buffer_manager);
     ROCKSDB_JSON_OPT_ENUM(js, access_hint_on_compaction_start);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_OPT_PROP(js, new_table_reader_for_compaction_inputs);
+   #endif
     ROCKSDB_JSON_OPT_SIZE(js, compaction_readahead_size);
     ROCKSDB_JSON_OPT_SIZE(js, random_access_max_buffer_size);
     ROCKSDB_JSON_OPT_SIZE(js, writable_file_max_buffer_size);
@@ -232,7 +238,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, avoid_flush_during_recovery);
     ROCKSDB_JSON_OPT_PROP(js, avoid_flush_during_shutdown);
     ROCKSDB_JSON_OPT_PROP(js, allow_ingest_behind);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_OPT_PROP(js, preserve_deletes);
+   #endif
     ROCKSDB_JSON_OPT_PROP(js, two_write_queues);
     ROCKSDB_JSON_OPT_PROP(js, manual_wal_flush);
     ROCKSDB_JSON_OPT_PROP(js, atomic_flush);
@@ -274,7 +282,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, wal_dir);
     ROCKSDB_JSON_SET_PROP(js, delete_obsolete_files_period_micros);
     ROCKSDB_JSON_SET_PROP(js, max_background_jobs);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_SET_PROP(js, base_background_compactions);
+   #endif
     ROCKSDB_JSON_SET_PROP(js, max_background_compactions);
     ROCKSDB_JSON_SET_PROP(js, max_subcompactions);
     ROCKSDB_JSON_SET_PROP(js, max_level1_subcompactions);
@@ -294,7 +304,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, use_direct_io_for_flush_and_compaction);
     ROCKSDB_JSON_SET_PROP(js, allow_fallocate);
     ROCKSDB_JSON_SET_PROP(js, is_fd_close_on_exec);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_SET_PROP(js, skip_log_error_on_recovery);
+   #endif
     ROCKSDB_JSON_SET_PROP(js, stats_dump_period_sec);
     ROCKSDB_JSON_SET_PROP(js, stats_persist_period_sec);
     ROCKSDB_JSON_SET_PROP(js, persist_stats_to_disk);
@@ -304,7 +316,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_FACT(js, write_buffer_manager);
     ROCKSDB_JSON_SET_PROP(js, experimental_mempurge_threshold);
     ROCKSDB_JSON_SET_ENUM(js, access_hint_on_compaction_start);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_SET_PROP(js, new_table_reader_for_compaction_inputs);
+   #endif
     ROCKSDB_JSON_SET_SIZE(js, compaction_readahead_size);
     ROCKSDB_JSON_SET_SIZE(js, random_access_max_buffer_size);
     ROCKSDB_JSON_SET_SIZE(js, writable_file_max_buffer_size);
@@ -337,7 +351,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, avoid_flush_during_recovery);
     ROCKSDB_JSON_SET_PROP(js, avoid_flush_during_shutdown);
     ROCKSDB_JSON_SET_PROP(js, allow_ingest_behind);
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_SET_PROP(js, preserve_deletes);
+   #endif
     ROCKSDB_JSON_SET_PROP(js, two_write_queues);
     ROCKSDB_JSON_SET_PROP(js, manual_wal_flush);
     ROCKSDB_JSON_SET_PROP(js, atomic_flush);
@@ -545,11 +561,13 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_PROP(js, blob_garbage_collection_force_threshold);
     ROCKSDB_JSON_OPT_SIZE(js, blob_compaction_readahead_size);
    #endif
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_OPT_PROP(js, max_mem_compaction_level);
     ROCKSDB_JSON_OPT_PROP(js, soft_rate_limit);
     ROCKSDB_JSON_OPT_PROP(js, hard_rate_limit);
     ROCKSDB_JSON_OPT_PROP(js, rate_limit_delay_max_milliseconds);
     ROCKSDB_JSON_OPT_PROP(js, purge_redundant_kvs_while_flush);
+   #endif
     // ------- ColumnFamilyOptions specific --------------------------
     ROCKSDB_JSON_OPT_FACT(js, comparator);
     ROCKSDB_JSON_OPT_FACT(js, merge_operator);
@@ -666,11 +684,13 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_PROP(js, blob_garbage_collection_force_threshold);
     ROCKSDB_JSON_SET_SIZE(js, blob_compaction_readahead_size);
    #endif
+   #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_SET_PROP(js, max_mem_compaction_level);
     ROCKSDB_JSON_SET_PROP(js, soft_rate_limit);
     ROCKSDB_JSON_SET_PROP(js, hard_rate_limit);
     ROCKSDB_JSON_SET_PROP(js, rate_limit_delay_max_milliseconds);
     ROCKSDB_JSON_SET_PROP(js, purge_redundant_kvs_while_flush);
+   #endif
     // ------- ColumnFamilyOptions specific --------------------------
     ROCKSDB_JSON_SET_FACT(js, comparator);
     ROCKSDB_JSON_SET_FACT(js, merge_operator);
@@ -1957,7 +1977,11 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   Cache::Handle* ch = nullptr;
   auto& icmp = cfd->internal_comparator();
   auto& fopt = *cfd->soptions(); // file_options
+ #if ROCKSDB_MAJOR < 7
   auto pref_ext = mut_cfo->prefix_extractor.get();
+ #else
+  auto& pref_ext = mut_cfo->prefix_extractor;
+ #endif
   auto s = tc->FindTable(ReadOptions(), fopt, icmp, fd, &ch, pref_ext);
   if (!s.ok()) {
     THROW_InvalidArgument(s.ToString());

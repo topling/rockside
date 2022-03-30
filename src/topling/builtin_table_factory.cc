@@ -87,7 +87,9 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_OPT_ENUM(js, index_shortening);
     ROCKSDB_JSON_OPT_ENUM(js, data_block_index_type);
     ROCKSDB_JSON_OPT_PROP(js, data_block_hash_table_util_ratio);
+#if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_OPT_PROP(js, hash_index_allow_collision);
+#endif
     ROCKSDB_JSON_OPT_ENUM(js, checksum);
     ROCKSDB_JSON_OPT_PROP(js, no_block_cache);
     ROCKSDB_JSON_OPT_SIZE(js, block_size);
@@ -134,7 +136,9 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_SET_ENUM(js, index_shortening);
     ROCKSDB_JSON_SET_ENUM(js, data_block_index_type);
     ROCKSDB_JSON_SET_PROP(js, data_block_hash_table_util_ratio);
+#if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_SET_PROP(js, hash_index_allow_collision);
+#endif
     ROCKSDB_JSON_SET_ENUM(js, checksum);
     ROCKSDB_JSON_SET_PROP(js, no_block_cache);
     ROCKSDB_JSON_SET_SIZE(js, block_size);

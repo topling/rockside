@@ -263,7 +263,9 @@ json ToWebViewJson(const json& dump_options) const {
                          : json("nullptr") }
   });
   if (BlockBasedTableOptions::kHashSearch == r->index_type) {
+   #if ROCKSDB_MAJOR < 7
     index["hash_index_allow_collision"] = r->hash_index_allow_collision;
+   #endif
   }
   json filter = json::object({
       {"filter_type", enum_stdstr(r->filter_type)},
