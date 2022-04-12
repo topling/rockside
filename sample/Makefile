@@ -50,6 +50,7 @@ INCS := -I${TOPLINGDB_HOME}/include -I${TOPLINGDB_HOME} \
 		-I${TOPLING_CORE_DIR}/src \
 		-I${TOPLING_CORE_DIR}/boost-include
 
+CXXFLAGS += -std=gnu++17
 CXXFLAGS += ${INCS}
 LDFLAGS += -L${TOPLINGDB_HOME} \
            -l${LIBROCKSDB} \

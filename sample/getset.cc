@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "ERROR: repo.OpenDB(DB*) = %s\n", s.ToString().c_str());
     return 2;
   }
+  TERARK_SCOPE_EXIT(repo.CloseAllDB());
   s = repo.StartHttpServer();
   if (!s.ok()) {
     fprintf(stderr, "ERROR: repo.StartHttpServer() = %s\n", s.ToString().c_str());
@@ -53,6 +54,5 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "now visit the web(defined in json/yaml conf file)\n");
   fprintf(stderr, "press enter to exit\n");
   getchar(); // wait for enter
-  repo.CloseAllDB();
   return 0;
 }
