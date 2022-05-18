@@ -317,7 +317,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 #define ROCKSDB_JSON_XXX_PROP(js, prop, pname) \
     auto __iter = js.find(pname); \
     if (js.end() != __iter) try { \
-      prop = __iter.value().get<decltype(prop)>(); \
+      prop = __iter.value().get<std::remove_reference_t<decltype(prop)> >(); \
     } catch (const std::exception& ex) {     \
       THROW_InvalidArgument( \
         "\"" pname "\": js = " + js.dump() + " => " + ex.what()); \
