@@ -993,17 +993,49 @@ std::string PluginParseInstID(const std::string& str_val) {
     return str_val.substr(1, str_val.size() - 1);
 }
 
+template<class ParseNum>
+long long DoParseSizeXiB_1(const char* s, ParseNum parse) {
+  char* endptr = nullptr;
+  auto  base = parse(s, &endptr);
+  while (*endptr && !isalpha((unsigned char)(*endptr))) {
+    endptr++;
+  }
+  switch (*endptr) {
+    case '\0': // end of string
+    case 'b': case 'B': return (long long)(base);
+    case 'k': case 'K': return (long long)(base * (1ULL << 10));
+    case 'm': case 'M': return (long long)(base * (1ULL << 20));
+    case 'g': case 'G': return (long long)(base * (1ULL << 30));
+    case 't': case 'T': return (long long)(base * (1ULL << 40));
+    case 'p': case 'P': return (long long)(base * (1ULL << 50));
+    case 'e': case 'E': return (long long)(base * (1ULL << 60));
+    default: ROCKSDB_DIE("DoParseSizeXiB: bad str = %s", s);
+  }
+}
+static long long strtoll_base_10(const char* s, char** endptr) {
+  return strtoll(s, endptr, 10);
+}
+static unsigned long long strtoull_base_10(const char* s, char** endptr) {
+  return strtoull(s, endptr, 10);
+}
+
+static long long DoParseSizeXiB(const char* s) {
+  if (strchr(s, '.')) {
+    return DoParseSizeXiB_1(s, &strtod);
+  }
+  else if ('-' == s[0]) {
+    return DoParseSizeXiB_1(s, &strtoll_base_10);
+  }
+  else {
+    return DoParseSizeXiB_1(s, &strtoull_base_10);
+  }
+}
+
 ParseSizeXiB::ParseSizeXiB(const char* s) {
-  if ('-' == s[0])
-    m_val = ParseInt64(s);
-  else
-    m_val = ParseUint64(s);
+  m_val = DoParseSizeXiB(s);
 }
 ParseSizeXiB::ParseSizeXiB(const std::string& s) {
-  if ('-' == s[0])
-    m_val = ParseInt64(s);
-  else
-    m_val = ParseUint64(s);
+  m_val = DoParseSizeXiB(s.c_str());
 }
 ParseSizeXiB::ParseSizeXiB(const json& js) {
   if (js.is_number_integer())
