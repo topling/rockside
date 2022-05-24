@@ -330,6 +330,11 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
     else THROW_InvalidArgument(             \
       "missing required param \"" #prop "\", js = " + js.dump()); \
   } while (0)
+#define ROCKSDB_JSON_REQ_PROP_3(js, prop, pname) do { \
+    ROCKSDB_JSON_XXX_PROP(js, prop, pname)  \
+    else THROW_InvalidArgument(             \
+      "missing required param \"" pname "\", js = " + js.dump()); \
+  } while (0)
 #define ROCKSDB_JSON_OPT_PROP(js, prop) do { \
     ROCKSDB_JSON_XXX_PROP(js, prop, #prop)   \
   } while (0)
