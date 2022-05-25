@@ -302,9 +302,11 @@ ROCKSDB_FACTORY_REG(                  "bytewise", BytewiseComp);
 ROCKSDB_FACTORY_REG(                  "Bytewise", BytewiseComp);
 ROCKSDB_FACTORY_REG(        "BytewiseComparator", BytewiseComp);
 ROCKSDB_FACTORY_REG("leveldb.BytewiseComparator", BytewiseComp);
+ROCKSDB_FACTORY_REG("rocksdb.BytewiseComparator", BytewiseComp);
 ROCKSDB_FACTORY_REG(        "ReverseBytewise"          , RevBytewiseComp);
 ROCKSDB_FACTORY_REG(        "ReverseBytewiseComparator", RevBytewiseComp);
 ROCKSDB_FACTORY_REG("leveldb.ReverseBytewiseComparator", RevBytewiseComp);
+ROCKSDB_FACTORY_REG("rocksdb.ReverseBytewiseComparator", RevBytewiseComp);
 
 //////////////////////////////////////////////////////////////////////////////
 static Env* DefaultEnv(const json&, const SidePluginRepo&) {
