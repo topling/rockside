@@ -138,6 +138,11 @@ public:
     }
   }
 
+#if CIVETWEB_VERSION_MAJOR * 100000 + CIVETWEB_VERSION_MINOR * 100 >= 1*100000 + 15*100
+  using CivetHandler::handleGet;
+  using CivetHandler::handlePost;
+#endif
+
   bool handleGet(CivetServer *server, struct mg_connection *conn) override {
     return handleMethod(server, conn, false);
   }
