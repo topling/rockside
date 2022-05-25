@@ -305,7 +305,6 @@ ROCKSDB_FACTORY_REG("leveldb.BytewiseComparator", BytewiseComp);
 ROCKSDB_FACTORY_REG("rocksdb.BytewiseComparator", BytewiseComp);
 ROCKSDB_FACTORY_REG(        "ReverseBytewise"          , RevBytewiseComp);
 ROCKSDB_FACTORY_REG(        "ReverseBytewiseComparator", RevBytewiseComp);
-ROCKSDB_FACTORY_REG("leveldb.ReverseBytewiseComparator", RevBytewiseComp);
 ROCKSDB_FACTORY_REG("rocksdb.ReverseBytewiseComparator", RevBytewiseComp);
 
 //////////////////////////////////////////////////////////////////////////////
