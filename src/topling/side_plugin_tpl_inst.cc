@@ -365,6 +365,7 @@ explicit_instantiate_serde(SliceTransform);
 explicit_instantiate_serde(MergeOperator);
 explicit_instantiate_serde(SstPartitionerFactory);
 explicit_instantiate_serde(TableFactory);
+explicit_instantiate_serde(EventListener);
 explicit_instantiate_serde(TablePropertiesCollectorFactory);
 
 } // ROCKSDB_NAMESPACE
