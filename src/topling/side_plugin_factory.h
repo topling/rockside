@@ -283,7 +283,7 @@ const SidePluginRepo& repoRefType();
 
 template<class ConcretClass, class Interface>
 std::shared_ptr<Interface>
-JS_NewDefaultConsObject(const json& js, const SidePluginRepo&) {
+JS_NewDefaultConsObject(const json&, const SidePluginRepo&) {
   return std::make_shared<ConcretClass>();
 }
 template<class ConcretClass, class Interface>
