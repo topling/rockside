@@ -281,6 +281,15 @@ const SidePluginRepo& repoRefType();
   ROCKSDB_PP_CAT_3(g_reg_factory_,Acquire,__LINE__) \
   (Name,Acquire,__FILE__,__LINE__)
 
+///@param Name       string of factory class_name
+///@param Acquire()  must return base class ptr
+#define ROCKSDB_FACTORY_REG_0(Name, Acquire) \
+  static auto Acquire##_JsonRepo(const json&, const SidePluginRepo&) \
+    { return Acquire(); } \
+  PluginFactory<decltype(Acquire())>::Reg \
+  ROCKSDB_PP_CAT_3(g_reg_factory_,Acquire,__LINE__) \
+  (Name,Acquire##_JsonRepo,__FILE__,__LINE__)
+
 template<class ConcretClass, class Interface>
 std::shared_ptr<Interface>
 JS_NewDefaultConsObject(const json&, const SidePluginRepo&) {
