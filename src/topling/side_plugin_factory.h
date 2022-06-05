@@ -89,6 +89,7 @@ struct SidePluginRepo::Impl {
   ObjRepo<TransactionDBMutexFactory> txn_db_mutex_factory;
   ObjRepo<WriteBufferManager> write_buffer_manager;
   ObjRepo<const SliceTransform> slice_transform;
+  ObjRepo<WriteBatchWithIndexFactory> write_batch_with_index_factory;
 
   ObjRepo<Options> options;
   ObjRepo<DBOptions> db_options;

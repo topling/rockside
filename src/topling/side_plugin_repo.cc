@@ -16,6 +16,7 @@
 #include "rocksdb/slice_transform.h"
 #include "rocksdb/sst_file_manager.h"
 #include "rocksdb/utilities/transaction_db_mutex.h"
+#include "rocksdb/utilities/write_batch_with_index.h"
 #include "rocksdb/wal_filter.h"
 #include "util/string_util.h"
 
@@ -378,6 +379,7 @@ try
   JSON_IMPORT_REPO(TableFactory             , table_factory);
   JSON_IMPORT_REPO(TransactionDBMutexFactory, txn_db_mutex_factory);
   JSON_IMPORT_REPO(WriteBufferManager       , write_buffer_manager);
+  JSON_IMPORT_REPO(WriteBatchWithIndexFactory,write_batch_with_index_factory);
 
   extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
   for (auto& kv : *m_impl->table_factory.name2p) {
@@ -456,6 +458,7 @@ try
   JSON_EXPORT_REPO(TableFactory             , table_factory);
   JSON_EXPORT_REPO(TransactionDBMutexFactory, txn_db_mutex_factory);
   JSON_EXPORT_REPO(WriteBufferManager       , write_buffer_manager);
+  JSON_EXPORT_REPO(WriteBatchWithIndexFactory,write_batch_with_index_factory);
 
   return Status::OK();
 }
@@ -564,6 +567,7 @@ JSON_REPO_TYPE_IMPL(table_properties_collector_factory)
 JSON_REPO_TYPE_IMPL(txn_db_mutex_factory)
 JSON_REPO_TYPE_IMPL(write_buffer_manager)
 JSON_REPO_TYPE_IMPL(slice_transform)
+JSON_REPO_TYPE_IMPL(write_batch_with_index_factory)
 
 JSON_REPO_TYPE_IMPL(options)
 JSON_REPO_TYPE_IMPL(db_options)
@@ -601,6 +605,7 @@ JSON_GetConsParams(table_properties_collector_factory)
 JSON_GetConsParams(txn_db_mutex_factory)
 JSON_GetConsParams(write_buffer_manager)
 JSON_GetConsParams(slice_transform)
+JSON_GetConsParams(write_batch_with_index_factory)
 
 JSON_GetConsParams(options)
 JSON_GetConsParams(db_options)

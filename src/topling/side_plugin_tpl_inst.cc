@@ -11,6 +11,7 @@
 #include "rocksdb/slice_transform.h"
 #include "rocksdb/sst_file_manager.h"
 #include "rocksdb/utilities/transaction_db_mutex.h"
+#include "rocksdb/utilities/write_batch_with_index.h"
 #include "rocksdb/wal_filter.h"
 #include "logging/logging.h"
 #include "util/string_util.h"
@@ -341,6 +342,7 @@ explicit_instantiate_sp(TablePropertiesCollectorFactory);
 explicit_instantiate_sp(TransactionDBMutexFactory);
 explicit_instantiate_sp(WriteBufferManager);
 explicit_instantiate_sp(const SliceTransform);
+explicit_instantiate_sp(WriteBatchWithIndexFactory);
 
 explicit_instantiate_sp(Options);
 explicit_instantiate_sp(DBOptions);

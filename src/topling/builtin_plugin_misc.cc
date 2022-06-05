@@ -23,6 +23,7 @@
 #include "rocksdb/utilities/db_ttl.h"
 #include "rocksdb/utilities/transaction_db.h"
 #include "rocksdb/utilities/transaction_db_mutex.h"
+#include "rocksdb/utilities/write_batch_with_index.h"
 #include "rocksdb/utilities/optimistic_transaction_db.h"
 #include "utilities/blob_db/blob_db.h"
 #include "utilities/transactions/transaction_db_mutex_impl.h"
@@ -2501,6 +2502,9 @@ static bool MayHandleGetCmd(DB* db, json& djs, const json& query,
   return false;
 }
 
+static json TxnDBOptionsToJson(const TransactionDBOptions& o,
+       const SidePluginRepo& repo, bool html);
+
 struct DB_Manip : PluginManipFunc<DB> {
   void Update(DB* db, const json& query, const json& js,
               const SidePluginRepo& repo) const final {
@@ -2568,6 +2572,9 @@ struct DB_Manip : PluginManipFunc<DB> {
     if (cfo_name.empty()) cfo_name = "json varname: (defined inline)";
     djs["DBOptions"][0] = dbo_name; dbo.SaveToJson(djs["DBOptions"][1], repo, html);
     djs["CFOptions"][0] = dbo_name; cfo.SaveToJson(djs["CFOptions"][1], repo, html);
+    if (auto txn_db = dynamic_cast<const TransactionDB*>(&db)) {
+      djs["TxnDBOptions"] = TxnDBOptionsToJson(txn_db->GetTxnDBOptions(), repo, html);
+    }
     //djs["CFOptions"][1]["MaxMemCompactionLevel"] = const_cast<DB&>(db).MaxMemCompactionLevel();
     //djs["CFOptions"][1]["Level0StopWriteTrigger"] = const_cast<DB&>(db).Level0StopWriteTrigger();
     //Json_DB_Statistics(dbo.statistics.get(), djs, html);
@@ -2679,6 +2686,9 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     djs["DBOptions"][0] = dbo_name;
     djs["path"] = db.db->GetName();
     dbo.SaveToJson(djs["DBOptions"][1], repo, html);
+    if (auto txn_db = dynamic_cast<const TransactionDB*>(db.db)) {
+      djs["TxnDBOptions"] = TxnDBOptionsToJson(txn_db->GetTxnDBOptions(), repo, html);
+    }
     auto& result_cfo_js = djs["CFOptions"];
     auto& cf_props = djs["CFProps"];
     for (size_t i = 0; i < db.cf_handles.size(); ++i) {
@@ -3061,6 +3071,8 @@ ROCKSDB_FACTORY_REG("Default", JS_NewTransactionDBMutexFactoryImpl);
 ROCKSDB_FACTORY_REG("default", JS_NewTransactionDBMutexFactoryImpl);
 ROCKSDB_FACTORY_REG("TransactionDBMutexFactoryImpl", JS_NewTransactionDBMutexFactoryImpl);
 
+ROCKSDB_FACTORY_REG_0("SkipList", SingleSkipListWBWIFactory);
+
 struct TransactionDBOptions_Json : TransactionDBOptions {
   TransactionDBOptions_Json(const json& js, const SidePluginRepo& repo) {
     ROCKSDB_JSON_OPT_PROP(js, max_num_locks);
@@ -3069,12 +3081,32 @@ struct TransactionDBOptions_Json : TransactionDBOptions {
     ROCKSDB_JSON_OPT_PROP(js, transaction_lock_timeout);
     ROCKSDB_JSON_OPT_PROP(js, default_lock_timeout);
     ROCKSDB_JSON_OPT_FACT(js, custom_mutex_factory);
+    ROCKSDB_JSON_OPT_FACT(js, write_batch_with_index_factory);
     ROCKSDB_JSON_OPT_ENUM(js, write_policy);
     ROCKSDB_JSON_OPT_PROP(js, rollback_merge_operands);
     ROCKSDB_JSON_OPT_PROP(js, skip_concurrency_control);
     ROCKSDB_JSON_OPT_PROP(js, default_write_batch_flush_threshold);
   }
+  json ToJson(const SidePluginRepo& repo, bool html) const {
+    json js;
+    ROCKSDB_JSON_SET_PROP(js, max_num_locks);
+    ROCKSDB_JSON_SET_PROP(js, max_num_deadlocks);
+    ROCKSDB_JSON_SET_PROP(js, num_stripes);
+    ROCKSDB_JSON_SET_PROP(js, transaction_lock_timeout);
+    ROCKSDB_JSON_SET_PROP(js, default_lock_timeout);
+    ROCKSDB_JSON_SET_FACX(js, custom_mutex_factory, txn_db_mutex_factory);
+    ROCKSDB_JSON_SET_FACT(js, write_batch_with_index_factory);
+    ROCKSDB_JSON_SET_ENUM(js, write_policy);
+    ROCKSDB_JSON_SET_PROP(js, rollback_merge_operands);
+    ROCKSDB_JSON_SET_PROP(js, skip_concurrency_control);
+    ROCKSDB_JSON_SET_PROP(js, default_write_batch_flush_threshold);
+    return js;
+  }
 };
+static json TxnDBOptionsToJson(const TransactionDBOptions& o,
+       const SidePluginRepo& repo, bool html) {
+  return static_cast<const TransactionDBOptions_Json&>(o).ToJson(repo, html);
+}
 
 TransactionDBOptions
 JS_TransactionDBOptions(const json& js, const SidePluginRepo& repo) {
