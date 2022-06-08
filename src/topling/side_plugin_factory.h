@@ -206,16 +206,32 @@ struct SerDeFunc {
   virtual void DeSerialize(FILE*, Object*) const = 0;
   using InterfaceType = SerDeFunc;
 };
-template<class SerDeClass>
-static std::shared_ptr<typename SerDeClass::InterfaceType>
-PluginSerDeSingleton(const json&, const SidePluginRepo&) {
-  static auto singleton = std::make_shared<SerDeClass>();
-  return singleton;
+template<class First, class... List>
+struct SFINAE_FirstType {
+	typedef First type;
+};
+template<class ConcretClass, class Interface>
+auto JS_NewSidePlugin(const json&, const SidePluginRepo&) -> typename
+SFINAE_FirstType<std::shared_ptr<Interface>, decltype(ConcretClass())>
+::type {
+  return std::make_shared<ConcretClass>();
 }
-#define ROCKSDB_REG_PluginSerDe(ClassName, SerDeClass) \
+template<class ConcretClass, class Interface>
+auto JS_NewSidePlugin(const json& js, const SidePluginRepo& repo) -> typename
+SFINAE_FirstType<std::shared_ptr<Interface>, decltype(ConcretClass(js, repo))>
+::type {
+  return std::make_shared<ConcretClass>(js, repo);
+}
+#define ROCKSDB_REG_PluginSerDe_2(ClassName, SerDeClass) \
   PluginFactory<std::shared_ptr<typename SerDeClass::InterfaceType> >::Reg \
       ROCKSDB_PP_CAT_3(g_reg_serde_,SerDeClass,__LINE__) \
-     (ClassName, &PluginSerDeSingleton<SerDeClass>, __FILE__, __LINE__)
+     (ClassName, &JS_NewSidePlugin<SerDeClass, typename SerDeClass::InterfaceType>, __FILE__, __LINE__)
+#define ROCKSDB_REG_PluginSerDe_1(ClassType) \
+  PluginFactory<std::shared_ptr<typename ClassType##_SerDe::InterfaceType> >::Reg \
+      ROCKSDB_PP_CAT_3(g_reg_serde_,ClassType##_SerDe,__LINE__) \
+     (#ClassType, &JS_NewSidePlugin<ClassType##_SerDe, typename ClassType##_SerDe::InterfaceType>, __FILE__, __LINE__)
+#define ROCKSDB_REG_PluginSerDe(...) ROCKSDB_PP_CAT2 \
+       (ROCKSDB_REG_PluginSerDe_,ROCKSDB_PP_ARG_N(__VA_ARGS__))(__VA_ARGS__)
 
 template<class Object>
 using SerDeFactory = PluginFactory<std::shared_ptr<SerDeFunc<Object> > >;
@@ -306,6 +322,22 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 // call ROCKSDB_REG_JSON_REPO_CONS_${ArgNum}, ArgNum must be 2 or 3
 #define ROCKSDB_REG_JSON_REPO_CONS(...) ROCKSDB_PP_CAT2 \
        (ROCKSDB_REG_JSON_REPO_CONS_,ROCKSDB_PP_ARG_N(__VA_ARGS__))(__VA_ARGS__)
+
+// ROCKSDB_REG_Plugin auto check default cons or json+repo cons,
+// in most cases you should use ROCKSDB_REG_Plugin, if both default cons
+// and json+repo cons are defined, explicitly use ROCKSDB_REG_DEFAULT_CONS
+// or ROCKSDB_REG_JSON_REPO_CONS
+#define ROCKSDB_REG_Plugin_3(Name, ConcretClass, Interface) \
+  PluginFactory<std::shared_ptr<Interface> >::Reg \
+      ROCKSDB_PP_CAT_3(g_reg_factory_,ConcretClass,__LINE__) \
+     (Name,  &JS_NewSidePlugin<ConcretClass,Interface>, __FILE__, __LINE__)
+
+#define ROCKSDB_REG_Plugin_2(ConcretClass, Interface) \
+        ROCKSDB_REG_Plugin_3(#ConcretClass, ConcretClass, Interface)
+
+// call ROCKSDB_REG_Plugin_${ArgNum}, ArgNum must be 2 or 3
+#define ROCKSDB_REG_Plugin(...) ROCKSDB_PP_CAT2 \
+       (ROCKSDB_REG_Plugin_,ROCKSDB_PP_ARG_N(__VA_ARGS__))(__VA_ARGS__)
 
 //////////////////////////////////////////////////////////////////////////////
 

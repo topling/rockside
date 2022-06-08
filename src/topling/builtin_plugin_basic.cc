@@ -165,7 +165,7 @@ struct DbBenchUserKeyCoder : public UserKeyCoder {
     de->append("</code>");
   }
 };
-ROCKSDB_REG_JSON_REPO_CONS(DbBenchUserKeyCoder, AnyPlugin);
+ROCKSDB_REG_Plugin(DbBenchUserKeyCoder, AnyPlugin);
 ROCKSDB_REG_AnyPluginManip("DbBenchUserKeyCoder");
 
 struct LRUCacheOptions_Json : LRUCacheOptions {
@@ -314,7 +314,7 @@ static Env* DefaultEnv(const json&, const SidePluginRepo&) {
 ROCKSDB_FACTORY_REG("default", DefaultEnv);
 
 /////////////////////////////////////////////////////////////////////////////
-ROCKSDB_REG_DEFAULT_CONS(FlushBlockBySizePolicyFactory,FlushBlockPolicyFactory);
+ROCKSDB_REG_Plugin(FlushBlockBySizePolicyFactory, FlushBlockPolicyFactory);
 
 /////////////////////////////////////////////////////////////////////////////
 static shared_ptr<FileChecksumGenFactory>
@@ -353,7 +353,7 @@ JS_NewJemallocNodumpAllocator(const json& js, const SidePluginRepo& repo) {
 }
 ROCKSDB_FACTORY_REG("JemallocNodumpAllocator", JS_NewJemallocNodumpAllocator);
 #if defined(MEMKIND)
-ROCKSDB_REG_DEFAULT_CONS(MemkindKmemAllocator, MemoryAllocator);
+ROCKSDB_REG_Plugin(MemkindKmemAllocator, MemoryAllocator);
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -481,7 +481,7 @@ void DynaMemTableBackPatch(MemTableRepFactory* f, const SidePluginRepo& repo) {
   assert(nullptr != dispatcher);
   dispatcher->BackPatch(repo);
 }
-ROCKSDB_REG_JSON_REPO_CONS("Dyna", DynaMemTableFactory, MemTableRepFactory);
+ROCKSDB_REG_Plugin("Dyna", DynaMemTableFactory, MemTableRepFactory);
 ROCKSDB_REG_EasyProxyManip("Dyna", DynaMemTableFactory, MemTableRepFactory);
 
 //////////////////////////////////////////////////////////////////////////////
