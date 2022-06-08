@@ -280,6 +280,37 @@ AcquirePlugin(const json& js, const SidePluginRepo& repo) {
 }
 
 template<class Ptr>
+Ptr
+PluginFactory<Ptr>::
+NullablePlugin(const json& js, const SidePluginRepo& repo) {
+  if (js.is_string()) {
+    const auto& str_val = js.get_ref<const std::string&>();
+    if (str_val.empty()) {
+      THROW_InvalidArgument("jstr class_name is empty");
+    }
+    // now treat js as class name, try to --
+    // NullablePlugin with empty json params
+    const std::string& clazz_name = str_val;
+    return NullablePlugin(clazz_name, json{}, repo);
+  } else if (js.is_null()) {
+    return Ptr(nullptr);
+  } else if (js.is_object()) {
+    auto iter = js.find("class");
+    if (js.end() == iter) {
+      THROW_InvalidArgument("js[\"class\"] is required: " + js.dump());
+    }
+    if (!iter.value().is_string()) {
+      THROW_InvalidArgument("js[\"class\"] must be string: " + js.dump());
+    }
+    const auto& clazz_name = iter.value().get_ref<const std::string&>();
+    const json& params = js.at("params");
+    return NullablePlugin(clazz_name, params, repo);
+  }
+  THROW_InvalidArgument(
+        "js must be string, null, or object, but is: " + js.dump());
+}
+
+template<class Ptr>
 bool PluginFactory<Ptr>::HasPlugin(const std::string& class_name) {
   auto& imp = Reg::Impl::s_singleton();
   return imp.func_map.count(class_name) != 0;

@@ -133,6 +133,7 @@ public:
   // not throw if plugin does not exist
   static Ptr NullablePlugin(const std::string& clazz, const json&,
                             const SidePluginRepo&);
+  static Ptr NullablePlugin(const json&, const SidePluginRepo&);
 
   static Ptr ObtainPlugin(const char* varname, const char* func_name,
                           const json&, const SidePluginRepo&);
@@ -201,8 +202,14 @@ PluginToString(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
   using Object = RemovePtr<Ptr>;
   auto iter = map.p2name.find(GetRawPtr(p));
   if (map.p2name.end() != iter) {
-    auto manip = PluginManip<Object>::AcquirePlugin(iter->second.params, repo);
-    return manip->ToString(*p, js, repo);
+    auto manip = PluginManip<Object>::NullablePlugin(iter->second.params, repo);
+    if (manip)
+      return manip->ToString(*p, js, repo);
+    json with_note = {
+      {"note", "This Is Default Show"},
+      {"spec", iter->second.params}
+    };
+    return JsonToString(with_note, js);
   }
   THROW_NotFound("Ptr not found");
 }
