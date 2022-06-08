@@ -67,7 +67,7 @@ static bool IsDefaultPath(const vector<DbPath>& paths, const string& name) {
 
 static json DbPathToJson(const DbPath& x, bool simplify_zero) {
   if (simplify_zero && (0 == x.target_size || UINT64_MAX == x.target_size))
-    return json{x.path};
+    return x.path; // as string, use {} will construct as array with one elem
   else
     return json{
         { "path", x.path },
