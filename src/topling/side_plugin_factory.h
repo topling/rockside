@@ -182,37 +182,15 @@ PluginManipSingleton(const json&, const SidePluginRepo&) {
 template<class Object>
 using PluginManip = PluginFactory<const PluginManipFunc<Object>*>;
 template<class Ptr>
-void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
-                  const json& query, const json& body,
-                  const SidePluginRepo& repo) {
-  using Object = RemovePtr<Ptr>;
-  auto iter = map.p2name.find(GetRawPtr(p));
-  if (map.p2name.end() != iter) {
-    auto manip = PluginManip<Object>::AcquirePlugin(iter->second.params, repo);
-    manip->Update(GetRawPtr(p), query, body, repo);
-  }
-}
+void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>&,
+                  const json& query, const json& body, const SidePluginRepo&);
 void PluginUpdate(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>&,
                   const json& query, const json& body, const SidePluginRepo&);
 
 template<class Ptr>
 std::string
 PluginToString(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
-               const json& js, const SidePluginRepo& repo) {
-  using Object = RemovePtr<Ptr>;
-  auto iter = map.p2name.find(GetRawPtr(p));
-  if (map.p2name.end() != iter) {
-    auto manip = PluginManip<Object>::NullablePlugin(iter->second.params, repo);
-    if (manip)
-      return manip->ToString(*p, js, repo);
-    json with_note = {
-      {"note", "This Is Default Show"},
-      {"spec", iter->second.params}
-    };
-    return JsonToString(with_note, js);
-  }
-  THROW_NotFound("Ptr not found");
-}
+               const json& js, const SidePluginRepo& repo);
 std::string
 PluginToString(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
                const json& js, const SidePluginRepo& repo);

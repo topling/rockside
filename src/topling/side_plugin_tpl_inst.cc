@@ -336,12 +336,59 @@ bool PluginFactory<Ptr>::SamePlugin(const std::string& clazz1,
   return i1->second.acq == i2->second.acq;
 }
 
+template<class Ptr>
+std::string
+PluginToString(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
+               const json& js, const SidePluginRepo& repo) {
+  using Object = RemovePtr<Ptr>;
+  auto iter = map.p2name.find(GetRawPtr(p));
+  if (map.p2name.end() != iter) {
+    auto manip = PluginManip<Object>::NullablePlugin(iter->second.params, repo);
+    if (manip)
+      return manip->ToString(*p, js, repo);
+    json with_note = {
+      {"note", "This Is Default Show"},
+      {"spec", iter->second.params}
+    };
+    return JsonToString(with_note, js);
+  }
+  THROW_NotFound("Ptr not found");
+}
+
+template<class Ptr>
+void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
+                  const json& query, const json& body,
+                  const SidePluginRepo& repo) {
+  using Object = RemovePtr<Ptr>;
+  auto iter = map.p2name.find(GetRawPtr(p));
+  if (map.p2name.end() != iter) {
+    auto manip = PluginManip<Object>::AcquirePlugin(iter->second.params, repo);
+    manip->Update(GetRawPtr(p), query, body, repo);
+  }
+}
+
 #define explicit_instantiate_sp(Interface) \
+  template std::string PluginToString<std::shared_ptr<Interface> >( \
+     const std::shared_ptr<Interface>&, \
+     const SidePluginRepo::Impl::ObjMap<std::shared_ptr<Interface>>&, \
+     const json&, const SidePluginRepo&); \
+  template void PluginUpdate<std::shared_ptr<Interface> >( \
+     const std::shared_ptr<Interface>&, \
+     const SidePluginRepo::Impl::ObjMap<std::shared_ptr<Interface> >&, \
+     const json& query, const json& body, const SidePluginRepo& repo); \
   template class SidePluginRepo::Impl::ObjMap<std::shared_ptr<Interface> >; \
   template class PluginFactory<std::shared_ptr<Interface> >; \
   template class PluginFactory<const PluginManipFunc<Interface>*>
 
 #define explicit_instantiate_rp(Interface) \
+  template std::string PluginToString<Interface*>( \
+     Interface* const &, \
+     const SidePluginRepo::Impl::ObjMap<Interface*>&, \
+     const json&, const SidePluginRepo&); \
+  template void PluginUpdate<Interface*>( \
+     Interface* const &, \
+     const SidePluginRepo::Impl::ObjMap<Interface*>&, \
+     const json& query, const json& body, const SidePluginRepo& repo); \
   template class SidePluginRepo::Impl::ObjMap<Interface*>; \
   template class PluginFactory<Interface*>; \
   template class PluginFactory<const PluginManipFunc<Interface>*>
