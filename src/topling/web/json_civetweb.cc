@@ -376,6 +376,7 @@ JsonCivetServer::Impl::Impl(const json& conf, SidePluginRepo* repo) {
   ADD_HANDLER(SstPartitionerFactory, sst_partitioner_factory);
   ADD_HANDLER(CompactionExecutorFactory, compaction_executor_factory);
   ADD_HANDLER(WriteBufferManager, write_buffer_manager);
+  ADD_HANDLER(WriteBatchWithIndexFactory, write_batch_with_index_factory);
 
   ADD_HANDLER(Options, options);
   ADD_HANDLER(DBOptions, db_options);
