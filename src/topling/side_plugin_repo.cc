@@ -480,7 +480,7 @@ Status SidePluginRepo::Export(string* json_str, bool pretty) const {
 
 template<class Map, class Ptr>
 static void
-Impl_Put(const std::string& name, Map& map, const Ptr& p) {
+Impl_Put(const std::string& name, json&& spec, Map& map, const Ptr& p) {
   auto& name2p = *map.name2p;
   if (p) { // put
     auto ib = name2p.emplace(name, p);
@@ -488,17 +488,30 @@ Impl_Put(const std::string& name, Map& map, const Ptr& p) {
       map.p2name.erase(GetRawPtr(ib.first->second));
       ib.first->second = p; // overwrite
     }
-    map.p2name[GetRawPtr(ib.first->second)] =
-        { name, json::object({{"manual", true}}) };
+    map.p2name[GetRawPtr(ib.first->second)] = {name, std::move(spec)};
   }
-  else { // p is null, do delete
+  else {
+    ROCKSDB_DIE("name = %s, ptr is null, spec = %s",
+                 name.c_str(), spec.dump().c_str());
+   #if 0
+    // p is null, do delete
     auto iter = name2p.find(name);
     if (name2p.end() == iter) {
       return;
     }
     map.p2name.erase(GetRawPtr(iter->second));
     name2p.erase(iter);
+   #endif
   }
+}
+
+template<class Map, class Ptr>
+static void
+Impl_Put(const std::string& name, Map& map, const Ptr& p) {
+  Impl_Put(name, json{
+    {"class", "(manual)"},
+    {"params", {"manual", true}}
+  }, map, p);
 }
 
 template<class Map, class Ptr>
@@ -531,6 +544,10 @@ Impl_GetConsParams(const Map& map, const Ptr& p) {
 void SidePluginRepo::Put(const string& name, \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
   Impl_Put(name, m_impl->field, p); \
+} \
+void SidePluginRepo::Put(const string& name, json spec, \
+                decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
+  Impl_Put(name, std::move(spec), m_impl->field, p); \
 } \
 bool SidePluginRepo::Get(const string& name, \
                 decltype(RepoPtrType(((Impl*)0)->field))* pp) const { \

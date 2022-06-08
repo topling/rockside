@@ -166,6 +166,44 @@ class SidePluginRepo {
   void Put(const std::string& name, const std::shared_ptr<TransactionDBMutexFactory>&);
   void Put(const std::string& name, const std::shared_ptr<WriteBufferManager>&);
   void Put(const std::string& name, const std::shared_ptr<WriteBatchWithIndexFactory>&);
+
+  // Put with user defined spec
+
+  void Put(const std::string& name, json spec, const std::shared_ptr<Options>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<DBOptions>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<ColumnFamilyOptions>&);
+
+  // The caller should ensure DB handle's life time is longer than SidePluginRepo
+  void Put(const std::string& name, json spec, DB*);
+  void Put(const std::string& name, json spec, DB_MultiCF*);
+
+  void Put(const std::string& name, json spec, const std::shared_ptr<AnyPlugin>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<Cache>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<CompactionExecutorFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<CompactionFilterFactory>&);
+  void Put(const std::string& name, json spec, const Comparator*);
+  void Put(const std::string& name, json spec, const std::shared_ptr<ConcurrentTaskLimiter>&);
+  void Put(const std::string& name, json spec, Env*);
+  void Put(const std::string& name, json spec, const std::shared_ptr<EventListener>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<FileChecksumGenFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<FileSystem>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<const FilterPolicy>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<FlushBlockPolicyFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<Logger>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<MemoryAllocator>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<MemTableRepFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<MergeOperator>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<PersistentCache>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<RateLimiter>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<const SliceTransform>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<SstFileManager>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<SstPartitionerFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<Statistics>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<TableFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<TablePropertiesCollectorFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<TransactionDBMutexFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<WriteBufferManager>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<WriteBatchWithIndexFactory>&);
   ///@}
 
   bool Get(const std::string& name, std::shared_ptr<Options>*) const;
