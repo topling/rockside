@@ -553,7 +553,7 @@ bool SidePluginRepo::Get(const string& name, \
                 decltype(RepoPtrType(((Impl*)0)->field))* pp) const { \
   return Impl_Get(name, m_impl->field, pp); \
 } \
-const json* SidePluginRepo::GetConsParams( \
+const json* SidePluginRepo::GetCreationSpec( \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) const { \
   return Impl_GetConsParams(m_impl->field, p); \
 }
@@ -591,7 +591,7 @@ JSON_REPO_TYPE_IMPL(db_options)
 JSON_REPO_TYPE_IMPL(cf_options)
 
 #define JSON_GetConsParams(field) \
-const json* SidePluginRepo::GetConsParams( \
+const json* SidePluginRepo::GetCreationSpec( \
                 decltype((RepoConstRawPtr(((Impl*)0)->field))) p) const { \
   return Impl_GetConsParams(m_impl->field, p); \
 }

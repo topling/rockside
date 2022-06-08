@@ -82,7 +82,7 @@ protected:
   mutable std::vector<size_t> m_writer_files;
   std::shared_ptr<std::map<std::string,
           std::shared_ptr<TableFactory>>> m_all;
-  std::vector<std::pair<const void*, const json*> > m_cons_params;
+  std::vector<std::pair<const void*, const json*> > m_factories_spec;
   std::string m_json_str;
   json m_json_obj{}; // reset to null after back patched
   mutable std::map<uint64_t, ReaderFactory> m_magic_to_factory;

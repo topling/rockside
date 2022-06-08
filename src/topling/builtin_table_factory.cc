@@ -624,10 +624,10 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   }
   for (auto& kv : *m_all) {
     auto& factory = kv.second;
-    const json* cons_params = repo.GetConsParams(factory);
-    m_cons_params.emplace_back(factory.get(), cons_params);
+    const json* spec = repo.GetCreationSpec(factory);
+    m_factories_spec.emplace_back(factory.get(), spec);
   }
-  std::sort(m_cons_params.begin(), m_cons_params.end());
+  std::sort(m_factories_spec.begin(), m_factories_spec.end());
   m_json_obj = json{}; // reset
   m_is_back_patched = true;
 }
