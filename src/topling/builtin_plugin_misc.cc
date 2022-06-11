@@ -2321,11 +2321,7 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
   const std::string& cfname = cfh->GetName();
   return "compact job issued: dbname = " + dbname + ", cfname = " + cfname;
 }
-
-static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
-                                  const json& dump_options) {
-  DB* db = const_cast<DB*>(dbc);
-  DBOptions dbo = db->GetDBOptions();
+namespace {
   struct MyFO : FlushOptions {
     explicit MyFO(const json& js) {
       //MyCRO_GET(JsonSmartBool, wait);
@@ -2333,8 +2329,24 @@ static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
       MyCRO_GET(JsonSmartBool, allow_write_stall);
     }
   };
+} // namespace
+static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
+                                  const json& dump_options) {
+  DB* db = const_cast<DB*>(dbc);
   MyFO fo(dump_options);
   Status s = db->Flush(fo, cfh);
+  if (s.ok()) {
+    return R"({"status": "OK"})";
+  }
+  else {
+    return R"({"status": ")" + s.ToString() + R"("})";
+  }
+}
+static std::string RunManualFlushAll(const DB_MultiCF& dbm, const json& dump_options) {
+  DB* db = const_cast<DB*>(dbm.db);
+  DBOptions dbo = db->GetDBOptions();
+  MyFO fo(dump_options);
+  Status s = db->Flush(fo, dbm.cf_handles);
   if (s.ok()) {
     return R"({"status": "OK"})";
   }
@@ -2654,6 +2666,9 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
                        + ", cfname = " + cfname);
       }
       return RunManualFlush(db.db, cfh, dump_options);
+    }
+    if (dump_options.contains("flushall")) {
+      return RunManualFlushAll(db, dump_options);
     }
     if (MayHandleGetCmd(db.db, djs, dump_options, repo)) {
       return JsonToString(djs, dump_options);
