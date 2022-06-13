@@ -991,6 +991,7 @@ Options JS_Options(const json& js, const SidePluginRepo& repo,
 
 static void Json_DB_Statistics(const Statistics* st, json& djs,
                                bool html, bool nozero) {
+  djs["stats_level"] = enum_stdstr(st->get_stats_level());
   djs["histograms"]; // insert "histograms"
   std::string name;
   if (html) {
@@ -1041,7 +1042,6 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
       name, "P50", "P95", "P99", "AVG", "MIN", "MAX", "CNT", "STD", "SUM"
     });
   }
-  djs["stats_level"] = enum_stdstr(st->get_stats_level());
 }
 
 static void replace_substr(std::string& s, const std::string& f,
