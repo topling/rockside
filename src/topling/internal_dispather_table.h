@@ -31,6 +31,7 @@ public:
 
   Status ValidateOptions(const DBOptions&, const ColumnFamilyOptions&) const override;
   std::string GetPrintableOptions() const override;
+  bool IsDeleteRangeSupported() const override;
   bool InputCompressionMatchesOutput(const class Compaction*) const override;
 
 // non TableFactory methods:
@@ -87,6 +88,7 @@ protected:
   json m_json_obj{}; // reset to null after back patched
   mutable std::map<uint64_t, ReaderFactory> m_magic_to_factory;
   bool m_is_back_patched;
+  bool m_is_delete_range_supported;
   bool ignoreInputCompressionMatchesOutput;
   friend class DispatcherTableBuilder;
 };

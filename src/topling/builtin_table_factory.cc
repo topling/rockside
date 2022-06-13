@@ -343,6 +343,7 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   m_json_obj = js; // backup
   m_json_str = js.dump();
   m_is_back_patched = false;
+  m_is_delete_range_supported = false;
   ignoreInputCompressionMatchesOutput = false;
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
 }
@@ -458,6 +459,10 @@ const {
 Status DispatcherTableFactory::ValidateOptions(const DBOptions&, const ColumnFamilyOptions&)
 const {
   return Status::OK();
+}
+
+bool DispatcherTableFactory::IsDeleteRangeSupported() const {
+  return m_is_delete_range_supported;
 }
 
 static std::string str_input_levels(const Compaction* c) {
@@ -638,6 +643,16 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   std::sort(m_factories_spec.begin(), m_factories_spec.end());
   m_json_obj = json{}; // reset
   m_is_back_patched = true;
+  m_is_delete_range_supported = true;
+  for (auto& kv : *m_all) {
+    auto& varname = kv.first; // factory varname
+    auto& factory = kv.second;
+    if (!factory->IsDeleteRangeSupported()) {
+      m_is_delete_range_supported = false;
+      INFO("Dispatch::BackPatch: '%s' IsDeleteRangeSupported = false", varname.c_str());
+    }
+  }
+  DEBG("Dispatch::BackPatch: IsDeleteRangeSupported = %d", m_is_delete_range_supported);
 }
 
 std::string DispatcherTableFactory::GetPrintableOptions() const {
