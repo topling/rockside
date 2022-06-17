@@ -420,7 +420,7 @@ explicit_instantiate_sp(TablePropertiesCollectorFactory);
 explicit_instantiate_sp(TransactionDBMutexFactory);
 explicit_instantiate_sp(WriteBufferManager);
 explicit_instantiate_sp(const SliceTransform);
-explicit_instantiate_sp(WriteBatchWithIndexFactory);
+explicit_instantiate_sp(WBWIFactory);
 
 explicit_instantiate_sp(Options);
 explicit_instantiate_sp(DBOptions);

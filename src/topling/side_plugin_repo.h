@@ -50,7 +50,7 @@ class TableFactory;
 class TablePropertiesCollectorFactory;
 class TransactionDBMutexFactory;
 class WriteBufferManager;
-class WriteBatchWithIndexFactory;
+class WBWIFactory;
 
 using nlohmann::json;
 
@@ -165,7 +165,7 @@ class SidePluginRepo {
   void Put(const std::string& name, const std::shared_ptr<TablePropertiesCollectorFactory>&);
   void Put(const std::string& name, const std::shared_ptr<TransactionDBMutexFactory>&);
   void Put(const std::string& name, const std::shared_ptr<WriteBufferManager>&);
-  void Put(const std::string& name, const std::shared_ptr<WriteBatchWithIndexFactory>&);
+  void Put(const std::string& name, const std::shared_ptr<WBWIFactory>&);
 
   // Put with user defined spec
 
@@ -203,7 +203,7 @@ class SidePluginRepo {
   void Put(const std::string& name, json spec, const std::shared_ptr<TablePropertiesCollectorFactory>&);
   void Put(const std::string& name, json spec, const std::shared_ptr<TransactionDBMutexFactory>&);
   void Put(const std::string& name, json spec, const std::shared_ptr<WriteBufferManager>&);
-  void Put(const std::string& name, json spec, const std::shared_ptr<WriteBatchWithIndexFactory>&);
+  void Put(const std::string& name, json spec, const std::shared_ptr<WBWIFactory>&);
   ///@}
 
   bool Get(const std::string& name, std::shared_ptr<Options>*) const;
@@ -245,7 +245,7 @@ class SidePluginRepo {
   bool Get(const std::string& name, std::shared_ptr<TablePropertiesCollectorFactory>*) const;
   bool Get(const std::string& name, std::shared_ptr<TransactionDBMutexFactory>*) const;
   bool Get(const std::string& name, std::shared_ptr<WriteBufferManager>*) const;
-  bool Get(const std::string& name, std::shared_ptr<WriteBatchWithIndexFactory>*) const;
+  bool Get(const std::string& name, std::shared_ptr<WBWIFactory>*) const;
 
   class Auto {
     friend class SidePluginRepo;
@@ -293,7 +293,7 @@ class SidePluginRepo {
   const json* GetCreationSpec(const std::shared_ptr<TablePropertiesCollectorFactory>&) const;
   const json* GetCreationSpec(const std::shared_ptr<TransactionDBMutexFactory>&) const;
   const json* GetCreationSpec(const std::shared_ptr<WriteBufferManager>&) const;
-  const json* GetCreationSpec(const std::shared_ptr<WriteBatchWithIndexFactory>&) const;
+  const json* GetCreationSpec(const std::shared_ptr<WBWIFactory>&) const;
 
   const json* GetCreationSpec(const Options*) const;
   const json* GetCreationSpec(const DBOptions*) const;
@@ -322,7 +322,7 @@ class SidePluginRepo {
   const json* GetCreationSpec(const TablePropertiesCollectorFactory*) const;
   const json* GetCreationSpec(const TransactionDBMutexFactory*) const;
   const json* GetCreationSpec(const WriteBufferManager*) const;
-  const json* GetCreationSpec(const WriteBatchWithIndexFactory*) const;
+  const json* GetCreationSpec(const WBWIFactory*) const;
 
   static int DebugLevel();
 

@@ -259,6 +259,7 @@ struct DBOptions_Json : DBOptions {
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_OPT_ENUM(js, lowest_used_cache_tier);
    #endif
+    ROCKSDB_JSON_OPT_FACT(js, wbwi_factory);
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
@@ -372,6 +373,7 @@ struct DBOptions_Json : DBOptions {
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_SET_ENUM(js, lowest_used_cache_tier);
    #endif
+    ROCKSDB_JSON_SET_FACT(js, wbwi_factory);
   }
 };
 ROCKSDB_REG_Plugin("DBOptions", DBOptions_Json, DBOptions);
@@ -3096,7 +3098,6 @@ struct TransactionDBOptions_Json : TransactionDBOptions {
     ROCKSDB_JSON_OPT_PROP(js, transaction_lock_timeout);
     ROCKSDB_JSON_OPT_PROP(js, default_lock_timeout);
     ROCKSDB_JSON_OPT_FACT(js, custom_mutex_factory);
-    ROCKSDB_JSON_OPT_FACT(js, write_batch_with_index_factory);
     ROCKSDB_JSON_OPT_ENUM(js, write_policy);
     ROCKSDB_JSON_OPT_PROP(js, rollback_merge_operands);
     ROCKSDB_JSON_OPT_PROP(js, skip_concurrency_control);
@@ -3110,7 +3111,6 @@ struct TransactionDBOptions_Json : TransactionDBOptions {
     ROCKSDB_JSON_SET_PROP(js, transaction_lock_timeout);
     ROCKSDB_JSON_SET_PROP(js, default_lock_timeout);
     ROCKSDB_JSON_SET_FACX(js, custom_mutex_factory, txn_db_mutex_factory);
-    ROCKSDB_JSON_SET_FACT(js, write_batch_with_index_factory);
     ROCKSDB_JSON_SET_ENUM(js, write_policy);
     ROCKSDB_JSON_SET_PROP(js, rollback_merge_operands);
     ROCKSDB_JSON_SET_PROP(js, skip_concurrency_control);
