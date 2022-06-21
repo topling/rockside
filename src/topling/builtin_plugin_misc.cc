@@ -328,6 +328,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_SIZE(js, bytes_per_sync);
     ROCKSDB_JSON_SET_SIZE(js, wal_bytes_per_sync);
     ROCKSDB_JSON_SET_PROP(js, strict_bytes_per_sync);
+    js["listeners"];
     for (auto& listener : listeners) {
       json inner;
       ROCKSDB_JSON_SET_FACT_INNER(inner, listener, event_listener);
@@ -2328,6 +2329,12 @@ namespace {
     explicit MyFO(const json& js) {
       //MyCRO_GET(JsonSmartBool, wait);
       wait = true; // not allow wait to be false
+
+      // rocksdb bug will be triggered if allow_write_stall false,
+      // when the bug is triggered, the db->Flush() is dead blocked and the
+      // db is stay in stall/slowdonw state, and it can not be recovered to
+      // normal state!
+      allow_write_stall = true; // default true for rocksdb bug
       MyCRO_GET(JsonSmartBool, allow_write_stall);
     }
   };
