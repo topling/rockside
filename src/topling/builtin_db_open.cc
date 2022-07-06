@@ -119,4 +119,43 @@ void DB_MultiCF_Impl::InitAddCF_ToMap(const json& js_cf_desc) {
   }
 }
 
+Status MergeTables(const std::vector<std::string>& files, const std::string& dbname,
+                   const DBOptions& dbo, std::vector<ColumnFamilyDescriptor> cfo,
+                   std::vector<std::string>* output) {
+  // compact all files once?
+  //cfo[0].options.compaction_style = kCompactionStyleUniversal;
+  //cfo[0].options.compaction_options_universal = CompactionOptionsUniversal();
+  DB* db = nullptr;
+  std::vector<ColumnFamilyHandle*> cfh;
+  Status s = DB::Open(dbo, dbname, cfo, &cfh, &db);
+  if (!s.ok()) return s;
+  std::vector<rocksdb::IngestExternalFileArg> args(1);
+  args[0].options.move_files = true;
+  args[0].options.snapshot_consistency = false;
+  args[0].options.allow_blocking_flush = false;
+  args[0].options.allow_global_seqno = true;
+  args[0].options.write_global_seqno = false;
+  args[0].column_family = cfh[0];
+  args[0].external_files = files;
+  s = db->IngestExternalFiles(args);
+  if (!s.ok()) return s;
+  CompactRangeOptions cro;
+  cro.target_level = cfo[0].options.num_levels - 1;
+  s = db->CompactRange(cro, nullptr, nullptr);
+  if (!s.ok()) return s;
+  uint64_t manifest_file_size = 0;
+  s = db->GetLiveFiles(*output, &manifest_file_size);
+  auto is_not_sst = [](const Slice fname) {
+    return !fname.ends_with(".sst");
+  };
+  auto last_sst = std::remove_if(output->begin(), output->end(), is_not_sst);
+  output->erase(last_sst, output->end());
+  for (auto& fname : *output) {
+    fname = dbname + fname;
+  }
+  db->DestroyColumnFamilyHandle(cfh[0]).PermitUncheckedError();
+  delete db;
+  return s;
+}
+
 } // namespace ROCKSDB_NAMESPACE
