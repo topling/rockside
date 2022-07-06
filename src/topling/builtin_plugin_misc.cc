@@ -2082,7 +2082,7 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
     if (const_cast<DB&>(db).GetMapProperty(cfh, *key, &value)) {
       string name = *key;
       replace_char(name);
-      for (auto const v_iter:value) {
+      for (auto const& v_iter : value) {
         string suffix = v_iter.first;
         replace_char(suffix);
         oss|name|"{flag=\""|suffix|"\"} "|v_iter.second|"\n";
