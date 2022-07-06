@@ -123,8 +123,9 @@ Status MergeTables(const std::vector<std::string>& files, const std::string& dbn
                    const DBOptions& dbo, std::vector<ColumnFamilyDescriptor> cfo,
                    std::vector<std::string>* output) {
   // compact all files once?
-  //cfo[0].options.compaction_style = kCompactionStyleUniversal;
-  //cfo[0].options.compaction_options_universal = CompactionOptionsUniversal();
+  cfo[0].options.compaction_style = kCompactionStyleUniversal;
+  cfo[0].options.compaction_options_universal = CompactionOptionsUniversal();
+  cfo[0].options.disable_auto_compactions = true;
   DB* db = nullptr;
   std::vector<ColumnFamilyHandle*> cfh;
   Status s = DB::Open(dbo, dbname, cfo, &cfh, &db);
@@ -141,7 +142,7 @@ Status MergeTables(const std::vector<std::string>& files, const std::string& dbn
   if (!s.ok()) return s;
   CompactRangeOptions cro;
   cro.target_level = cfo[0].options.num_levels - 1;
-  s = db->CompactRange(cro, nullptr, nullptr);
+  s = db->CompactRange(cro, cfh[0], nullptr, nullptr);
   if (!s.ok()) return s;
   uint64_t manifest_file_size = 0;
   s = db->GetLiveFiles(*output, &manifest_file_size);
