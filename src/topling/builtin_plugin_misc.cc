@@ -1329,7 +1329,6 @@ GetAggregatedTablePropertiesTab(const DB& db, ColumnFamilyHandle* cfh,
 }
 
 static size_t StrDateTime(char* buf, const char* fmt, time_t rawtime) {
-  time(&rawtime);
   struct tm t; // NOLINT
   struct tm* timeinfo = localtime_r(&rawtime, &t);
   return strftime(buf, 64, fmt, timeinfo);
