@@ -89,6 +89,7 @@ protected:
   mutable std::map<uint64_t, ReaderFactory> m_magic_to_factory;
   bool m_is_back_patched;
   bool m_is_delete_range_supported;
+  bool allow_trivial_move;
   bool ignoreInputCompressionMatchesOutput;
   friend class DispatcherTableBuilder;
 };

@@ -344,7 +344,9 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   m_json_str = js.dump();
   m_is_back_patched = false;
   m_is_delete_range_supported = false;
+  allow_trivial_move = true;
   ignoreInputCompressionMatchesOutput = false;
+  ROCKSDB_JSON_OPT_PROP(js, allow_trivial_move);
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
 }
 
@@ -477,6 +479,9 @@ static std::string str_input_levels(const Compaction* c) {
 }
 
 bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) const {
+  if (!allow_trivial_move) {
+    return false;
+  }
   if (ignoreInputCompressionMatchesOutput) {
     return true;
   }
@@ -710,6 +715,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
     lwjs.push_back(std::move(wjs));
   };
   json js;
+  ROCKSDB_JSON_SET_PROP(js["options"], allow_trivial_move);
   ROCKSDB_JSON_SET_PROP(js["options"], ignoreInputCompressionMatchesOutput);
   for (size_t i = 0, n = m_level_writers.size(); i < n; ++i) {
     auto& tf = m_level_writers[i];
