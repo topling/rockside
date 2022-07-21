@@ -200,7 +200,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, persist_stats_to_disk);
     ROCKSDB_JSON_OPT_SIZE(js, stats_history_buffer_size);
     ROCKSDB_JSON_OPT_PROP(js, advise_random_on_open);
+   #if ROCKSDB_VERSION < 70060
     ROCKSDB_JSON_OPT_PROP(js, experimental_mempurge_threshold);
+   #endif
     ROCKSDB_JSON_OPT_SIZE(js, db_write_buffer_size);
     ROCKSDB_JSON_OPT_FACT(js, write_buffer_manager);
     ROCKSDB_JSON_OPT_ENUM(js, access_hint_on_compaction_start);
@@ -316,7 +318,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, advise_random_on_open);
     ROCKSDB_JSON_SET_SIZE(js, db_write_buffer_size);
     ROCKSDB_JSON_SET_FACT(js, write_buffer_manager);
+   #if ROCKSDB_VERSION < 70060
     ROCKSDB_JSON_SET_PROP(js, experimental_mempurge_threshold);
+   #endif
     ROCKSDB_JSON_SET_ENUM(js, access_hint_on_compaction_start);
    #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_SET_PROP(js, new_table_reader_for_compaction_inputs);
