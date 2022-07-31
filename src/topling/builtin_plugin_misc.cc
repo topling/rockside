@@ -3104,6 +3104,10 @@ struct TransactionDBOptions_Json : TransactionDBOptions {
   TransactionDBOptions_Json(const json& js, const SidePluginRepo& repo) {
     ROCKSDB_JSON_OPT_PROP(js, max_num_locks);
     ROCKSDB_JSON_OPT_PROP(js, max_num_deadlocks);
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_OPT_PROP(js, key_prefix_len);
+    ROCKSDB_JSON_OPT_PROP(js, super_stripes);
+   #endif
     ROCKSDB_JSON_OPT_PROP(js, num_stripes);
     ROCKSDB_JSON_OPT_PROP(js, transaction_lock_timeout);
     ROCKSDB_JSON_OPT_PROP(js, default_lock_timeout);
@@ -3117,6 +3121,10 @@ struct TransactionDBOptions_Json : TransactionDBOptions {
     json js;
     ROCKSDB_JSON_SET_PROP(js, max_num_locks);
     ROCKSDB_JSON_SET_PROP(js, max_num_deadlocks);
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_SET_PROP(js, key_prefix_len);
+    ROCKSDB_JSON_SET_PROP(js, super_stripes);
+   #endif
     ROCKSDB_JSON_SET_PROP(js, num_stripes);
     ROCKSDB_JSON_SET_PROP(js, transaction_lock_timeout);
     ROCKSDB_JSON_SET_PROP(js, default_lock_timeout);
