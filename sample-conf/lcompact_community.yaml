@@ -36,6 +36,17 @@ FilterPolicy:
     params:
       bits_per_key: 10
       use_block_based_builder: false
+MemTableRepFactory:
+  cspp:
+    class: cspp
+    params:
+      mem_cap: 256M
+      use_vm: false
+      token_use_idle: true
+  skiplist:
+    class: SkipList
+    params:
+      lookahead: 0
 TableFactory:
   bb:
     class: BlockBasedTable
@@ -74,6 +85,8 @@ CFOptions:
     target_file_size_base: 16M
     target_file_size_multiplier: 2
     table_factory: dispatch
+    memtable_factory: "$cspp"
+    #memtable_factory": "$skiplist"
     compression_per_level:
     - kNoCompression
     - kNoCompression
