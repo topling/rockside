@@ -980,4 +980,20 @@ ROCKSDB_FACTORY_REG("DispatcherTable", NewDispatcherTableFactoryJson);
 
 void TableFactoryDummyFuncToPreventGccDeleteSymbols() {}
 
+std::string TableUserPropsToString(const UserCollectedProperties& uprops,
+                                   const json& dump_options) {
+  auto ptr_cfd_val = dump_options["__ptr_cfd__"].get<size_t>();
+  auto cfd = (ColumnFamilyData*)(ptr_cfd_val);
+  auto collfacs = cfd->initial_cf_options().table_properties_collector_factories;
+  if (collfacs.size() == 1) {
+    return collfacs[0]->UserPropToString(uprops);
+  }
+  std::string str;
+  for (auto& collfac: collfacs) {
+    str += collfac->UserPropToString(uprops);
+    str += "\n";
+  }
+  return str;
+}
+
 }

@@ -3,6 +3,7 @@
 #include "table/block_based/block_based_table_reader.h"
 #include "db/column_family.h"
 #include <topling/side_plugin_factory.h>
+#include <topling/builtin_table_factory.h>
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -241,6 +242,8 @@ std::string BlockIndexHtml(ColumnFamilyData* cfd) const {
 json ToWebViewJson(const json& dump_options) const {
   json djs;
   const BlockBasedTable::Rep* r = get_rep();
+  djs["Props.User"] = TableUserPropsToString(
+    r->table_properties->user_collected_properties, dump_options);
 
   djs["global_seqno"] = (int64_t)r->global_seqno;
   djs["level"] = r->level;
