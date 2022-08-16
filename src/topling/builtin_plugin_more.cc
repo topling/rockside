@@ -66,7 +66,8 @@ public:
     Target()->Logv(format, ap);
   }
 
-  void Logv(const InfoLogLevel log_level, const char* format, va_list ap) {
+  void Logv(const InfoLogLevel log_level, const char* format, va_list ap)
+  override {
     Target()->Logv(log_level, format, ap);
   }
   size_t GetLogFileSize() const override {

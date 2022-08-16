@@ -80,7 +80,8 @@ public:
   virtual void Update(const json& query, const json& body, const SidePluginRepo&) = 0;
   virtual std::string ToString(const json&, const SidePluginRepo&) const = 0;
 };
-struct UserKeyCoder : public AnyPlugin {
+class UserKeyCoder : public AnyPlugin {
+public:
   virtual void Encode(Slice, std::string*) const = 0;
   virtual void Decode(Slice, std::string*) const = 0;
   std::string Encode(Slice x) const { std::string y; Encode(x, &y); return y; }

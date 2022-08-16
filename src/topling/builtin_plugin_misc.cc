@@ -1083,7 +1083,6 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
     if (value) oss|replace(t.second)|" "|value|"\n";
   }
 
-  auto const bucket_num = bucketMapper.BucketCount();
   const auto empty = [](){};
   const string suffix_sum{"_sum"};
   const string suffix_count{"_count"};
@@ -1100,7 +1099,7 @@ static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
       if (buckets[i] > 0) { limit = i + 1; break; }
     }
 
-    auto append_result=[&h,&oss,&bucket_num,&replace](const string &suffix, auto label, const uint64_t value){
+    auto append_result=[&h,&oss,&replace](const string &suffix, auto label, const uint64_t value){
       oss|replace(h.second)|suffix|"{";
       label();
       oss|"} "|value|"\n";
@@ -2107,7 +2106,7 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
   };
   for (auto const key:prefix_properties) { add_prefix_properties(key); }
 
-  auto add_prefix_map_properties=[&db,cfh,&oss,add_map_properties](const string *prefix) {
+  auto add_prefix_map_properties=[&db,cfh,add_map_properties](const string *prefix) {
     const int num_levels = const_cast<DB&>(db).NumberLevels(cfh);
     for (int level = 0; level < num_levels; level++) {
       string name = *prefix + std::to_string(level);

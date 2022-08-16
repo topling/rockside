@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <string.h>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wclass-memaccess" // by leipeng at 2022-05-25
 #endif
 

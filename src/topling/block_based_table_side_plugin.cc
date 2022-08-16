@@ -21,7 +21,7 @@ void CleanSpace(std::string& s) {
 // s contains some keys and values
 json SliceStringIntoJson(std::string s) {
   json rtn;
-  int pre_index = 0;
+  size_t pre_index = 0;
   std::string temp_key;
 
   CleanSpace(s);
