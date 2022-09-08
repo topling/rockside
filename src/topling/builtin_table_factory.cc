@@ -27,7 +27,8 @@ const char* StrDateTimeNow() {
   static thread_local char buf[64];
   time_t rawtime;
   time(&rawtime);
-  struct tm* timeinfo = localtime(&rawtime);
+  struct tm  timebuf;
+  struct tm* timeinfo = port::LocalTimeR(&rawtime, &timebuf);
   strftime(buf, sizeof(buf), "%F %T",timeinfo);
   return buf;
 }
