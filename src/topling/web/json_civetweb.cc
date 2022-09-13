@@ -4,6 +4,7 @@
 
 #include "CivetServer.h"
 #include "json_civetweb.h"
+#include <port/sys_time.h>
 #include <topling/side_plugin_factory.h>
 #include <chrono>
 
@@ -49,7 +50,7 @@ std::string cur_time_stat(time_t start_time, const char* up) {
   time_t rawtime;
   time(&rawtime);
   struct tm  result;
-  struct tm* timeinfo = localtime_r(&rawtime, &result);
+  struct tm* timeinfo = port::LocalTimeR(&rawtime, &result);
   strftime(buf, sizeof(buf), "%F %T", timeinfo);
   size_t sec = (size_t)difftime(rawtime, start_time);
   size_t days = sec / 86400; sec %= 86400;
