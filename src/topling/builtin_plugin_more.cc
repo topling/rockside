@@ -12,6 +12,7 @@
 
 #include <rocksdb/db.h>
 #include <rocksdb/sst_file_manager.h>
+#include <port/likely.h>
 
 #include "side_plugin_factory.h"
 #include "side_plugin_internal.h"
