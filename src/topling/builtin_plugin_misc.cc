@@ -1980,6 +1980,12 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
                     JsonSmartInt64(dump_options, "size", 0),
                     JsonSmartInt64(dump_options, "smallest", 0),
                     JsonSmartInt64(dump_options, "largest", kMaxSequenceNumber));
+ #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70090
+  FileMetaData f;
+  f.fd = fd;
+ #else
+  FileDescriptor& f = fd;
+ #endif
   Cache::Handle* ch = nullptr;
   auto& icmp = cfd->internal_comparator();
   auto& fopt = *cfd->soptions(); // file_options
@@ -1988,7 +1994,7 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
  #else
   auto& pref_ext = mut_cfo->prefix_extractor;
  #endif
-  auto s = tc->FindTable(ReadOptions(), fopt, icmp, fd, &ch, pref_ext);
+  auto s = tc->FindTable(ReadOptions(), fopt, icmp, f, &ch, pref_ext);
   if (!s.ok()) {
     THROW_InvalidArgument(s.ToString());
   }
