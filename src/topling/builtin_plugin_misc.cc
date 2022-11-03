@@ -1411,10 +1411,17 @@ ScopeLockVersion::~ScopeLockVersion() {
   mutex->Unlock();
 }
 
+std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
+                                     TableProperties* all_agg, bool show_per_level);
+
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd) {
   return Json_DB_CF_SST_HtmlTable(version, cfd, nullptr);
 }
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd, TableProperties* all_agg) {
+  return Json_DB_CF_SST_HtmlTable(version, cfd, all_agg, true);
+}
+std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
+                                     TableProperties* all_agg, bool show_per_level) {
   std::string html;
 #if defined(NDEBUG)
 try {
@@ -1738,6 +1745,7 @@ try {
   write(all_levels_agg, &all_levels_agg, (int)meta.file_count);
   html.append("</tfoot></table>\n");
 
+if (show_per_level) {
   for (int level = 0; level < (int)meta.levels.size(); level++) {
     auto& curr_level = meta.levels[level];
     if (curr_level.files.empty()) {
@@ -1767,6 +1775,7 @@ try {
     write(levels_agg[level], &levels_agg[level], -1);
     html.append("</tfoot></table>\n");
   }
+} // if (show_per_level)
   html.append("</div>");
   return html;
 #if defined(NDEBUG)
@@ -1893,8 +1902,10 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
     case 2: // show as html table
     {
       auto cfd = cfh->cfd();
+      bool show_per_level = JsonSmartBool(dump_options, "per_level", true);
       ScopeLockVersion slv(cfd, Get_DB_mutex(&db));
-      stjs[HTML_WRAP(DB::Properties::kSSTables)] = Json_DB_CF_SST_HtmlTable(slv.version, cfd);
+      stjs[HTML_WRAP(DB::Properties::kSSTables)] =
+        Json_DB_CF_SST_HtmlTable(slv.version, cfd, nullptr, show_per_level);
       break;
     }
   }
