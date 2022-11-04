@@ -1758,18 +1758,21 @@ if (show_per_level) {
     html.append("</p>\n");
     html.append("<table border=1>\n");
     writeHeader(false);
-    html.append("<tbody>\n");
-    for (const auto & x : curr_level.files) {
-      std::string fullname = x.db_path + x.name;
-      html.append("<tr>");
-      auto iter = props.find(fullname);
-      if (props.end() == iter) {
-        write(x, nullptr, -1);
-      } else {
-        write(x, iter->second.get(), -1);
+    for (size_t i = 0, n_files = curr_level.files.size(); i < n_files; ) {
+      html.append("<tbody>\n");
+      for (size_t j = 0; j < 10 && i < n_files; j++, i++) {
+        const auto& x = curr_level.files[i];
+        std::string fullname = x.db_path + x.name;
+        html.append("<tr>");
+        auto iter = props.find(fullname);
+        if (props.end() == iter) {
+          write(x, nullptr, -1);
+        } else {
+          write(x, iter->second.get(), -1);
+        }
       }
+      html.append("</tbody>\n");
     }
-    html.append("</tbody>\n");
     html.append("<tfoot>\n");
     levels_agg[level].name = ""; // sum
     write(levels_agg[level], &levels_agg[level], -1);
