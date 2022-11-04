@@ -771,7 +771,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   if (readers_js.empty()) {
     readers_js = "Did Not Created Any TableReader, try nozero=0";
   }
-  else {
+  else if (html) {
     readers_js[0]["<htmltab:col>"] = json::array({
       "class", "magic_num", "factory", "open_cnt", "sum_open_size",
       "avg_open_size"
