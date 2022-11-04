@@ -1668,10 +1668,10 @@ try {
 
     html.append("<th>UserKey</th>");
     html.append("<th>Seq</th>");
-    html.append("<th>Type</th>");
+    html.append("<th>T</th>");
     html.append("<th>UserKey</th>");
     html.append("<th>Seq</th>");
-    html.append("<th>Type</th>");
+    html.append("<th>T</th>");
     html.append("</tr></thead>");
   };
   html.append("<div>");
