@@ -1634,7 +1634,7 @@ try {
     html.append("<th colspan=3>Smallest Key</th>");
     html.append("<th colspan=3>Largest Key</th>");
     html.append("<th rowspan=2>FileTime</th>");
-    html.append("<th rowspan=2>NumReads<br>Sampled</th>");
+    html.append("<th rowspan=2 title='num_reads_sampled'>nReads<br>Sample</th>");
     if (with_fcnt) {
       html.append("<th rowspan=2>File<br>CNT</th>");
       html.append("<th rowspan=2>Avg File<br>Zip Size</th>");
@@ -1671,7 +1671,7 @@ try {
     html.append("<th>T</th>");
     html.append("<th>UserKey</th>");
     html.append("<th>Seq</th>");
-    html.append("<th>T</th>");
+    html.append("<th title='Type'>T</th>");
     html.append("</tr></thead>");
   };
   html.append("<div>");
