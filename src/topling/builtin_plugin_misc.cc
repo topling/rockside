@@ -1575,13 +1575,13 @@ try {
       AppendFmt("<td>%" PRIu64"</td>", p->num_data_blocks);
       AppendFmt("<td>%.6f</td>", p->index_size/1e9);
       AppendFmt("<td>%.6f</td>", p->data_size/1e9);
-      AppendFmt("<td>%.3f</td>", p->index_size/kv_zip_size);
+      AppendFmt("<td class='bghighlight'>%.3f</td>", p->index_size/kv_zip_size);
       AppendFmt("<td>%.6f</td>", p->raw_key_size/1e9);
       AppendFmt("<td>%.6f</td>", p->raw_value_size/1e9);
-      AppendFmt("<td>%.3f</td>", p->raw_key_size/kv_raw_size);
+      AppendFmt("<td class='bghighlight'>%.3f</td>", p->raw_key_size/kv_raw_size);
       AppendFmt("<td>%.3f</td>", key_zip_ratio);
       AppendFmt("<td>%.3f</td>", val_zip_ratio);
-      AppendFmt("<td>%.3f</td>", kv_zip_ratio);
+      AppendFmt("<td class='bghighlight'>%.3f</td>", kv_zip_ratio);
       AppendFmt("<td>%.3f</td>", avg_zip_key);
       AppendFmt("<td>%.1f</td>", avg_raw_key);
       AppendFmt("<td>%.3f</td>", avg_zip_val);
