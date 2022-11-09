@@ -614,6 +614,20 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
         compaction_options_universal.size_ratio = L1_score_boost;
       }
     }
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70050
+    ROCKSDB_JSON_OPT_PROP(js, blob_file_starting_level);
+    ROCKSDB_JSON_OPT_FACT(js, blob_cache);
+    ROCKSDB_JSON_OPT_PROP(js, experimental_mempurge_threshold);
+    ROCKSDB_JSON_OPT_PROP(js, prepopulate_blob_cache);
+    ROCKSDB_JSON_OPT_PROP(js, preclude_last_level_data_seconds);
+   #endif
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70080
+    ROCKSDB_JSON_OPT_PROP(js, level_compaction_dynamic_file_size);
+    ROCKSDB_JSON_OPT_PROP(js, ignore_max_compaction_bytes_for_input);
+    ROCKSDB_JSON_OPT_ENUM(js, last_level_temperature);
+    ROCKSDB_JSON_OPT_PROP(js, preserve_internal_time_seconds);
+    ROCKSDB_JSON_OPT_PROP(js, memtable_protection_bytes_per_key);
+   #endif
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
@@ -724,6 +738,20 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_FACT(js, sst_partitioner_factory);
     ROCKSDB_JSON_SET_FACT(js, compaction_executor_factory);
     ROCKSDB_JSON_SET_FACX(js, html_user_key_coder, any_plugin);
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70050
+    ROCKSDB_JSON_SET_PROP(js, blob_file_starting_level);
+    ROCKSDB_JSON_SET_FACX(js, blob_cache, cache);
+    ROCKSDB_JSON_SET_PROP(js, experimental_mempurge_threshold);
+    ROCKSDB_JSON_SET_PROP(js, prepopulate_blob_cache);
+    ROCKSDB_JSON_SET_PROP(js, preclude_last_level_data_seconds);
+   #endif
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70080
+    ROCKSDB_JSON_SET_PROP(js, level_compaction_dynamic_file_size);
+    ROCKSDB_JSON_SET_PROP(js, ignore_max_compaction_bytes_for_input);
+    ROCKSDB_JSON_SET_ENUM(js, last_level_temperature);
+    ROCKSDB_JSON_SET_PROP(js, preserve_internal_time_seconds);
+    ROCKSDB_JSON_SET_PROP(js, memtable_protection_bytes_per_key);
+   #endif
   }
 };
 using CFOptions = ColumnFamilyOptions;
