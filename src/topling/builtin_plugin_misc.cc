@@ -2252,7 +2252,7 @@ JS_Add_CFPropertiesWebView_Link(json& djs, bool html,
   ROCKSDB_JSON_SET_FACX(djs, properties, props);
 }
 #define GITHUB_ROCKSDB "https://github.com/topling/toplingdb"
-void JS_RokcsDB_AddVersion(json& djs, bool html) {
+void JS_RocksDB_AddVersion(json& djs, bool html) {
   djs["build_type"] = ROCKSDB_IF_DEBUG("debug", "release");
   auto p_sha = strchr(rocksdb_build_git_sha, ':');
   auto p_tag = strchr(rocksdb_build_git_tag, ':');
@@ -2652,7 +2652,7 @@ struct DB_Manip : PluginManipFunc<DB> {
     //Json_DB_IntProps(db, db.DefaultColumnFamily(), djs);
     //Json_DB_Level_Stats(db, db.DefaultColumnFamily(), djs, opt.num_levels, html);
     JS_Add_CFPropertiesWebView_Link(djs, db, html, repo);
-    JS_RokcsDB_AddVersion(djs["version"], html);
+    JS_RocksDB_AddVersion(djs["version"], html);
     return JsonToString(djs, dump_options);
   }
 };
@@ -2833,7 +2833,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
                                       dbname, cf_name, repo);
     }
     //Json_DB_Statistics(dbo.statistics.get(), djs, html);
-    JS_RokcsDB_AddVersion(djs["version"], html);
+    JS_RocksDB_AddVersion(djs["version"], html);
     auto getStr = [](auto fn) -> std::string {
       std::string str;
       Status s = fn(str);
