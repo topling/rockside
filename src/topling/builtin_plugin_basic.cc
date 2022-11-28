@@ -99,6 +99,62 @@ JS_NewHtmlTextUserKeyCoder(const json&, const SidePluginRepo&) {
 ROCKSDB_FACTORY_REG("HtmlTextUserKeyCoder", JS_NewHtmlTextUserKeyCoder);
 ROCKSDB_REG_AnyPluginManip("HtmlTextUserKeyCoder");
 
+struct HexUserKeyCoder : public UserKeyCoder {
+  size_t prefix_len = 0;
+  HexUserKeyCoder(const json& js, const SidePluginRepo& repo) {
+    Update({}, js, repo);
+  }
+  const char* Name() const override { return "HexUserKeyCoder"; }
+  void Update(const json&, const json& js, const SidePluginRepo&) override {
+    ROCKSDB_JSON_OPT_PROP(js, prefix_len);
+    if (prefix_len > 8)
+      THROW_InvalidArgument("prefix_len must <= 8");
+  }
+  std::string ToString(const json& dump_options, const SidePluginRepo&)
+  const override {
+    json js;
+    ROCKSDB_JSON_SET_PROP(js, prefix_len);
+    return JsonToString(js, dump_options);
+  }
+  void Encode(Slice, std::string*) const override {
+    ROCKSDB_DIE("This function should not be called");
+  }
+  static uint64_t ReadBigEndianUint64(const void* beg, size_t len) {
+    union {
+      unsigned char bytes[8];
+      uint64_t value;
+    } c;
+    c.value = 0;  // this is fix for gcc-4.8 union init bug
+    memcpy(c.bytes + (8 - len), beg, len);
+    if (port::kLittleEndian)
+      return __bswap_64(c.value);
+    else
+      return c.value;
+  }
+  void Decode(Slice coded, std::string* de) const override {
+    if (prefix_len) {
+      de->clear();
+      de->reserve(coded.size_*2 + 32);
+      if (coded.size() >= prefix_len) {
+        uint64_t prefix = ReadBigEndianUint64(coded.data(), prefix_len);
+        de->append("<b style='color:green'>");
+        de->append(std::to_string(prefix));
+        de->append("</b>:");
+        coded.remove_prefix(prefix_len);
+        de->append(coded.ToString(true));
+      } else {
+        de->append("<b style='color:red'>");
+        de->append(coded.ToString(true));
+        de->append("</b>");
+      }
+    } else {
+      *de = coded.ToString(true);
+    }
+  }
+};
+ROCKSDB_REG_Plugin(HexUserKeyCoder, AnyPlugin);
+ROCKSDB_REG_AnyPluginManip("HexUserKeyCoder");
+
 struct DbBenchUserKeyCoder : public UserKeyCoder {
   int prefix_len = 0;
   int key_size = 16;
@@ -197,7 +253,7 @@ JS_NewLRUCache(const json& js, const SidePluginRepo& repo) {
 ROCKSDB_FACTORY_REG("LRUCache", JS_NewLRUCache);
 
 struct LRUCache_Manip : PluginManipFunc<Cache> {
-  void Update(Cache* cache, const json&, const json& js, const SidePluginRepo&)
+  void Update(Cache* cache, const json& query, const json& js, const SidePluginRepo&)
   const override {
     if (js.contains("capacity")) {
       size_t capacity = 0;
@@ -208,6 +264,9 @@ struct LRUCache_Manip : PluginManipFunc<Cache> {
       bool strict_capacity = false;
       ROCKSDB_JSON_OPT_PROP(js, strict_capacity);
       cache->SetStrictCapacityLimit(strict_capacity);
+    }
+    if (query.contains("EraseUnRefEntries")) {
+      cache->EraseUnRefEntries();
     }
   }
 
