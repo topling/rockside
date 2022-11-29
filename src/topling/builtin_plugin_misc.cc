@@ -1832,6 +1832,19 @@ Json_DB_NoFileHistogram_Add_convenient_links(
   if (pos.data_) {
     std::ostringstream oss;
     oss << "<pre>";
+    //auto first_line_end = (const char*)memchr(big.data_, '\n', big.size_);
+    auto first_line_end = SliceSlice(big, "\nLevel").data_;
+    if (first_line_end) {
+      while (first_line_end > big.data_ && '\r' == first_line_end[-1]) {
+        first_line_end--;
+      }
+      oss.write(big.data_, first_line_end - big.data_);
+      big.remove_prefix(first_line_end - big.data_);
+      oss|"    ";
+      oss|"<a href='/db/"|db|"?html=1&compact="|cf|"'>compact</a>   ";
+      oss|"<a href='/db/"|db|"?html=1&flush="|cf|"'>flush</a>   ";
+      oss|"<a href='/db/"|db|"?html=1&flushall='><b>flushall</b></a>";
+    }
     oss.write(big.data_, pos.data_ - big.data_);
     auto write_space = [&](size_t lo, size_t hi) {
       for (; lo < hi; ++lo) oss.write(" ", 1);
