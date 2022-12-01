@@ -1841,9 +1841,9 @@ Json_DB_NoFileHistogram_Add_convenient_links(
       oss.write(big.data_, first_line_end - big.data_);
       big.remove_prefix(first_line_end - big.data_);
       oss|"    ";
-      oss|"<a href='/db/"|db|"?html=1&compact="|cf|"'>compact</a>   ";
-      oss|"<a href='/db/"|db|"?html=1&flush="|cf|"'>flush</a>   ";
-      oss|"<a href='/db/"|db|"?html=1&flushall='><b>flushall</b></a>";
+      oss|"<a href='/db/"|db|"?html=1&compact="|cf|"' title='compact this column family'>compact</a>   ";
+      oss|"<a href='/db/"|db|"?html=1&flush="|cf|"' title='flush this column family'>flush</a>   ";
+      oss|"<a href='/db/"|db|"?html=1&flushall=' title='flush all column families'><b>flushall</b></a>";
     }
     oss.write(big.data_, pos.data_ - big.data_);
     auto write_space = [&](size_t lo, size_t hi) {
