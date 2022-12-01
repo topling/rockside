@@ -388,8 +388,7 @@ Status DispatcherTableFactory::NewTableReader(
                                    prefetch_index_and_filter_in_cache);
   }
   auto& map = GetDispatcherTableMagicNumberMap();
-  auto iter = map.find(magic);
-  if (map.end() != iter) {
+  if (auto iter = map.find(magic); map.end() != iter) {
     const std::string& facname = iter->second;
     if (PluginFactorySP<TableFactory>::HasPlugin(facname)) {
       try {
@@ -525,8 +524,7 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   if (!m_json_obj.is_object()) {
     THROW_InvalidArgument("DispatcherTableFactory options must be object");
   }
-  auto iter = m_json_obj.find("default");
-  if (m_json_obj.end() != iter) {
+  if (auto iter = m_json_obj.find("default"); m_json_obj.end() != iter) {
     auto& subjs = iter.value();
     m_default_writer = PluginFactorySP<TableFactory>::
       GetPlugin("default", ROCKSDB_FUNC, subjs, repo);
@@ -534,15 +532,13 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
       THROW_InvalidArgument("fail get defined default writer = " + subjs.dump());
     }
   } else {
-    auto iter2 = m_all->find("default");
-    if (m_all->end() != iter2) {
+    if (auto iter2 = m_all->find("default"); m_all->end() != iter2) {
       m_default_writer = iter2->second;
     } else {
      THROW_InvalidArgument("fail get global default Factory");
     }
   }
-  iter = m_json_obj.find("level_writers");
-  if (m_json_obj.end() != iter) {
+  if (auto iter = m_json_obj.find("level_writers"); m_json_obj.end() != iter) {
     auto& level_writers_js = iter.value();
     if (!level_writers_js.is_array()) {
       THROW_InvalidArgument("level_writers must be a json array");
@@ -605,8 +601,7 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
       }
     }
   };
-  iter = m_json_obj.find("readers");
-  if (m_json_obj.end() != iter) {
+  if (auto iter = m_json_obj.find("readers"); m_json_obj.end() != iter) {
     auto& readers_js = iter.value();
     if (!readers_js.is_object()) {
       THROW_InvalidArgument("readers must be a json object");
@@ -720,8 +715,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   ROCKSDB_JSON_SET_PROP(js["options"], ignoreInputCompressionMatchesOutput);
   for (size_t i = 0, n = m_level_writers.size(); i < n; ++i) {
     auto& tf = m_level_writers[i];
-    auto iter = p2name.find(tf.get());
-    if (p2name.end() == iter) {
+    if (auto iter = p2name.find(tf.get()); p2name.end() == iter) {
       THROW_Corruption("missing TableFactory of m_level_writer");
     }
     add_writer(tf, i+1);
@@ -830,8 +824,7 @@ MetricStr(const json& dump_options, const SidePluginRepo& repo) const {
 
 void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
-  auto iter = js.find("level_writers");
-  if (js.end() != iter) {
+  if (auto iter = js.find("level_writers"); js.end() != iter) {
     auto& level_writers_js = iter.value();
     if (!level_writers_js.is_array()) {
       THROW_InvalidArgument("level_writers must be a json array");
@@ -862,8 +855,8 @@ void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo&
       m_level_writers[i] = p;
     }
   }
-  iter = js.find("default");
-  if (js.end() != iter) {
+
+  if (auto iter = js.find("default"); js.end() != iter) {
     auto& subjs = iter.value();
     auto default_writer = PluginFactorySP<TableFactory>::
       GetPlugin("default", ROCKSDB_FUNC, subjs, repo);

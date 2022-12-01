@@ -158,10 +158,8 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_FACT(js, statistics);
     ROCKSDB_JSON_OPT_PROP(js, use_fsync);
     ROCKSDB_JSON_OPT_PROP(js, allow_fdatasync);
-    {
-      auto iter = js.find("db_paths");
-      if (js.end() != iter)
-        Json_DbPathVec(iter.value(), db_paths);
+    if (auto iter = js.find("db_paths"); js.end() != iter) {
+      Json_DbPathVec(iter.value(), db_paths);
     }
     ROCKSDB_JSON_OPT_PROP(js, db_log_dir);
     ROCKSDB_JSON_OPT_PROP(js, wal_dir);
@@ -216,10 +214,8 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_SIZE(js, bytes_per_sync);
     ROCKSDB_JSON_OPT_SIZE(js, wal_bytes_per_sync);
     ROCKSDB_JSON_OPT_PROP(js, strict_bytes_per_sync);
-    {
-      auto iter = js.find("listeners");
-      if (js.end() != iter)
-        Json_EventListenerVec(js, repo, listeners);
+    if (auto iter = js.find("listeners"); js.end() != iter) {
+      Json_EventListenerVec(js, repo, listeners);
     }
     ROCKSDB_JSON_OPT_PROP(js, enable_thread_tracking);
     ROCKSDB_JSON_OPT_SIZE(js, delayed_write_rate);
@@ -493,21 +489,19 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_FACT(js, memtable_insert_with_hint_prefix_extractor);
     ROCKSDB_JSON_OPT_PROP(js, bloom_locality);
     ROCKSDB_JSON_OPT_SIZE(js, arena_block_size);
-    { // compression_per_level is an enum array
-      auto iter = js.find("compression_per_level");
-      if (js.end() != iter) {
-        if (!iter.value().is_array()) {
-          THROW_InvalidArgument("compression_per_level must be an array");
+    if (auto iter = js.find("compression_per_level"); js.end() != iter) {
+      // compression_per_level is an enum array
+      if (!iter.value().is_array()) {
+        THROW_InvalidArgument("compression_per_level must be an array");
+      }
+      compression_per_level.resize(0);
+      for (auto& item : iter.value().items()) {
+        const string& val = item.value().get_ref<const string&>();
+        CompressionType compressionType;
+        if (!enum_value(val, &compressionType)) {
+          THROW_InvalidArgument("compression_per_level: invalid enum: " + val);
         }
-        compression_per_level.resize(0);
-        for (auto& item : iter.value().items()) {
-          const string& val = item.value().get_ref<const string&>();
-          CompressionType compressionType;
-          if (!enum_value(val, &compressionType)) {
-            THROW_InvalidArgument("compression_per_level: invalid enum: " + val);
-          }
-          compression_per_level.push_back(compressionType);
-        }
+        compression_per_level.push_back(compressionType);
       }
     }
     ROCKSDB_JSON_OPT_PROP(js, num_levels);
@@ -517,12 +511,11 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_PROP(js, target_file_size_multiplier);
     ROCKSDB_JSON_OPT_PROP(js, level_compaction_dynamic_level_bytes);
     ROCKSDB_JSON_OPT_PROP(js, max_bytes_for_level_multiplier);
-    {
-      auto iter = js.find("max_bytes_for_level_multiplier_additional");
-      if (js.end() != iter)
-        if (!Init_vec(iter.value(), max_bytes_for_level_multiplier_additional))
-          THROW_InvalidArgument(
-              "max_bytes_for_level_multiplier_additional must be an int vector");
+    if (auto iter  = js.find("max_bytes_for_level_multiplier_additional");
+             iter != js.end()) {
+      if (!Init_vec(iter.value(), max_bytes_for_level_multiplier_additional))
+        THROW_InvalidArgument(
+            "max_bytes_for_level_multiplier_additional must be an int vector");
     }
     ROCKSDB_JSON_OPT_SIZE(js, max_compaction_bytes);
     ROCKSDB_JSON_OPT_SIZE(js, soft_pending_compaction_bytes_limit);
@@ -533,21 +526,19 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_NEST(js, compaction_options_fifo);
     ROCKSDB_JSON_OPT_PROP(js, max_sequential_skip_in_iterations);
     ROCKSDB_JSON_OPT_FACT(js, memtable_factory);
-    {
-      auto iter = js.find("table_properties_collector_factories");
-      if (js.end() != iter) {
-        if (!iter.value().is_array()) {
-          THROW_InvalidArgument(
-              "table_properties_collector_factories must be an array");
-        }
-        decltype(table_properties_collector_factories) vec;
-        for (auto& item : iter.value().items()) {
-          decltype(vec)::value_type p;
-          ROCKSDB_JSON_OPT_FACT_INNER(item.value(), p);
-          vec.push_back(p);
-        }
-        table_properties_collector_factories.swap(vec);
+    if (auto iter  = js.find("table_properties_collector_factories");
+             iter != js.end()) {
+      if (!iter.value().is_array()) {
+        THROW_InvalidArgument(
+            "table_properties_collector_factories must be an array");
       }
+      decltype(table_properties_collector_factories) vec;
+      for (auto& item : iter.value().items()) {
+        decltype(vec)::value_type p;
+        ROCKSDB_JSON_OPT_FACT_INNER(item.value(), p);
+        vec.push_back(p);
+      }
+      table_properties_collector_factories.swap(vec);
     }
     ROCKSDB_JSON_OPT_PROP(js, max_successive_merges);
     ROCKSDB_JSON_OPT_PROP(js, optimize_filters_for_hits);
@@ -592,9 +583,8 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_PROP(js, snap_refresh_nanos);
     ROCKSDB_JSON_OPT_PROP(js, disable_auto_compactions);
     ROCKSDB_JSON_OPT_FACT(js, table_factory);
-    {
-      auto iter = js.find("cf_paths");
-      if (js.end() != iter) Json_DbPathVec(iter.value(), cf_paths);
+    if (auto iter = js.find("cf_paths"); js.end() != iter) {
+      Json_DbPathVec(iter.value(), cf_paths);
     }
     ROCKSDB_JSON_OPT_FACT(js, compaction_thread_limiter);
     ROCKSDB_JSON_OPT_FACT(js, sst_partitioner_factory);
@@ -606,8 +596,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
       }
     }
     if (kCompactionStyleLevel == compaction_style) {
-      auto iter = js.find("compaction_options_level");
-      if (js.end() != iter) {
+      if (auto iter = js.find("compaction_options_level"); js.end() != iter) {
         auto L1_score_boost = compaction_options_universal.size_ratio;
         auto& sub = iter.value();
         ROCKSDB_JSON_OPT_PROP(sub, L1_score_boost);
@@ -837,8 +826,7 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
   //auto p = CreateDBStatistics();
   auto p = std::make_shared<StatisticsWithDiscards>(nullptr);
   p->set_stats_level(stats_level);
-  auto iter = js.find("discard_tickers");
-  if (js.end() != iter) {
+  if (auto iter = js.find("discard_tickers"); js.end() != iter) {
     const json& discard = iter.value();
     if (discard.is_string()) {
       std::shared_ptr<Statistics> discard_tickers;
@@ -878,8 +866,7 @@ JS_NewStatistics(const json& js, const SidePluginRepo& repo) {
         THROW_InvalidArgument("discard_tickers must be string or array");
     }
   }
-  iter = js.find("discard_histograms");
-  if (js.end() != iter) {
+  if (auto iter = js.find("discard_histograms"); js.end() != iter) {
     const json& discard = iter.value();
     if (discard.is_string()) {
       std::shared_ptr<Statistics> discard_histograms;
@@ -1518,9 +1505,8 @@ try {
     std::map<std::string, int> algos;
     for (const auto & x : curr_level.files) {
       std::string fullname = x.db_path + x.name;
-      auto iter = props.find(fullname);
       const TableProperties* p = nullptr;
-      if (props.end() != iter) {
+      if (auto iter = props.find(fullname); props.end() != iter) {
         p = iter->second.get();
         algos[p->compression_name]++;
       }
@@ -1792,8 +1778,7 @@ if (show_per_level) {
         const auto& x = curr_level.files[i];
         std::string fullname = x.db_path + x.name;
         html.append("<tr>");
-        auto iter = props.find(fullname);
-        if (props.end() == iter) {
+        if (auto iter = props.find(fullname); props.end() == iter) {
           write(x, nullptr, -1);
         } else {
           write(x, iter->second.get(), -1);
@@ -2429,8 +2414,7 @@ static std::string RunManualFlushAll(const DB_MultiCF& dbm, const json& dump_opt
 
 void PluginUpdate(const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
                   const json& query, const json& body, const SidePluginRepo& repo) {
-  auto iter = map.p2name.find(p.db);
-  if (map.p2name.end() != iter) {
+  if (auto iter = map.p2name.find(p.db); map.p2name.end() != iter) {
     if (p.dbm) {
       auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.params, repo);
       manip->Update(p.dbm, query, body, repo);
@@ -2680,8 +2664,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
       DoPostCmd(cmd, db->db, q, js, repo);
       return;
     }
-    auto iter = js.find("cfo");
-    if (js.end() != iter) {
+    if (auto iter = js.find("cfo"); js.end() != iter) {
       const json& cfo = iter.value();
       if (!cfo.is_object()) {
         THROW_InvalidArgument("cfo must be an object");
@@ -3276,8 +3259,7 @@ JS_OccTransactionDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {
     X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
       OptimisticTransactionDB* dbptr = nullptr;
-      auto iter = js.find("occ_options");
-      if (js.end() == iter) {
+      if (auto iter = js.find("occ_options"); js.end() == iter) {
         Status s = OptimisticTransactionDB::Open(
             *db_opt, path, cfdvec, &db->cf_handles, &dbptr);
         if (!s.ok())

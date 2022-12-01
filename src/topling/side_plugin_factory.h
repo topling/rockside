@@ -342,8 +342,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 //////////////////////////////////////////////////////////////////////////////
 
 #define ROCKSDB_JSON_XXX_PROP(js, prop, pname) \
-    auto __iter = js.find(pname); \
-    if (js.end() != __iter) try { \
+    if (auto __iter = js.find(pname); js.end() != __iter) try { \
       prop = __iter.value().get<std::remove_reference_t<decltype(prop)> >(); \
     } catch (const std::exception& ex) {     \
       THROW_InvalidArgument( \
@@ -373,8 +372,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
       prop = ParseSizeXiB(js, #prop); \
     } catch (const std::exception&) {} while (0)
 #define ROCKSDB_JSON_OPT_ENUM(js, prop) do { \
-    auto __iter = js.find(#prop); \
-    if (js.end() != __iter) {                \
+    if (auto __iter = js.find(#prop); js.end() != __iter) { \
       if (!__iter.value().is_string())       \
         THROW_InvalidArgument("enum \"" #prop "\" must be json string"); \
       const auto& __val = __iter.value().get_ref<const std::string&>(); \
@@ -385,8 +383,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 #define ROCKSDB_JSON_OPT_ESET(js, prop, pname) \
         ROCKSDB_JSON_OPT_ESET_3(js, prop, #prop)
 #define ROCKSDB_JSON_OPT_ESET_3(js, prop, pname) do { \
-    auto __iter = js.find(pname); \
-    if (js.end() != __iter) {                \
+    if (auto __iter = js.find(pname); js.end() != __iter) { \
       if (!__iter.value().is_string())       \
         THROW_InvalidArgument("enum \"" pname "\" must be json string"); \
       const auto& __val = __iter.value().get_ref<const std::string&>(); \
@@ -396,8 +393,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 
 #define ROCKSDB_JSON_OPT_NEST(js, prop) \
   do try { \
-    auto __iter = js.find(#prop); \
-    if (js.end() != __iter) \
+    if (auto __iter = js.find(#prop); js.end() != __iter) \
       prop = decltype(NestForBase(prop))(__iter.value()); \
   } catch (const std::exception& ex) { \
     THROW_InvalidArgument(std::string(#prop ": ") + ex.what()); \
@@ -407,8 +403,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
     prop = PluginFactory<decltype(prop)>:: \
         ObtainPlugin(#prop, ROCKSDB_FUNC, js, repo)
 #define ROCKSDB_JSON_OPT_FACT(js, prop) do { \
-    auto __iter = js.find(#prop); \
-    if (js.end() != __iter) { \
+    if (auto __iter = js.find(#prop); js.end() != __iter) { \
       ROCKSDB_JSON_OPT_FACT_INNER(__iter.value(), prop); \
   }} while (0)
 

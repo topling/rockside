@@ -56,8 +56,7 @@ std::string JsonGetClassName(const char* caller, const json& js) {
     return js.get_ref<const std::string&>();
   }
   if (js.is_object()) {
-    auto iter = js.find("class");
-    if (js.end() != iter) {
+    if (auto iter = js.find("class"); js.end() != iter) {
       if (!iter.value().is_string())
         throw Status::InvalidArgument(caller,
           "json[\"class\"] must be string, but is: " + js.dump());
@@ -256,8 +255,7 @@ catch (const std::exception& ex) {
 
 static
 void MergeSubObject(json* target, const json& patch, const string& subname) {
-  auto iter = patch.find(subname);
-  if (patch.end() != iter) {
+  if (auto iter = patch.find(subname); patch.end() != iter) {
     auto& sub_js = iter.value();
     if (!sub_js.is_object()) {
       THROW_InvalidArgument("\"" + subname + "\" must be an object");
@@ -271,8 +269,7 @@ void MergeSubObject(json* target, const json& patch, const string& subname) {
 }
 static
 void MergeSubAny(json* target, const json& patch, const string& subname) {
-  auto iter = patch.find(subname);
-  if (patch.end() != iter) {
+  if (auto iter = patch.find(subname); patch.end() != iter) {
     auto& sub_js = iter.value();
     target->merge_patch(sub_js);
   }
@@ -518,8 +515,7 @@ template<class Map, class Ptr>
 static bool
 Impl_Get(const std::string& name, const Map& map, Ptr* pp) {
   auto& name2p = *map.name2p;
-  auto iter = name2p.find(name);
-  if (name2p.end() != iter) {
+  if (auto iter = name2p.find(name); name2p.end() != iter) {
     *pp = iter->second;
     return true;
   }
@@ -1074,8 +1070,7 @@ ParseSizeXiB::ParseSizeXiB(const json& js, const char* key) {
       throw std::invalid_argument(
           std::string(ROCKSDB_FUNC) + ": js is not an object, key = " + key);
     }
-    auto iter = js.find(key);
-    if (js.end() != iter) {
+    if (auto iter = js.find(key); js.end() != iter) {
       auto& sub_js = iter.value();
       if (sub_js.is_number_integer())
         m_val = sub_js.get<long long>();
@@ -1197,15 +1192,13 @@ bool JsonSmartBool(const json& js) {
 }
 
 bool JsonSmartBool(const json& js, const char* subname, bool Default) {
-  auto iter = js.find(subname);
-  if (js.end() != iter) {
+  if (auto iter = js.find(subname); js.end() != iter) {
     return JsonSmartBool(iter.value());
   }
   return Default;
 }
 void JsonSmartBool(bool* result, const json& js, const char* subname) {
-  auto iter = js.find(subname);
-  if (js.end() != iter) {
+  if (auto iter = js.find(subname); js.end() != iter) {
     *result = JsonSmartBool(iter.value());
   }
 }
@@ -1231,15 +1224,13 @@ int JsonSmartInt(const json& js) {
 }
 
 int JsonSmartInt(const json& js, const char* subname, int Default) {
-  auto iter = js.find(subname);
-  if (js.end() != iter) {
+  if (auto iter = js.find(subname); js.end() != iter) {
     return JsonSmartInt(iter.value());
   }
   return Default;
 }
 void JsonSmartInt(int* result, const json& js, const char* subname) {
-  auto iter = js.find(subname);
-  if (js.end() != iter) {
+  if (auto iter = js.find(subname); js.end() != iter) {
     *result = JsonSmartInt(iter.value());
   }
 }
@@ -1265,15 +1256,13 @@ int64_t JsonSmartInt64(const json& js) {
 }
 
 int64_t JsonSmartInt64(const json& js, const char* subname, int64_t Default) {
-  auto iter = js.find(subname);
-  if (js.end() != iter) {
+  if (auto iter = js.find(subname); js.end() != iter) {
     return JsonSmartInt64(iter.value());
   }
   return Default;
 }
 void JsonSmartInt64(int64_t* result, const json& js, const char* subname) {
-  auto iter = js.find(subname);
-  if (js.end() != iter) {
+  if (auto iter = js.find(subname); js.end() != iter) {
     *result = JsonSmartInt64(iter.value());
   }
 }
@@ -1409,14 +1398,12 @@ std::string JsonToString(const json& obj, const json& options) {
     return obj.get_ref<const std::string&>();
   }
   int indent = -1;
-  auto iter = options.find("pretty");
-  if (options.end() != iter) {
+  if (auto iter = options.find("pretty"); options.end() != iter) {
     if (JsonSmartBool(iter.value())) {
       indent = 4;
     }
   }
-  iter = options.find("indent");
-  if (options.end() != iter) {
+  if (auto iter = options.find("indent"); options.end() != iter) {
     indent = JsonSmartInt(iter.value());
   }
 /*
@@ -1434,8 +1421,7 @@ std::string
 PluginToString(const DB_Ptr& dbp,
                const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
                const json& js, const SidePluginRepo& repo) {
-  auto iter = map.p2name.find(dbp.db);
-  if (map.p2name.end() != iter) {
+  if (auto iter = map.p2name.find(dbp.db); map.p2name.end() != iter) {
     if (dbp.dbm) {
       auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.params, repo);
       return manip->ToString(*dbp.dbm, js, repo);
@@ -1483,8 +1469,7 @@ JsonRepoSetHtml_ahref(json& js, const char* mapname, const std::string& varname)
 void JsonRepoSet(json& js, const void* prop,
                  const std::map<const void*, SidePluginRepo::Impl::ObjInfo>& p2name,
                  const char* mapname, bool html) {
-  auto iter = p2name.find(prop);
-  if (p2name.end() != iter) {
+  if (auto iter = p2name.find(prop); p2name.end() != iter) {
     ROCKSDB_VERIFY(nullptr != prop);
     if (iter->second.name.empty())
       js = iter->second.params;

@@ -274,9 +274,8 @@ struct LRUCache_Manip : PluginManipFunc<Cache> {
   const override {
     bool html = JsonSmartBool(dump_options, "html", true);
     auto& p2name = repo.m_impl->cache.p2name;
-    auto iter = p2name.find((Cache*)&r);
     json js;
-    if (p2name.end() != iter) {
+    if (auto iter = p2name.find((Cache*)&r); p2name.end() != iter) {
       js = iter->second.params;
     }
     size_t usage = r.GetUsage();
@@ -583,8 +582,7 @@ JS_NewGenericRateLimiter(const json& js, const SidePluginRepo& repo) {
     THROW_InvalidArgument("fairness must > 0");
   }
   Env* env = Env::Default();
-  auto iter = js.find("env");
-  if (js.end() != iter) {
+  if (auto iter = js.find("env"); js.end() != iter) {
     const auto& env_js = iter.value();
     env = PluginFactory<Env*>::GetPlugin("env", ROCKSDB_FUNC, env_js, repo);
     if (!env)
