@@ -2922,6 +2922,7 @@ DB* JS_DB_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
   if (!s.ok())
     throw s;
   SetCFPropertiesWebView(db, name, repo);
+  ROCKSDB_DIE("TODO: start catch up thread");
   return db;
 }
 ROCKSDB_FACTORY_REG("DB::OpenAsSecondary", JS_DB_OpenAsSecondary);
@@ -3231,6 +3232,56 @@ JS_TransactionDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
 }
 ROCKSDB_FACTORY_REG("TransactionDB::Open", JS_TransactionDB_MultiCF_Open);
 ROCKSDB_FACTORY_REG("TransactionDB::Open", JS_DB_MultiCF_Manip);
+
+static
+DB* JS_TransactionDB_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
+  std::string name, path, secondary_path;
+  ROCKSDB_JSON_OPT_PROP(js, secondary_path);
+  Options options(JS_Options(js, repo, &name, &path));
+  TransactionDBOptions trx_db_options(JS_TransactionDBOptions(js, repo));
+  TransactionDB* db = nullptr;
+  Status s = TransactionDB::OpenAsSecondary(options, trx_db_options, path, secondary_path, &db);
+  if (!s.ok())
+    throw s;
+  SetCFPropertiesWebView(db, name, repo);
+  ROCKSDB_DIE("TODO: start catch up thread");
+  return db;
+}
+ROCKSDB_FACTORY_REG("TransactionDB::OpenAsSecondary", JS_TransactionDB_OpenAsSecondary);
+ROCKSDB_FACTORY_REG("TransactionDB::OpenAsSecondary", JS_DB_Manip);
+
+static
+DB_MultiCF*
+JS_TransactionDB_MultiCF_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
+  struct X : MultiCF_Open {
+    X(const json& js, const SidePluginRepo& repo) : MultiCF_Open(js, repo) {
+      std::string secondary_path;
+      auto auto_catch_up_delay_ms = db->m_catch_up_delay_ms;
+      ROCKSDB_JSON_OPT_PROP(js, secondary_path);
+      ROCKSDB_JSON_OPT_PROP(js, auto_catch_up_delay_ms);
+      TransactionDBOptions trx_db_options(JS_TransactionDBOptions(js, repo));
+      TransactionDB* dbptr = nullptr;
+      Status s = TransactionDB::OpenAsSecondary(*db_opt, trx_db_options, path,
+                      secondary_path, cfdvec, &db->cf_handles, &dbptr);
+      if (!s.ok())
+        throw s;
+      if (db->cf_handles.size() != cfdvec.size())
+        THROW_Corruption("cf_handles.size() != cfdvec.size()");
+      db->db = dbptr;
+      SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
+      db->m_create_cf = &JS_CreateCF;
+      db->InitAddCF_ToMap(*js_cf_desc);
+      db->m_catch_up_delay_ms = auto_catch_up_delay_ms;
+      if (auto_catch_up_delay_ms > 0) {
+        db->m_catch_up_running = true;
+        CreateCatchUpThread(db.get());
+      }
+    }
+  } p(js, repo);
+  return p.db.release();
+}
+ROCKSDB_FACTORY_REG("TransactionDB::OpenAsSecondary", JS_TransactionDB_MultiCF_OpenAsSecondary);
+ROCKSDB_FACTORY_REG("TransactionDB::OpenAsSecondary", JS_DB_MultiCF_Manip);
 
 /////////////////////////////////////////////////////////////////////////////
 struct OptimisticTransactionDBOptions_Json: OptimisticTransactionDBOptions {
