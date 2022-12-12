@@ -18,6 +18,9 @@
   #include "memory/memkind_kmem_allocator.h"
 #endif
 
+const char* git_version_hash_info_cspp_memtable();
+const char* git_version_hash_info_cspp_wbwi();
+
 namespace ROCKSDB_NAMESPACE {
 
 using std::shared_ptr;
@@ -223,6 +226,34 @@ struct DbBenchUserKeyCoder : public UserKeyCoder {
 };
 ROCKSDB_REG_Plugin(DbBenchUserKeyCoder, AnyPlugin);
 ROCKSDB_REG_AnyPluginManip("DbBenchUserKeyCoder");
+
+__attribute__((weak)) void JS_ZipTable_AddVersion(json& djs, bool html);
+
+void JS_CSPPMemTab_AddVersion(json& djs, bool html);
+void JS_CSPP_WBWI_AddVersion(json& djs, bool html);
+
+void JS_ModuleGitInfo_Add(json& js, bool html) {
+  JS_ToplingDB_AddVersion(js, html);
+  JS_CSPPMemTab_AddVersion(js, html);
+  JS_CSPP_WBWI_AddVersion(js, html);
+  if (JS_ZipTable_AddVersion)
+    JS_ZipTable_AddVersion(js, html);
+  JS_TopTable_AddVersion(js, html);
+}
+class ModuleGitInfo : public AnyPlugin {
+public:
+  const char* Name() const final { return "ModuleGitInfo"; }
+  void Update(const json&, const json&, const SidePluginRepo&) override {}
+  std::string ToString(const json& dump_options, const SidePluginRepo&)
+  const override {
+    bool html = JsonSmartBool(dump_options, "html", true);
+    json js;
+    JS_ModuleGitInfo_Add(js, html);
+    return JsonToString(js, dump_options);
+  }
+};
+ROCKSDB_REG_DEFAULT_CONS(ModuleGitInfo, AnyPlugin);
+ROCKSDB_REG_AnyPluginManip("ModuleGitInfo");
 
 struct LRUCacheOptions_Json : LRUCacheOptions {
   LRUCacheOptions_Json(const json& js, const SidePluginRepo& repo) {

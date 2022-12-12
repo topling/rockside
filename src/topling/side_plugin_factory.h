@@ -452,4 +452,7 @@ struct CompactionParams;
 json JS_CompactionParamsEncodePtr(const CompactionParams*);
 const CompactionParams* JS_CompactionParamsDecodePtr(const json&);
 
+void JS_ToplingDB_AddVersion(json& djs, bool html);
+void JS_TopTable_AddVersion(json& djs, bool html); // in repo topling-sst
+
 } // ROCKSDB_NAMESPACE
