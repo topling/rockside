@@ -527,11 +527,11 @@ struct DynaMemTableFactory : public MemTableRepFactory {
     {
       std::lock_guard<std::mutex> lock(m_mtx);
       ROCKSDB_JSON_OPT_FACT_INNER(inner, real_fac);
+      if (dynamic_cast<DynaMemTableFactory*>(real_fac.get())) {
+        THROW_InvalidArgument("real_fac must not be DynaMemTableFactory");
+      }
+      this->real_fac = real_fac;
     }
-    if (dynamic_cast<DynaMemTableFactory*>(real_fac.get())) {
-      THROW_InvalidArgument("real_fac must not be DynaMemTableFactory");
-    }
-    this->real_fac = real_fac;
   }
   std::string ToString(const json& d, const SidePluginRepo& repo) const {
     const bool html = JsonSmartBool(d, "html", true);
