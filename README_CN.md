@@ -17,6 +17,6 @@ github 仓库 | 内容
 3. SidePlugin 内置了对 RocksDB 自身所有组件的支持（例如各种 TableFactory, Cache, RateLimiter, WriteBufferManager 等等）
 4. 通过 SidePlugin 框架，内嵌了一个 Http Web Server，可以展示 DB 的各种内部状态（例如展示当前生效的配置参数，展示 LSM 树形态等等），还可以将 DB 的各种内部指标[导出到 Prometheus+grafana](https://github.com/topling/rockside/wiki/grafana%E5%B1%95%E7%A4%BAtoplingdb%E8%BF%90%E8%A1%8C%E6%8C%87%E6%A0%87-grafana%E5%B1%95%E7%A4%BA%E7%A4%BA%E4%BE%8B) 实现监控
 5. 通过内嵌的 Http Web Server，不用重启进程，[在线修改 DB 的各种配置参数](https://github.com/topling/rockside/wiki/Online-Change-Options)
-6. [分布式 Compact](https://github.com/topling/rockside/wiki/Distributed-Compaction) 将 Compact 转移到专有的计算集群，并且这也是通过 json/yaml 配置来实现的，用户代码不需要为此进行任何修改！
-7. [分布式 Compact](https://github.com/topling/rockside/wiki/Distributed-Compaction) 完美支持**带状态**的 CompactionFilter, MergeOperator, EventHandler 等等，当然，这需要用户自己实现**状态**的序列化/反序列化
-8. Topling 性能组件：[更快的 MemTable](https://github.com/topling/rockside/wiki/ToplingCSPPMemTab)，[更快的SST](https://github.com/topling/rockside/wiki/ToplingFastTable)，[内存压缩的SST](https://github.com/topling/rockside/wiki/ToplingZipTable)，这些也是通过 json/yaml 来配置的，不需要修改用户代码
+6. [分布式 Compact](https://github.com/topling/topling-dcompact) 将 Compact 转移到专有的计算集群，并且这也是通过 json/yaml 配置来实现的，用户代码不需要为此进行任何修改！
+7. [分布式 Compact](https://github.com/topling/topling-dcompact) 完美支持**带状态**的 CompactionFilter, MergeOperator, EventHandler 等等，当然，这需要用户自己实现**状态**的序列化/反序列化
+8. Topling 性能组件：[更快的 MemTable](https://github.com/topling/cspp-memtab)，[更快的SST](https://github.com/topling/rockside/wiki/ToplingFastTable)，[内存压缩的SST](https://github.com/topling/rockside/wiki/ToplingZipTable)，这些也是通过 json/yaml 来配置的，不需要修改用户代码
