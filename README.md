@@ -1,1 +1,1 @@
-# [中文版](README_CN.md)
+# [中文版(Chinese)](README_CN.md)
