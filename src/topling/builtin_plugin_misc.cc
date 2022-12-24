@@ -215,7 +215,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_SIZE(js, wal_bytes_per_sync);
     ROCKSDB_JSON_OPT_PROP(js, strict_bytes_per_sync);
     if (auto iter = js.find("listeners"); js.end() != iter) {
-      Json_EventListenerVec(js, repo, listeners);
+      Json_EventListenerVec(iter.value(), repo, listeners);
     }
     ROCKSDB_JSON_OPT_PROP(js, enable_thread_tracking);
     ROCKSDB_JSON_OPT_SIZE(js, delayed_write_rate);
