@@ -96,4 +96,38 @@ public:
 ROCKSDB_REG_Plugin(AntiDependsLogger, Logger);
 ROCKSDB_REG_Plugin("CreateLoggerFromOptions", AntiDependsLogger, Logger);
 
+
+static std::shared_ptr<SstFileManager>
+JS_NewSstFileManager(const json& js, const SidePluginRepo& repo) {
+  Env* env = Env::Default();
+  std::shared_ptr<FileSystem> fs = nullptr;
+  std::shared_ptr<Logger> info_log = nullptr;
+  std::string trash_dir; // default empty
+  int64_t rate_bytes_per_sec = 0;
+  bool delete_existing_trash = true;
+  Status status;
+  double max_trash_db_ratio = 0.25;
+  uint64_t bytes_max_delete_chunk = 64 * 1024 * 1024;
+  ROCKSDB_JSON_OPT_FACT(js, env);
+  ROCKSDB_JSON_OPT_FACT(js, fs);
+  ROCKSDB_JSON_OPT_FACT(js, info_log);
+  ROCKSDB_JSON_OPT_PROP(js, trash_dir);
+  ROCKSDB_JSON_OPT_SIZE(js, rate_bytes_per_sec);
+  ROCKSDB_JSON_OPT_PROP(js, max_trash_db_ratio);
+  ROCKSDB_JSON_OPT_PROP(js, bytes_max_delete_chunk);
+  if (!fs) {
+    fs = env->GetFileSystem();
+  }
+  SstFileManager* mgr = NewSstFileManager(env, fs, info_log,
+      trash_dir, rate_bytes_per_sec, delete_existing_trash, &status,
+      max_trash_db_ratio, bytes_max_delete_chunk);
+  if (!status.ok()) {
+    throw status;
+  }
+  return std::shared_ptr<SstFileManager>(mgr);
+}
+ROCKSDB_FACTORY_REG("SstFileManager", JS_NewSstFileManager);
+ROCKSDB_FACTORY_REG("Default", JS_NewSstFileManager);
+
+
 } // ROCKSDB_NAMESPACE
