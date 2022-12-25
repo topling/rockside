@@ -506,6 +506,9 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
       return false;
     }
   }
+  if (strcmp(output_factory->Name(), kBlockBasedTableName()) == 0) {
+    return output_factory->InputCompressionMatchesOutput(c);
+  }
   debug_print("true");
   return true;
 }
