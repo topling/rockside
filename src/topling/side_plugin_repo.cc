@@ -504,6 +504,21 @@ Impl_Put(const std::string& name, json&& spec, Map& map, const Ptr& p) {
 
 template<class Map, class Ptr>
 static void
+Impl_Put(const std::string& name, const char* spec, Map& map, const Ptr& p) {
+  try {
+    const char* spec_end = spec + strlen(spec);
+    json jspec(json::parse(spec, spec_end));
+    Impl_Put(name, std::move(jspec), map, p);
+  } catch (const std::exception& ex) {
+    fprintf(stderr,
+      "ERROR: SidePluginRepo::Put(name, str_spec, ptr), ex.what = %s\n",
+      ex.what());
+    throw;
+  }
+}
+
+template<class Map, class Ptr>
+static void
 Impl_Put(const std::string& name, Map& map, const Ptr& p) {
   Impl_Put(name, json{
     {"class", "(manual)"},
@@ -544,6 +559,10 @@ void SidePluginRepo::Put(const string& name, \
 void SidePluginRepo::Put(const string& name, json spec, \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
   Impl_Put(name, std::move(spec), m_impl->field, p); \
+} \
+void SidePluginRepo::Put(const string& name, const char* spec, \
+                decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
+  Impl_Put(name, spec, m_impl->field, p); \
 } \
 bool SidePluginRepo::Get(const string& name, \
                 decltype(RepoPtrType(((Impl*)0)->field))* pp) const { \
@@ -630,6 +649,19 @@ void SidePluginRepo::Put(const std::string& name, DB* db) {
 void SidePluginRepo::Put(const std::string& name, DB_MultiCF* db) {
   Impl_Put(name, m_impl->db, DB_Ptr(db));
 }
+void SidePluginRepo::Put(const std::string& name, json spec, DB* db) {
+  Impl_Put(name, std::move(spec), m_impl->db, DB_Ptr(db));
+}
+void SidePluginRepo::Put(const std::string& name, json spec, DB_MultiCF* db) {
+  Impl_Put(name, std::move(spec), m_impl->db, DB_Ptr(db));
+}
+void SidePluginRepo::Put(const std::string& name, const char* spec, DB* db) {
+  Impl_Put(name, spec, m_impl->db, DB_Ptr(db));
+}
+void SidePluginRepo::Put(const std::string& name, const char* spec, DB_MultiCF* db) {
+  Impl_Put(name, spec, m_impl->db, DB_Ptr(db));
+}
+
 bool SidePluginRepo::Get(const std::string& name, DB** db, Status* s) const {
   DB_Ptr dbp(nullptr);
   if (Impl_Get(name, m_impl->db, &dbp)) {
