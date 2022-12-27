@@ -231,6 +231,7 @@ __attribute__((weak)) void JS_ZipTable_AddVersion(json& djs, bool html);
 
 void JS_CSPPMemTab_AddVersion(json& djs, bool html);
 void JS_CSPP_WBWI_AddVersion(json& djs, bool html);
+void JS_ToplingDcompact_AddVersion(json& djs, bool html);
 
 void JS_ModuleGitInfo_Add(json& js, bool html) {
   JS_ToplingDB_AddVersion(js, html);
@@ -239,6 +240,7 @@ void JS_ModuleGitInfo_Add(json& js, bool html) {
   if (JS_ZipTable_AddVersion)
     JS_ZipTable_AddVersion(js, html);
   JS_TopTable_AddVersion(js, html);
+  JS_ToplingDcompact_AddVersion(js, html);
 }
 class ModuleGitInfo : public AnyPlugin {
 public:

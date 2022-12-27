@@ -143,5 +143,5 @@ databases:
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path
-      path: /dev/shm/strings
+      path: /nvme-shared/leipeng/db_bench_data
 open: strings
