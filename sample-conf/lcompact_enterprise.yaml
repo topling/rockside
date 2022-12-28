@@ -66,7 +66,7 @@ MemTableRepFactory:
   cspp:
     class: cspp
     params:
-      mem_cap: 32M
+      mem_cap: 2G
       use_vm: false
       token_use_idle: true
   skiplist:
@@ -102,7 +102,7 @@ TableFactory:
       smallTaskMemory: 1G
       minDictZipValueSize: '30'
       keyPrefixLen: 0
-      minPreadLen: 0
+      minPreadLen: 64
   bb:
     class: BlockBasedTable
     params:
@@ -125,9 +125,9 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
       level_writers:
-      #- fast
-      #- fast
-      #- fast
+      - fast
+      - fast
+      - fast
       - zip
       - zip
       - zip
@@ -138,8 +138,8 @@ CFOptions:
   default:
     max_write_buffer_number: 4
     memtable_factory: "${cspp}"
-    write_buffer_size: 16M
-    target_file_size_base: 256M
+    write_buffer_size: 256M
+    target_file_size_base: 16M
     target_file_size_multiplier: 2
     table_factory: dispatch
     compaction_options_level:
@@ -160,7 +160,7 @@ DBOptions:
     inplace_update_support: false
     WAL_size_limit_MB: 0
     statistics: "${stat-strings}"
-    #allow_mmap_reads: true
+    allow_mmap_reads: true
 databases:
   strings:
     method: DB::Open
@@ -169,5 +169,5 @@ databases:
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path
-      path: /nvme-shared/leipeng/db_bench_data/strings
+      path: /dev/shm/strings
 open: strings
