@@ -1151,7 +1151,7 @@ ParseSizeXiB::operator unsigned long long() const {
 
 void TableFactoryDummyFuncToPreventGccDeleteSymbols();
 static int InitOnceDebugLevel() {
-  const char* env = getenv("JsonOptionsRepo_DebugLevel");
+  const char* env = getenv("SidePluginRepo_DebugLevel");
   if (env) {
     return atoi(env);
   }
