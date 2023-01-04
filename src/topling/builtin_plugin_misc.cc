@@ -147,6 +147,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, paranoid_checks);
     ROCKSDB_JSON_OPT_PROP(js, flush_verify_memtable_count);
     ROCKSDB_JSON_OPT_PROP(js, track_and_verify_wals_in_manifest);
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_OPT_PROP(js, verify_sst_unique_id_in_manifest);
+   #endif
     ROCKSDB_JSON_OPT_FACT(js, env);
     ROCKSDB_JSON_OPT_FACT(js, rate_limiter);
     ROCKSDB_JSON_OPT_FACT(js, sst_file_manager);
@@ -264,6 +267,9 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, paranoid_checks);
     ROCKSDB_JSON_SET_PROP(js, flush_verify_memtable_count);
     ROCKSDB_JSON_SET_PROP(js, track_and_verify_wals_in_manifest);
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_SET_PROP(js, verify_sst_unique_id_in_manifest);
+   #endif
     ROCKSDB_JSON_SET_FACT(js, env);
     ROCKSDB_JSON_SET_FACT(js, rate_limiter);
     ROCKSDB_JSON_SET_FACT(js, sst_file_manager);
