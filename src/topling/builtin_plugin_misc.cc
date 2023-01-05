@@ -2025,6 +2025,7 @@ static void Json_DB_IntProps(const DB& db, ColumnFamilyHandle* cfh,
 }
 
 static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
+                                  const SidePluginRepo& repo,
                                   const json& dump_options, int file_num) {
   auto cfd = cfh->cfd();
   auto tc = cfd->table_cache();
@@ -2060,10 +2061,10 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   ROCKSDB_SCOPE_EXIT(tc->ReleaseHandle(ch));
   TableReader* tr = tc->GetTableReaderFromHandle(ch);
   const auto& zip_algo = tr->GetTableProperties()->compression_name;
-  auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), null_repo_ref());
+  auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), repo);
   json dump_opt2 = dump_options;
   dump_opt2["__ptr_cfd__"] = size_t(cfd);
-  return manip->ToString(*tr, dump_opt2, null_repo_ref());
+  return manip->ToString(*tr, dump_opt2, repo);
 }
 
 // format not suitable for prometheus
@@ -2195,7 +2196,7 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
     json djs;
     int file_num = JsonSmartInt(dump_options, "file", -1);
     if (file_num >= 0) {
-      return Json_DB_OneSST(*cfp.db, cfp.cfh, dump_options, file_num);
+      return Json_DB_OneSST(*cfp.db, cfp.cfh, repo, dump_options, file_num);
     }
     if (!JsonSmartBool(dump_options, "noint")) {
       bool showbad = JsonSmartBool(dump_options, "showbad");
