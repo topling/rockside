@@ -245,6 +245,9 @@ struct DBOptions_Json : DBOptions {
    #endif
     ROCKSDB_JSON_OPT_PROP(js, two_write_queues);
     ROCKSDB_JSON_OPT_PROP(js, manual_wal_flush);
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_OPT_ENUM(js, wal_compression);
+   #endif
     ROCKSDB_JSON_OPT_PROP(js, atomic_flush);
     ROCKSDB_JSON_OPT_PROP(js, avoid_unnecessary_blocking_io);
     ROCKSDB_JSON_OPT_PROP(js, write_dbid_to_manifest);
@@ -259,6 +262,9 @@ struct DBOptions_Json : DBOptions {
     //ROCKSDB_JSON_OPT_FACT(js, compaction_service);
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_OPT_ENUM(js, lowest_used_cache_tier);
+   #endif
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_OPT_PROP(js, enforce_single_del_contracts);
    #endif
     ROCKSDB_JSON_OPT_FACT(js, wbwi_factory);
   }
@@ -365,6 +371,9 @@ struct DBOptions_Json : DBOptions {
    #endif
     ROCKSDB_JSON_SET_PROP(js, two_write_queues);
     ROCKSDB_JSON_SET_PROP(js, manual_wal_flush);
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_SET_ENUM(js, wal_compression);
+   #endif
     ROCKSDB_JSON_SET_PROP(js, atomic_flush);
     ROCKSDB_JSON_SET_PROP(js, avoid_unnecessary_blocking_io);
     ROCKSDB_JSON_SET_PROP(js, write_dbid_to_manifest);
@@ -379,6 +388,9 @@ struct DBOptions_Json : DBOptions {
     //ROCKSDB_JSON_SET_FACT(js, compaction_service);
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 60260
     ROCKSDB_JSON_SET_ENUM(js, lowest_used_cache_tier);
+   #endif
+   #if ROCKSDB_VERSION >= 70060
+    ROCKSDB_JSON_SET_PROP(js, enforce_single_del_contracts);
    #endif
     ROCKSDB_JSON_SET_FACT(js, wbwi_factory);
   }
