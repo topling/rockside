@@ -1,0 +1,137 @@
+http:
+  # normally parent path of db path
+  document_root: /dev/shm/db_bench_community
+  listening_ports: '2011'
+setenv:
+  StrSimpleEnvNameNotOverwrite: StringValue
+  IntSimpleEnvNameNotOverwrite: 16384
+  OverwriteThisEnv:
+    #comment: overwrite is default to false
+    overwrite: true
+    value: force overwrite this env by overwrite true
+Cache:
+  lru_cache:
+    class: LRUCache
+    params:
+      capacity: 8G
+      num_shard_bits: -1
+      strict_capacity_limit: false
+      high_pri_pool_ratio: 0.5
+      use_adaptive_mutex: false
+      metadata_charge_policy: kFullChargeCacheMetadata
+Statistics:
+  stat:
+    class: default
+    params:
+      discard_tickers:
+      #comment: 可以仅指定前缀，必须是以 . 为边界的前缀，例如下面两个必须分别指定
+      - rocksdb.block.cache
+      - rocksdb.block.cachecompressed
+      # comment: 上面两个也可以用下面这一个概括
+      - rocksdb.block
+      # 精确指定
+      - rocksdb.memtable.payload.bytes.at.flush
+      - rocksdb.memtable.garbage.bytes.at.flush
+      # pika 未使用 txn
+      - rocksdb.txn
+      - rocksdb.blobdb
+      - rocksdb.row.cache
+      - rocksdb.number.block
+      - rocksdb.bloom.filter
+      - rocksdb.persistent
+      - rocksdb.sim.block.cache
+      discard_histograms:
+      # comment: ....
+      - rocksdb.blobdb
+      - rocksdb.bytes.compressed
+      - rocksdb.bytes.decompressed
+      - rocksdb.num.index.and.filter.blocks.read.per.level
+      - rocksdb.num.data.blocks.read.per.level
+      - rocksdb.compression.times.nanos
+      - rocksdb.decompression.times.nanos
+      - rocksdb.read.block.get.micros
+      - rocksdb.write.raw.block.micros
+      # comment end of array
+      #stats_level: kAll
+      stats_level: kDisableAll
+MemTableRepFactory:
+  cspp:
+    class: cspp
+    params:
+      mem_cap: 2G
+      use_vm: false
+      token_use_idle: true
+  skiplist:
+    class: SkipList
+    params:
+      lookahead: 0
+TableFactory:
+  bb:
+    class: BlockBasedTable
+    params:
+      checksum: kCRC32c
+      block_size: 4K
+      block_restart_interval: 16
+      index_block_restart_interval: 1
+      metadata_block_size: 4K
+      enable_index_compression: true
+      block_cache: "${lru_cache}"
+      block_cache_compressed:
+      persistent_cache:
+      filter_policy:
+  dispatch:
+    class: DispatcherTable
+    params:
+      default: bb
+      readers:
+        BlockBasedTable: bb
+      level_writers: [bb, bb, bb, bb, bb, bb]
+CFOptions:
+  default:
+    max_write_buffer_number: 4
+    memtable_factory: "${cspp}"
+    write_buffer_size: 8M
+    # set target_file_size_base as small as 512K is to make many SST files,
+    # thus key prefix cache can present efficiency
+    # 把 target_file_size_base 设得很小是为了产生很多文件，从而体现 key prefix cache 的效果
+    target_file_size_base: 512K
+    target_file_size_multiplier: 1
+    table_factory: dispatch
+    compaction_options_level:
+      L1_score_boost: 1
+    max_bytes_for_level_base: 4M
+    max_bytes_for_level_multiplier: 4
+    #level_compaction_dynamic_level_bytes: true
+    level0_slowdown_writes_trigger: 20
+    level0_stop_writes_trigger: 36
+    level0_file_num_compaction_trigger: 4
+    compression_per_level:
+    - kNoCompression
+    - kNoCompression
+    - kNoCompression
+    - kNoCompression
+    - kNoCompression
+    - kNoCompression
+    - kNoCompression
+DBOptions:
+  dbo:
+    create_if_missing: true
+    create_missing_column_families: true
+    max_background_compactions: 40
+    max_subcompactions: 1
+    max_level1_subcompactions: 7
+    inplace_update_support: false
+    WAL_size_limit_MB: 0
+    statistics: "${stat}"
+    allow_mmap_reads: true
+databases:
+  db_bench_community:
+    method: DB::Open
+    params:
+      db_options: "$dbo"
+      column_families:
+        default: "$default"
+      #path is optional, if not defined, use name as path
+      #last part of path must be same as name(here is 'db_bench_community')
+      path: /dev/shm/db_bench_community
+open: db_bench_community
