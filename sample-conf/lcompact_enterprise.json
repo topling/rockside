@@ -95,7 +95,7 @@
     },
     "TableFactory": {
       "fast": {
-        "class": "ToplingFastTable",
+        "class": "SingleFastTable",
         "params": {
           "indexType": "MainPatricia",
           "keyPrefixLen": 0
@@ -104,7 +104,7 @@
       "zip": {
         "class": "ToplingZipTable",
         "params": {
-          "localTempDir": "/dev/shm/tmp",
+          "localTempDir": "/tmp",
           "indexType": "Mixed_XL_256_32_FL",
           "indexNestLevel": 3,
           "indexNestScale": 8,
@@ -147,7 +147,7 @@
         "params": {
           "default": "bb",
           "readers": {
-            "ToplingFastTable": "fast",
+            "SingleFastTable": "fast",
             "ToplingZipTable": "zip",
             "BlockBasedTable": "bb"
           },
