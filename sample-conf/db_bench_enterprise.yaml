@@ -79,7 +79,7 @@ TableFactory:
       indexNestLevel: 1
       enableStatistics: false
       warmupLevel: kIndex
-      acceptCompressionRatio: 0.1
+      acceptCompressionRatio: 0.8
       offsetArrayBlockUnits: 128
       sampleRatio: 0.01
       checksumLevel: 0
