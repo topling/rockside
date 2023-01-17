@@ -539,7 +539,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_SIZE(js, soft_pending_compaction_bytes_limit);
     ROCKSDB_JSON_OPT_SIZE(js, hard_pending_compaction_bytes_limit);
     ROCKSDB_JSON_OPT_ENUM(js, compaction_style);
-    ROCKSDB_JSON_OPT_PROP(js, compaction_pri);
+    ROCKSDB_JSON_OPT_ENUM(js, compaction_pri);
     ROCKSDB_JSON_OPT_NEST(js, compaction_options_universal);
     ROCKSDB_JSON_OPT_NEST(js, compaction_options_fifo);
     ROCKSDB_JSON_OPT_PROP(js, max_sequential_skip_in_iterations);
@@ -673,7 +673,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_SIZE(js, soft_pending_compaction_bytes_limit);
     ROCKSDB_JSON_SET_SIZE(js, hard_pending_compaction_bytes_limit);
     ROCKSDB_JSON_SET_ENUM(js, compaction_style);
-    ROCKSDB_JSON_SET_PROP(js, compaction_pri);
+    ROCKSDB_JSON_SET_ENUM(js, compaction_pri);
     if (kCompactionStyleUniversal == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_universal);
     } else if (kCompactionStyleLevel == compaction_style) {
