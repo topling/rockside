@@ -163,22 +163,33 @@ ROCKSDB_REG_AnyPluginManip("HexUserKeyCoder");
 
 struct PrettyHexUserKeyCoder : public HexUserKeyCoder {
   void WriteHex(Slice coded, std::string* de) const {
-    de->append("<span style='color:red'>");
+    de->append("<em>");
     de->append(coded.ToString(true));
-    de->append("</span>");
+    de->append("</em>");
   }
   void DecodeSuffix(Slice coded, std::string* de) const override {
     size_t start = -1, len = 0;
     for (int i = 0; i < (int)coded.size(); i++) {
       const unsigned char ch = coded[i];
-      if (ch <= 126 && isprint(ch) && ch != '<' && ch != '>' && ch != '&') {
+      if (ch <= 126) {
         if (len) {
           WriteHex(coded.substr(start, len), de);
           len = 0;
         }
-        de->push_back(ch);
+        switch (ch) {
+        default:
+          if (isprint(ch))
+            de->push_back(ch);
+          else
+            goto binary;
+          break;
+        case '<' : de->append("&lt;" ); break;
+        case '>' : de->append("&gt;" ); break;
+        case '&' : de->append("&amp;"); break;
+        }
       }
       else {
+    binary:
         if (0 == len++)
           start = i;
       }
