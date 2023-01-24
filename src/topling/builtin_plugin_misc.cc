@@ -1803,7 +1803,6 @@ if (show_per_level) {
       for (size_t j = 0; j < 10 && i < n_files; j++, i++) {
         const auto& x = curr_level.files[i];
         std::string fullname = x.db_path + x.name;
-        html.append("<tr>");
         if (auto iter = props.find(fullname); props.end() == iter) {
           write(x, nullptr, -1);
         } else {
