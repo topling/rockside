@@ -1619,7 +1619,15 @@ try {
       AppendFmt("<td>%.3f</td>", avg_zip_val);
       AppendFmt("<td>%.1f</td>", avg_raw_val);
       html.append("<td class='left'>");
-      html.append(p->compression_name);
+      if (p->compression_options.empty()) {
+        html.append(p->compression_name);
+      } else {
+        html.append("<span title='");
+        html.append(p->compression_options);
+        html.append("'>");
+        html.append(p->compression_name);
+        html.append("</span>");
+      }
       html.append("</td>");
       //AppendFmt("<td>%" PRIu64 "</td>", p->oldest_key_time);
       file_creation_time = p->file_creation_time;
