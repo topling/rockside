@@ -144,19 +144,53 @@ struct HexUserKeyCoder : public UserKeyCoder {
         de->append(std::to_string(prefix));
         de->append("</b>:");
         coded.remove_prefix(prefix_len);
-        de->append(coded.ToString(true));
+        DecodeSuffix(coded, de);
       } else {
         de->append("<b style='color:red'>");
-        de->append(coded.ToString(true));
+        DecodeSuffix(coded, de);
         de->append("</b>");
       }
     } else {
-      *de = coded.ToString(true);
+      DecodeSuffix(coded, de);
     }
+  }
+  virtual void DecodeSuffix(Slice coded, std::string* de) const {
+    de->append(coded.ToString(true));
   }
 };
 ROCKSDB_REG_Plugin(HexUserKeyCoder, AnyPlugin);
 ROCKSDB_REG_AnyPluginManip("HexUserKeyCoder");
+
+struct PrettyHexUserKeyCoder : public HexUserKeyCoder {
+  void WriteHex(Slice coded, std::string* de) const {
+    de->append("<span style='color:red'>");
+    de->append(coded.ToString(true));
+    de->append("</span>");
+  }
+  void DecodeSuffix(Slice coded, std::string* de) const override {
+    size_t start = -1, len = 0;
+    for (int i = 0; i < (int)coded.size(); i++) {
+      const unsigned char ch = coded[i];
+      if (ch <= 126 && isprint(ch) && ch != '<' && ch != '>' && ch != '&') {
+        if (len) {
+          WriteHex(coded.substr(start, len), de);
+          len = 0;
+        }
+        de->push_back(ch);
+      }
+      else {
+        if (0 == len++)
+          start = i;
+      }
+    }
+    if (len)
+      WriteHex(coded.substr(start, len), de);
+  }
+  using HexUserKeyCoder::HexUserKeyCoder;
+  const char* Name() const override { return "PrettyHexUserKeyCoder"; }
+};
+ROCKSDB_REG_Plugin(PrettyHexUserKeyCoder, AnyPlugin);
+ROCKSDB_REG_AnyPluginManip("PrettyHexUserKeyCoder");
 
 struct DbBenchUserKeyCoder : public UserKeyCoder {
   int prefix_len = 0;
