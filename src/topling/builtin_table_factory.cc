@@ -470,8 +470,14 @@ const {
 // Sanitizes the specified DB Options.
 Status DispatcherTableFactory::ValidateOptions(const DBOptions& dbo, const ColumnFamilyOptions& cfo)
 const {
+  std::vector<const TableFactory*> uniq;
+  uniq.reserve(m_magic_to_factory.size());
   for (auto& [magic, rf] : m_magic_to_factory) {
-    Status s = rf.factory->ValidateOptions(dbo, cfo);
+    uniq.push_back(rf.factory.get());
+  }
+  uniq.erase(std::unique(uniq.begin(), uniq.end()), uniq.end());
+  for (auto& factory : uniq) {
+    Status s = factory->ValidateOptions(dbo, cfo);
     if (!s.ok())
       return s;
   }
