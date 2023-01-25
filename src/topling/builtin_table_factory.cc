@@ -468,8 +468,13 @@ const {
 }
 
 // Sanitizes the specified DB Options.
-Status DispatcherTableFactory::ValidateOptions(const DBOptions&, const ColumnFamilyOptions&)
+Status DispatcherTableFactory::ValidateOptions(const DBOptions& dbo, const ColumnFamilyOptions& cfo)
 const {
+  for (auto& [name, factory] : *m_all) {
+    Status s = factory->ValidateOptions(dbo, cfo);
+    if (!s.ok())
+      return s;
+  }
   return Status::OK();
 }
 
