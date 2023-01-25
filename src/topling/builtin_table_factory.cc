@@ -52,7 +52,7 @@ NewRibbonFilterPolicyJson(const json& js, const SidePluginRepo&) {
   ROCKSDB_JSON_REQ_PROP(js, bits_per_key);
   ROCKSDB_JSON_OPT_PROP(js, bloom_before_level);
   return std::shared_ptr<const FilterPolicy>(
-      NewRibbonFilterPolicy(bits_per_key));
+      NewRibbonFilterPolicy(bits_per_key, bloom_before_level));
 }
 ROCKSDB_FACTORY_REG("RibbonFilter", NewRibbonFilterPolicyJson);
 ROCKSDB_FACTORY_REG("Ribbon"      , NewRibbonFilterPolicyJson);
