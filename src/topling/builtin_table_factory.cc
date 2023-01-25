@@ -121,6 +121,16 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
       ROCKSDB_JSON_OPT_FACT(js, persistent_cache);
       ROCKSDB_JSON_OPT_FACT(js, filter_policy);
     }
+    else {
+      size_t dcompact_block_cache_size = 0;
+      ROCKSDB_JSON_OPT_SIZE(js, dcompact_block_cache_size);
+      if (dcompact_block_cache_size) {
+        LRUCacheOptions co;
+        co.capacity = dcompact_block_cache_size;
+        co.high_pri_pool_ratio = 0.0;
+        block_cache = NewLRUCache(co);
+      }
+    }
     ROCKSDB_JSON_OPT_SIZE(js, max_auto_readahead_size);
     ROCKSDB_JSON_OPT_ENUM(js, prepopulate_block_cache);
     ROCKSDB_JSON_OPT_PROP(js, enable_get_random_keys);
