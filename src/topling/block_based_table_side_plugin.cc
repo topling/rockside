@@ -1,5 +1,6 @@
 #include <string>
 
+#include "table/block_based/block_based_table_factory.h"
 #include "table/block_based/block_based_table_reader.h"
 #include "db/column_family.h"
 #include <topling/side_plugin_factory.h>
@@ -368,5 +369,31 @@ ROCKSDB_REG_PluginManip("LZ4HC", BlockBasedTableReader_Manip);
 ROCKSDB_REG_PluginManip("Xpress", BlockBasedTableReader_Manip);
 ROCKSDB_REG_PluginManip("ZSTD", BlockBasedTableReader_Manip);
 ROCKSDB_REG_PluginManip("ZSTDNotFinal", BlockBasedTableReader_Manip);
+
+struct BlockBasedTableFactorySerDe : SerDeFunc<TableFactory> {
+  void Serialize(FILE* fp, const TableFactory& object)
+  const override {
+    auto* factory = dynamic_cast<const BlockBasedTableFactory*>(&object);
+    ROCKSDB_VERIFY(nullptr != factory);
+    if (IsCompactionWorker()) {
+    } else {
+    }
+  }
+  void DeSerialize(FILE* fp, TableFactory* object)
+  const override {
+    auto* factory = dynamic_cast<BlockBasedTableFactory*>(object);
+    ROCKSDB_VERIFY(nullptr != factory);
+    if (IsCompactionWorker()) {
+      /*
+      const DBOptions* dbo = nullptr;
+      const ColumnFamilyOptions* cfo = nullptr;
+      factory->ValidateOptions(*dbo, *cfo);
+      */
+    } else {
+    }
+  }
+};
+ROCKSDB_REG_PluginSerDe("BlockBasedTable", BlockBasedTableFactorySerDe);
+ROCKSDB_REG_PluginSerDe("BlockBased", BlockBasedTableFactorySerDe);
 
 } // namespace ROCKSDB_NAMESPACE
