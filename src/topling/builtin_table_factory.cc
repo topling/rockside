@@ -998,20 +998,26 @@ ROCKSDB_FACTORY_REG("DispatcherTable", NewDispatcherTableFactoryJson);
 
 void TableFactoryDummyFuncToPreventGccDeleteSymbols() {}
 
-std::string TableUserPropsToString(const UserCollectedProperties& uprops,
-                                   const json& dump_options) {
-  auto ptr_cfd_val = dump_options["__ptr_cfd__"].get<size_t>();
-  auto cfd = (ColumnFamilyData*)(ptr_cfd_val);
-  auto collfacs = cfd->initial_cf_options().table_properties_collector_factories;
-  if (collfacs.size() == 1) {
-    return collfacs[0]->UserPropToString(uprops);
+json TableUserPropsToJson(const UserCollectedProperties& uprops,
+                          const json& dump_options) {
+  auto iter = dump_options.find("__ptr_cfd__");
+  json js;
+  if (dump_options.end() == iter) {
+    for (auto& [name, value] : uprops) {
+      if (!Slice(name).starts_with("rocksdb.")) {
+        js[name] = Slice(value).ToString(true); // value as hex
+      }
+    }
   }
-  std::string str;
-  for (auto& collfac: collfacs) {
-    str += collfac->UserPropToString(uprops);
-    str += "\n";
+  else {
+    auto ptr_cfd_val = iter.value().get<size_t>();
+    auto cfd = (ColumnFamilyData*)(ptr_cfd_val);
+    auto collfacs = cfd->initial_cf_options().table_properties_collector_factories;
+    for (auto& collfac: collfacs) {
+      js[collfac->Name()] = collfac->UserPropToString(uprops);
+    }
   }
-  return str;
+  return js;
 }
 
 }

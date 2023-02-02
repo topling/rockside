@@ -243,7 +243,7 @@ std::string BlockIndexHtml(ColumnFamilyData* cfd) const {
 json ToWebViewJson(const json& dump_options) const {
   json djs;
   const BlockBasedTable::Rep* r = get_rep();
-  djs["Props.User"] = TableUserPropsToString(
+  djs["Props.User"] = TableUserPropsToJson(
     r->table_properties->user_collected_properties, dump_options);
 
   djs["global_seqno"] = (int64_t)r->global_seqno;

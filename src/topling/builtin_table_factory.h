@@ -19,8 +19,5 @@ struct RegTableFactoryMagicNumber {
 
 void DispatcherTableBackPatch(TableFactory* f, const SidePluginRepo& repo);
 
-std::string TableUserPropsToString(const std::map<std::string, std::string>&,
-                                   const json& dump_options);
-
 } // ROCKSDB_NAMESPACE
 
