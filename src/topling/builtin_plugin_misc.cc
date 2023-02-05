@@ -1590,32 +1590,51 @@ try {
       //html.append("<td>&#10067;</td>"); // oldest_key_time
       file_creation_time = x.file_creation_time;
     } else {
-      auto avg_raw_key = double(p->raw_key_size) / p->num_entries;
-      auto avg_raw_val = double(p->raw_value_size) / p->num_entries;
-      auto avg_zip_key = double(p->index_size) / p->num_entries;
-      auto avg_zip_val = double(p->data_size) / p->num_entries;
-      auto kv_zip_size = double(p->index_size + p->data_size);
+      auto rows = p->num_entries - p->num_range_deletions;
+      auto raw_tag_len = rows * 8;
+      auto zip_key_tag = double(p->index_size + p->tag_size);
+      auto avg_raw_key = double(p->raw_key_size) / rows;
+      auto avg_raw_val = double(p->raw_value_size) / rows;
+      auto avg_zip_key = double(p->index_size) / rows;
+      auto avg_zip_val = double(p->data_size) / rows;
+      auto kv_zip_size = double(p->index_size + p->tag_size + p->data_size);
       auto kv_raw_size = double(p->raw_key_size + p->raw_value_size);
-      auto key_zip_ratio = double(p->index_size)/p->raw_key_size;
+      auto key_zip_ratio = double(p->index_size)/(p->raw_key_size - raw_tag_len);
+      auto tag_zip_ratio = double(p->tag_size)/(rows * 8);
       auto val_zip_ratio = double(p->data_size)/p->raw_value_size;
       auto kv_zip_ratio = kv_zip_size/kv_raw_size;
       AppendFmt("<td>%.6f</td>", kv_raw_size/1e9);
-      AppendFmt("<td>%" PRIu64"</td>", p->num_entries);
+      AppendFmt("<td>%" PRIu64"</td>", rows);
       AppendFmt("<td>%" PRIu64"</td>", p->num_deletions);
       AppendFmt("<td>%" PRIu64"</td>", p->num_merge_operands);
       AppendFmt("<td>%" PRIu64"</td>", p->num_range_deletions);
       AppendFmt("<td>%" PRIu64"</td>", p->num_data_blocks);
-      AppendFmt("<td>%.6f</td>", p->index_size/1e9);
+
+      AppendFmt("<td title='index: %s, tag: %s'>%.6f</td>",
+                SizeToString(p->index_size).c_str(),
+                SizeToString(p->tag_size).c_str(), zip_key_tag/1e9);
       AppendFmt("<td>%.6f</td>", p->data_size/1e9);
-      AppendFmt("<td class='bghighlight'>%.3f</td>", p->index_size/kv_zip_size);
-      AppendFmt("<td>%.6f</td>", p->raw_key_size/1e9);
+      AppendFmt("<td title='index: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
+                100*p->index_size/zip_key_tag,
+                100*p->tag_size/zip_key_tag, 100*zip_key_tag/kv_zip_size);
+
+      AppendFmt("<td title='UserKey: %s, tag: %s'>%.6f</td>",
+                SizeToString(p->raw_key_size - 8*rows).c_str(),
+                SizeToString(8*rows).c_str(), p->raw_key_size/1e9);
       AppendFmt("<td>%.6f</td>", p->raw_value_size/1e9);
-      AppendFmt("<td class='bghighlight'>%.3f</td>", p->raw_key_size/kv_raw_size);
-      AppendFmt("<td>%.3f</td>", key_zip_ratio);
-      AppendFmt("<td>%.3f</td>", val_zip_ratio);
-      AppendFmt("<td class='bghighlight'>%.3f</td>", kv_zip_ratio);
-      AppendFmt("<td>%.3f</td>", avg_zip_key);
-      AppendFmt("<td>%.1f</td>", avg_raw_key);
+      AppendFmt("<td title='UserKey: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
+                100.0*(p->raw_key_size - 8*rows)/p->raw_key_size,
+                800.0*rows/p->raw_key_size, 100*p->raw_key_size/kv_raw_size);
+
+      AppendFmt("<td title='index: %.1f%%, tag: %.1f%%'>%.1f%%</td>",
+                100*key_zip_ratio, 100*tag_zip_ratio, 100*zip_key_tag/p->raw_key_size);
+      AppendFmt("<td>%.1f%%</td>", 100*val_zip_ratio);
+      AppendFmt("<td class='bghighlight'>%.1f%%</td>", 100*kv_zip_ratio);
+
+      AppendFmt("<td title='UserKey: %.3f, tag: %.3f (%.2f bits)'>%.3f</td>",
+                avg_zip_key, tag_zip_ratio * 8, tag_zip_ratio * 64,
+                avg_zip_key + tag_zip_ratio * 8);
+      AppendFmt("<td title='UserKey: %.1f, tag: 8'>%.1f</td>", avg_raw_key - 8, avg_raw_key);
       AppendFmt("<td>%.3f</td>", avg_zip_val);
       AppendFmt("<td>%.1f</td>", avg_raw_val);
       html.append("<td class='left'>");
@@ -1690,16 +1709,17 @@ try {
     html.append("<th title='Merges'>M</th>");
     html.append("<th title='Range Deletions'>R</th>");
 
-    html.append("<th>Key</th>");
+    html.append("<th title='zipped Key is index and tag(SeqNum(56 bits) + ValueType(8 bits))'>Key</th>");
     html.append("<th>Value</th>");
-    html.append("<th title='size ratio of Key/(Key + Value)'>K/KV</th>");
-    html.append("<th>Key</th>");
+    html.append("<th title='size ratio of Key/(Key + Tag + Value)'><sup>K</sup>/<sub>KTV</sub></th>");
+
+    html.append("<th title='tag is included in Raw Key Size'>Key</th>");
     html.append("<th>Value</th>");
-    html.append("<th title='size ratio of Key/(Key + Value)'>K/KV</th>");
+    html.append("<th title='size ratio of Key/(Key + Tag + Value)'><sup>K</sup>/<sub>KTV</sub></th>");
 
     html.append("<th>Key</th>");     // Zip Ratio
     html.append("<th>Value</th>");
-    html.append("<th>K+V</th>");
+    html.append("<th>KTV</th>");
 
     html.append("<th>Zip</th>");  // AvgLen
     html.append("<th>Raw</th>");
