@@ -301,17 +301,57 @@ RegTableFactoryMagicNumber(uint64_t magic, const char* name) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
+struct SstPartitionerFixedPrefixEx : public SstPartitioner {
+  const char* Name() const override { return "SstPartitionerFixedPrefixEx"; }
+  PartitionerResult ShouldPartition(const PartitionerRequest& req) final {
+    if (output_level <= 0 || req.current_output_file_size < min_file_size) {
+      return kNotRequired;
+    }
+    Slice prev = *req.prev_user_key, curr = *req.current_user_key;
+    size_t len = std::min({prev.size_, curr.size_, size_t(prefix_len)});
+    return memcmp(prev.data_, curr.data_, len) == 0 ? kNotRequired : kRequired;
+  }
+  bool CanDoTrivialMove(const Slice& min_uk, const Slice& max_uk) final {
+    return ShouldPartition({min_uk, max_uk, 0}) == kNotRequired;
+  }
+  int output_level;
+  unsigned prefix_len;
+  size_t min_file_size;
+};
+struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
+  SstPartitionerFixedPrefixExFactory(const json& js, const SidePluginRepo&) {
+    ROCKSDB_JSON_OPT_PROP(js, prefix_len);
+    ROCKSDB_JSON_OPT_SIZE(js, min_file_size);
+  }
+  const char* Name() const final { return "SstPartitionerFixedPrefixEx"; }
+  std::unique_ptr<SstPartitioner>
+  CreatePartitioner(const SstPartitioner::Context& context) const override {
+    auto p = new SstPartitionerFixedPrefixEx();
+    p->output_level = context.output_level;
+    p->prefix_len = this->prefix_len;
+    p->min_file_size = this->min_file_size;
+    return std::unique_ptr<SstPartitioner>(p);
+  }
+  unsigned prefix_len = 0;
+  size_t min_file_size = SIZE_MAX;
+};
 static std::shared_ptr<SstPartitionerFactory>
-NewFixedPrefixPartitionerFactoryJson(const json& js, const SidePluginRepo&) {
-  size_t prefix_len = 0;
-  ROCKSDB_JSON_REQ_PROP(js, prefix_len);
-  return NewSstPartitionerFixedPrefixFactory(prefix_len);
+NewFixedPrefixPartitionerFactoryJson(const json& js, const SidePluginRepo& repo) {
+  // DO NOT use SstPartitionerFixedPrefix, use SstPartitionerFixedPrefixEx
+  // -------------------------------------------------------------------^^
+  // SstPartitionerFixedPrefixEx added file size and output level check
+  return std::make_shared<SstPartitionerFixedPrefixExFactory>(js, repo);
 }
 ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefixFactory",
                     NewFixedPrefixPartitionerFactoryJson);
 ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefix",
                     NewFixedPrefixPartitionerFactoryJson);
 ROCKSDB_FACTORY_REG("FixedPrefix", NewFixedPrefixPartitionerFactoryJson);
+ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefixExFactory",
+                    NewFixedPrefixPartitionerFactoryJson);
+ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefixEx",
+                    NewFixedPrefixPartitionerFactoryJson);
+ROCKSDB_FACTORY_REG("FixedPrefixEx", NewFixedPrefixPartitionerFactoryJson);
 
 ////////////////////////////////////////////////////////////////////////////
 
