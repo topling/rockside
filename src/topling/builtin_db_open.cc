@@ -125,7 +125,7 @@ Status MergeTables(const std::vector<std::string>& files, const std::string& dbn
   // compact all files once?
   cfo[0].options.compaction_style = kCompactionStyleUniversal;
   cfo[0].options.compaction_options_universal = CompactionOptionsUniversal();
-  cfo[0].options.compaction_options_universal.max_merge_width = 10;
+  cfo[0].options.compaction_options_universal.max_merge_width = 30;
   cfo[0].options.disable_auto_compactions = true;
   DB* db = nullptr;
   std::vector<ColumnFamilyHandle*> cfh;
