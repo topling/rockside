@@ -2142,8 +2142,8 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
   std::string buf(8192, '\0');
   auto len = snprintf(buf.data(), buf.size(),
 R"(<pre>time = %.6f sec, entries = %zd, repeat = %d
-%.3f us per entry, %.3f ops per sec, op includes Next and Seek
-</pre>)", sec, entries, repeat, us/(entries*repeat), entries*repeat/sec
+%.3f us per entry, %.3f M ops per sec, op includes Next and Seek
+</pre>)", sec, entries, repeat, us/(entries*repeat), entries*repeat/us
   );
   buf.resize(len);
   return buf;
