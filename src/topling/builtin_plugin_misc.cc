@@ -30,6 +30,8 @@
 #include "side_plugin_factory.h"
 #include "side_plugin_internal.h"
 
+#include <terark/num_to_str.hpp>
+
 extern const char* rocksdb_build_git_tag;
 extern const char* rocksdb_build_git_sha;
 extern const char* rocksdb_build_git_date;
@@ -2056,19 +2058,23 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
   auto iter = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
   ROCKSDB_SCOPE_EXIT(delete iter);
   using namespace std::chrono;
+  bool html = JsonSmartBool(dump_options, "html", true);
   bool reverse = JsonSmartBool(dump_options, "reverse", false);
   bool fetch_value = JsonSmartBool(dump_options, "fetch_value", false);
   auto t0 = steady_clock::now();
   repeat = std::max(repeat, 1);
   size_t entries = 0;
+  size_t vlen = 0;
   if (reverse) {
     for (int i = 0; i < repeat; i++) {
       entries = 0;
       iter->SeekToLast();
       ROCKSDB_VERIFY(iter->Valid());
       while (iter->Valid()) {
-        if (fetch_value)
+        if (fetch_value) {
           iter->PrepareValue();
+          vlen += iter->value().size();
+        }
         iter->Prev();
         entries++;
       }
@@ -2080,8 +2086,10 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
       iter->SeekToFirst();
       ROCKSDB_VERIFY(iter->Valid());
       while (iter->Valid()) {
-        if (fetch_value)
+        if (fetch_value) {
           iter->PrepareValue();
+          vlen += iter->value().size();
+        }
         iter->Next();
         entries++;
       }
@@ -2090,14 +2098,19 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
   auto t1 = steady_clock::now();
   auto us = duration<double, std::micro>(t1 - t0).count();
   auto sec = us / 1e6;
-  std::string buf(8192, '\0');
-  auto len = snprintf(buf.data(), buf.size(),
-R"(<pre>time = %.6f sec, entries = %zd, repeat = %d
-%.3f us per entry, %.3f ops per sec
-</pre>)", sec, entries, repeat, us/(entries*repeat), entries*repeat/sec
-  );
-  buf.resize(len);
-  return buf;
+  terark::string_appender<> buf; buf.reserve(8192);
+  if (html) {
+    buf|"<pre>";
+  }
+  buf^"time = %.6f"^sec^" sec, entries = "^entries^", repeat = "^repeat^"\n";
+  buf^"%.3f"^us/(entries*repeat)^" us per entry, %.3f"^entries*repeat/us^" M ops per sec\n";
+  if (fetch_value) {
+    buf^"%.3f MB/s of fetch value(not accurate, time includes scan)"^ vlen / us;
+  }
+  if (html) {
+    buf|"</pre>";
+  }
+  return static_cast<std::string&&>(buf);
 }
 
 static std::string
