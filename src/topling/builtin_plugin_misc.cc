@@ -2202,7 +2202,18 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), repo);
   json dump_opt2 = dump_options;
   dump_opt2["__ptr_cfd__"] = size_t(cfd);
-  return manip->ToString(*tr, dump_opt2, repo);
+  auto add_link = R"(
+<script>
+  document.getElementById('time_stat_line').innerHTML +=
+  " | <a href='" + window.location.href + "&bench=scan'>scan</a>" +
+  " | <a href='" + window.location.href + "&bench=scan&reverse=1'>rev scan</a>" +
+  " | <a href='" + window.location.href + "&bench=scan&fetch_value=1&repeat=1'>scan + fetch_value</a>" +
+  " | <a href='" + window.location.href + "&bench=seek'>seek</a>" +
+  " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1'>seek + fetch_value</a>" +
+  '';
+</script>
+  )";
+  return manip->ToString(*tr, dump_opt2, repo) + add_link;
 }
 
 // format not suitable for prometheus
