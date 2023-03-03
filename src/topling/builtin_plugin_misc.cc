@@ -2051,6 +2051,91 @@ static void Json_DB_IntProps(const DB& db, ColumnFamilyHandle* cfh,
   }
 }
 
+static std::string
+BenchScan(TableReader* tr, int repeat, const json& dump_options) {
+  auto iter = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
+  ROCKSDB_SCOPE_EXIT(delete iter);
+  using namespace std::chrono;
+  bool reverse = JsonSmartBool(dump_options, "reverse", false);
+  bool fetch_value = JsonSmartBool(dump_options, "fetch_value", false);
+  auto t0 = steady_clock::now();
+  repeat = std::max(repeat, 1);
+  size_t entries = 0;
+  if (reverse) {
+    for (int i = 0; i < repeat; i++) {
+      entries = 0;
+      iter->SeekToLast();
+      ROCKSDB_VERIFY(iter->Valid());
+      while (iter->Valid()) {
+        if (fetch_value)
+          iter->PrepareValue();
+        iter->Prev();
+        entries++;
+      }
+    }
+  }
+  else {
+    for (int i = 0; i < repeat; i++) {
+      entries = 0;
+      iter->SeekToFirst();
+      ROCKSDB_VERIFY(iter->Valid());
+      while (iter->Valid()) {
+        if (fetch_value)
+          iter->PrepareValue();
+        iter->Next();
+        entries++;
+      }
+    }
+  }
+  auto t1 = steady_clock::now();
+  auto us = duration<double, std::micro>(t1 - t0).count();
+  auto sec = us / 1e6;
+  std::string buf(8192, '\0');
+  auto len = snprintf(buf.data(), buf.size(),
+R"(<pre>time = %.6f sec, entries = %zd, repeat = %d
+%.3f us per entry, %.3f ops per sec
+</pre>)", sec, entries, repeat, us/(entries*repeat), entries*repeat/sec
+  );
+  buf.resize(len);
+  return buf;
+}
+
+static std::string
+BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
+  auto iter = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
+  auto iter2 = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
+  ROCKSDB_SCOPE_EXIT(delete iter2; delete iter);
+  using namespace std::chrono;
+  bool fetch_value = JsonSmartBool(dump_options, "fetch_value", false);
+  auto t0 = steady_clock::now();
+  repeat = std::max(repeat, 1);
+  size_t entries = 0;
+  for (int i = 0; i < repeat; i++) {
+    entries = 0;
+    iter->SeekToFirst();
+    ROCKSDB_VERIFY(iter->Valid());
+    while (iter->Valid()) {
+      if (fetch_value)
+        iter->PrepareValue();
+      iter2->Seek(iter->key());
+      ROCKSDB_VERIFY(iter2->Valid());
+      iter->Next();
+      entries++;
+    }
+  }
+  auto t1 = steady_clock::now();
+  auto us = duration<double, std::micro>(t1 - t0).count();
+  auto sec = us / 1e6;
+  std::string buf(8192, '\0');
+  auto len = snprintf(buf.data(), buf.size(),
+R"(<pre>time = %.6f sec, entries = %zd, repeat = %d
+%.3f us per entry, %.3f ops per sec, op includes Next and Seek
+</pre>)", sec, entries, repeat, us/(entries*repeat), entries*repeat/sec
+  );
+  buf.resize(len);
+  return buf;
+}
+
 static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
                                   const SidePluginRepo& repo,
                                   const json& dump_options, int file_num) {
@@ -2087,6 +2172,19 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   ROCKSDB_VERIFY(nullptr != ch);
   ROCKSDB_SCOPE_EXIT(tc->ReleaseHandle(ch));
   TableReader* tr = tc->GetTableReaderFromHandle(ch);
+  if (dump_options.contains("bench")) {
+    const auto bench = dump_options["bench"].get<std::string>();
+    const auto repeat = JsonSmartInt(dump_options, "repeat", 1);
+    if (bench == "scan") {
+      return BenchScan(tr, repeat, dump_options);
+    }
+    else if (bench == "seek") {
+      return BenchSeek(tr, repeat, dump_options);
+    }
+    else {
+      return "Invalid bench: " + bench;
+    }
+  }
   const auto& zip_algo = tr->GetTableProperties()->compression_name;
   auto manip = PluginManip<TableReader>::AcquirePlugin(zip_algo, json(), repo);
   json dump_opt2 = dump_options;
