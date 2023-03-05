@@ -2347,10 +2347,10 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   document.getElementById('time_stat_line').innerHTML +=
   " | <a href='" + window.location.href + "&bench=scan'>scan</a>" +
   " | <a href='" + window.location.href + "&bench=scan&reverse=1'>rev scan</a>" +
-  " | <a href='" + window.location.href + "&bench=scan&fetch_value=1&repeat=1'>scan + fetch_value</a>" +
+  " | <a href='" + window.location.href + "&bench=scan&fetch_value=1&repeat=1'>scan value</a>" +
   " | <a href='" + window.location.href + "&bench=seek'>seek</a>" +
-  " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1'>seek + fetch_value</a>" +
-  " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1&rand=1'>rand + fetch_value</a>" +
+  " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1'>seek value</a>" +
+  " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1&rand=1'>rand value</a>" +
   '';
 </script>
   )";
