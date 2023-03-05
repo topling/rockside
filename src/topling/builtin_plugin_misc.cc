@@ -2061,41 +2061,48 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
   bool html = JsonSmartBool(dump_options, "html", true);
   bool reverse = JsonSmartBool(dump_options, "reverse", false);
   bool fetch_value = JsonSmartBool(dump_options, "fetch_value", false);
-  auto t0 = steady_clock::now();
   repeat = std::max(repeat, 1);
   size_t entries = 0;
   size_t vlen = 0;
-  if (reverse) {
-    for (int i = 0; i < repeat; i++) {
-      entries = 0;
-      iter->SeekToLast();
-      ROCKSDB_VERIFY(iter->Valid());
-      while (iter->Valid()) {
-        if (fetch_value) {
-          iter->PrepareValue();
-          vlen += iter->value().size();
+  auto bench = [&,iter](bool fetch_value) {
+    if (reverse) {
+      for (int i = 0; i < repeat; i++) {
+        entries = 0;
+        iter->SeekToLast();
+        ROCKSDB_VERIFY(iter->Valid());
+        while (iter->Valid()) {
+          if (fetch_value) {
+            iter->PrepareValue();
+            vlen += iter->value().size();
+          }
+          iter->Prev();
+          entries++;
         }
-        iter->Prev();
-        entries++;
       }
     }
-  }
-  else {
-    for (int i = 0; i < repeat; i++) {
-      entries = 0;
-      iter->SeekToFirst();
-      ROCKSDB_VERIFY(iter->Valid());
-      while (iter->Valid()) {
-        if (fetch_value) {
-          iter->PrepareValue();
-          vlen += iter->value().size();
+    else {
+      for (int i = 0; i < repeat; i++) {
+        entries = 0;
+        iter->SeekToFirst();
+        ROCKSDB_VERIFY(iter->Valid());
+        while (iter->Valid()) {
+          if (fetch_value) {
+            iter->PrepareValue();
+            vlen += iter->value().size();
+          }
+          iter->Next();
+          entries++;
         }
-        iter->Next();
-        entries++;
       }
     }
-  }
+  };
+  auto t0 = steady_clock::now();
+  bench(false);
   auto t1 = steady_clock::now();
+  if (fetch_value) {
+    bench(true);
+  }
+  auto t2 = steady_clock::now();
   auto us = duration<double, std::micro>(t1 - t0).count();
   auto sec = us / 1e6;
   terark::string_appender<> buf; buf.reserve(8192);
@@ -2105,7 +2112,14 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
   buf^"time = %.6f"^sec^" sec, entries = "^entries^", repeat = "^repeat^"\n";
   buf^"%.3f"^us/(entries*repeat)^" us per entry, %.3f"^entries*repeat/us^" M ops per sec\n";
   if (fetch_value) {
-    buf^"%.3f MB/s of fetch value(not accurate, time includes scan)"^ vlen / us;
+    auto us2 = duration<double, std::micro>(t2 - t1).count();
+    auto us3 = std::max(us2 - us, 0.001);
+    buf|"---- fetch values ----\n";
+    buf^"time = %.6f"^us3/1e6^" sec(exclude scan time)\n";
+    buf^"%8.3f"^us3/(entries*repeat)^" us per value, %7.3f"^entries*repeat/us3^" M ops per sec(exclude scan time)\n";
+    buf^"%8.3f"^us2/(entries*repeat)^" us per entry, %7.3f"^entries*repeat/us2^" M ops per sec(include scan time)\n";
+    buf^"%8.3f MB   of total value(include repeat)\n"^vlen/1e6;
+    buf^"%8.3f MB/s of fetch value(exclude scan time)\n"^vlen/us3;
   }
   if (html) {
     buf|"</pre>";
