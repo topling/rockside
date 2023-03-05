@@ -1422,6 +1422,10 @@ std::string JsonToHtml(const json& obj) {
   if (obj.is_structured()) {
     JsonToHtml_Object(obj, html, false);
   }
+  else if (obj.is_array() &&
+           obj.size() > 0 && obj[0].contains("<htmltab:col>")) {
+    JsonToHtml_ArrayCol(obj, html);
+  }
   return html;
 }
 
