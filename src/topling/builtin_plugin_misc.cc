@@ -2190,7 +2190,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         {"stage"    , "scan load keys"},
         {"repeat"   , 1},
         {"time(sec)", fmt("%.6f", sf(t0,t1))},
-        {"us per op", fmt("%.3f", uf(t0,t1)/entries)},
+        {"us/op"    , fmt("%.3f", uf(t0,t1)/entries)},
         {"M ops"    , fmt("%.3f", entries/uf(t0,t1))},
         {"MB/sec"   , fmt("%.3f", keys.strpool.size()/uf(t0,t1))}
       },
@@ -2198,7 +2198,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         {"stage"    , "shuffle"},
         {"repeat"   , 1},
         {"time(sec)", fmt("%.6f", sf(t1,t2))},
-        {"us per op", fmt("%.3f", uf(t1,t2)/entries)},
+        {"us/op"    , fmt("%.3f", uf(t1,t2)/entries)},
         {"M ops"    , fmt("%.3f", entries/uf(t1,t2))},
         {"MB/sec"   , fmt("%.3f", keys.strpool.size()/uf(t1,t2))}
       },
@@ -2206,7 +2206,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         {"stage"    , "seek"},
         {"repeat"   , repeat},
         {"time(sec)", fmt("%.6f", sf(t2,t3))},
-        {"us per op", fmt("%.3f", uf(t2,t3)/(entries*repeat))},
+        {"us/op"    , fmt("%.3f", uf(t2,t3)/(entries*repeat))},
         {"M ops"    , fmt("%.3f", entries*repeat/uf(t2,t3))},
         {"MB/sec"   , fmt("%.3f", keys.strpool.size()*repeat/uf(t2,t3))}
       },
@@ -2216,7 +2216,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         {"stage"    , "fetch value(+seek)"},
         {"repeat"   , repeat},
         {"time(sec)", fmt("%.6f", sf(t3,t4))},
-        {"us per op", fmt("%.3f", uf(t3,t4)/(entries*repeat))},
+        {"us/op"    , fmt("%.3f", uf(t3,t4)/(entries*repeat))},
         {"M ops"    , fmt("%.3f", entries*repeat/uf(t3,t4))},
         {"MB/sec"   , fmt("%.3f", vlen/uf(t3,t4))}
       }));
@@ -2225,7 +2225,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         {"stage"    , "fetch value(-seek)"},
         {"repeat"   , repeat},
         {"time(sec)", fmt("%.6f", us/1e6)},
-        {"us per op", fmt("%.3f", us/(entries*repeat))},
+        {"us/op"    , fmt("%.3f", us/(entries*repeat))},
         {"M ops"    , fmt("%.3f", entries*repeat/us)},
         {"MB/sec"   , fmt("%.3f", vlen/us)}
       }));
@@ -2249,14 +2249,14 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         buf|"<th>"              |cols["stage"    ].get<string>()|"</th>";
         buf|"<td align='right'>"|cols["repeat"   ].get<int   >()|"</td>";
         buf|"<td align='right'>"|cols["time(sec)"].get<string>()|"</td>";
-        buf|"<td align='right'>"|cols["us per op"].get<string>()|"</td>";
+        buf|"<td align='right'>"|cols["us/op"    ].get<string>()|"</td>";
         buf|"<td align='right'>"|cols["M ops"    ].get<string>()|"</td>";
         buf|"<td align='right'>"|cols["MB/sec"   ].get<string>()|"</td>";
         buf|"</tr>\n";
       }
       buf|"</tbody></table>\n";
       js[0]["<htmltab:col>"] = json::array
-        ({"stage", "repeat", "time(sec)", "M ops", "us per op", "MB/sec"});
+        ({"stage", "repeat", "time(sec)", "M ops", "us/op", "MB/sec"});
       return static_cast<string&&>(buf);
     } else {
       return JsonToString(js, dump_options);
