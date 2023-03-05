@@ -31,6 +31,7 @@
 #include "side_plugin_internal.h"
 
 #include <terark/num_to_str.hpp>
+#include <terark/util/fstrvec.hpp>
 
 extern const char* rocksdb_build_git_tag;
 extern const char* rocksdb_build_git_sha;
@@ -2136,6 +2137,131 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
   bool fetch_value = JsonSmartBool(dump_options, "fetch_value", false);
   auto t0 = steady_clock::now();
   repeat = std::max(repeat, 1);
+  auto props = tr->GetTableProperties();
+  bool html = JsonSmartBool(dump_options, "html", true);
+  bool rand = JsonSmartBool(dump_options, "rand", false);
+  if (rand) {
+    terark::fstrvec keys{terark::valvec_no_init()};
+    keys.reserve(props->num_entries);
+    keys.reserve_strpool(props->raw_key_size);
+    iter->SeekToFirst();
+    ROCKSDB_VERIFY(iter->Valid());
+    while (iter->Valid()) {
+      Slice ik = iter->key();
+      keys.emplace_back(ik.data_, ik.size_);
+      iter->Next();
+    }
+    auto t1 = steady_clock::now();
+    {
+      terark::fstrvec keys2;
+      auto seed = duration_cast<nanoseconds>(t1.time_since_epoch()).count();
+      keys.shuffle(&keys2, seed);
+      keys.swap(keys2);
+    }
+    auto t2 = steady_clock::now();
+    for (int loop = 0; loop < repeat; loop++) {
+      for (size_t i = 0, n = keys.size(); i < n; i++) {
+        auto key = keys[i];
+        iter2->Seek(Slice(key.p, key.n));
+        ROCKSDB_VERIFY(iter2->Valid());
+      }
+    }
+    auto t3 = steady_clock::now();
+    size_t vlen = 0;
+    if (fetch_value) {
+      for (int loop = 0; loop < repeat; loop++) {
+        for (size_t i = 0, n = keys.size(); i < n; i++) {
+          auto key = keys[i];
+          iter2->Seek(Slice(key.p, key.n));
+          ROCKSDB_VERIFY(iter2->Valid());
+          iter2->PrepareValue();
+          vlen += iter2->value().size();
+        }
+      }
+    }
+    auto t4 = steady_clock::now();
+    auto uf = [  ](auto beg, auto end) { return duration<double, std::micro>(end - beg).count(); };
+    auto sf = [uf](auto beg, auto end) { return uf(beg, end) / 1e6; };
+    char strbuf[64];
+    #define fmt(...) std::string(strbuf, sprintf(strbuf, __VA_ARGS__))
+    size_t entries = keys.size();
+    json js = json::array({
+      {
+        {"stage"    , "scan load keys"},
+        {"repeat"   , 1},
+        {"time(sec)", fmt("%.6f", sf(t0,t1))},
+        {"us per op", fmt("%.3f", uf(t0,t1)/entries)},
+        {"M ops"    , fmt("%.3f", entries/uf(t0,t1))},
+        {"MB/sec"   , fmt("%.3f", keys.strpool.size()/uf(t0,t1))}
+      },
+      {
+        {"stage"    , "shuffle"},
+        {"repeat"   , 1},
+        {"time(sec)", fmt("%.6f", sf(t1,t2))},
+        {"us per op", fmt("%.3f", uf(t1,t2)/entries)},
+        {"M ops"    , fmt("%.3f", entries/uf(t1,t2))},
+        {"MB/sec"   , fmt("%.3f", keys.strpool.size()/uf(t1,t2))}
+      },
+      {
+        {"stage"    , "seek"},
+        {"repeat"   , repeat},
+        {"time(sec)", fmt("%.6f", sf(t2,t3))},
+        {"us per op", fmt("%.3f", uf(t2,t3)/(entries*repeat))},
+        {"M ops"    , fmt("%.3f", entries*repeat/uf(t2,t3))},
+        {"MB/sec"   , fmt("%.3f", keys.strpool.size()*repeat/uf(t2,t3))}
+      },
+    });
+    if (fetch_value) {
+      js.push_back(json::object({
+        {"stage"    , "fetch value(+seek)"},
+        {"repeat"   , repeat},
+        {"time(sec)", fmt("%.6f", sf(t3,t4))},
+        {"us per op", fmt("%.3f", uf(t3,t4)/(entries*repeat))},
+        {"M ops"    , fmt("%.3f", entries*repeat/uf(t3,t4))},
+        {"MB/sec"   , fmt("%.3f", vlen/uf(t3,t4))}
+      }));
+      auto us = std::max(uf(t3,t4) - uf(t2,t3), 0.001);
+      js.push_back(json::object({
+        {"stage"    , "fetch value(-seek)"},
+        {"repeat"   , repeat},
+        {"time(sec)", fmt("%.6f", us/1e6)},
+        {"us per op", fmt("%.3f", us/(entries*repeat))},
+        {"M ops"    , fmt("%.3f", entries*repeat/us)},
+        {"MB/sec"   , fmt("%.3f", vlen/us)}
+      }));
+    }
+    #undef fmt
+    terark::string_appender<> buf; buf.reserve(8192);
+    if (html) {
+      buf|"entries = "|entries|", total key len = "|SizeToString(keys.strpool.size());
+      if (fetch_value) {
+         buf|", total value len = "|SizeToString(vlen/repeat)|"\n";
+      }
+      buf|"<table border=1><tbody>\n";
+      buf|"<tr>";
+      for (auto& kv : js[0].items()) {
+        buf|"<th>"|kv.key()|"</th>";
+      }
+      buf|"</tr>\n";
+      for (auto& kv : js.items()) {
+        const json& cols = kv.value();
+        buf|"<tr>";
+        buf|"<th>"              |cols["stage"    ].get<string>()|"</th>";
+        buf|"<td align='right'>"|cols["repeat"   ].get<int   >()|"</td>";
+        buf|"<td align='right'>"|cols["time(sec)"].get<string>()|"</td>";
+        buf|"<td align='right'>"|cols["us per op"].get<string>()|"</td>";
+        buf|"<td align='right'>"|cols["M ops"    ].get<string>()|"</td>";
+        buf|"<td align='right'>"|cols["MB/sec"   ].get<string>()|"</td>";
+        buf|"</tr>\n";
+      }
+      buf|"</tbody></table>\n";
+      js[0]["<htmltab:col>"] = json::array
+        ({"stage", "repeat", "time(sec)", "M ops", "us per op", "MB/sec"});
+      return static_cast<string&&>(buf);
+    } else {
+      return JsonToString(js, dump_options);
+    }
+  }
   size_t entries = 0;
   for (int i = 0; i < repeat; i++) {
     entries = 0;
@@ -2224,6 +2350,7 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   " | <a href='" + window.location.href + "&bench=scan&fetch_value=1&repeat=1'>scan + fetch_value</a>" +
   " | <a href='" + window.location.href + "&bench=seek'>seek</a>" +
   " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1'>seek + fetch_value</a>" +
+  " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1&rand=1'>rand + fetch_value</a>" +
   '';
 </script>
   )";
