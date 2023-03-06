@@ -44,6 +44,8 @@ using std::shared_ptr;
 using std::vector;
 using std::string;
 
+__attribute__((weak)) void TopTableSetSeqScan(bool val);
+
 template<class T>
 static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
   oss << x;
@@ -2056,6 +2058,9 @@ static void Json_DB_IntProps(const DB& db, ColumnFamilyHandle* cfh,
 
 static std::string
 BenchScan(TableReader* tr, int repeat, const json& dump_options) {
+  bool hint_seqscan = JsonSmartBool(dump_options, "hint_seqscan", true);
+  if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(true);
+  ROCKSDB_SCOPE_EXIT(if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(false));
   auto iter = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
   ROCKSDB_SCOPE_EXIT(delete iter);
   using namespace std::chrono;
@@ -2130,6 +2135,9 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
 
 static std::string
 BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
+  bool hint_seqscan = JsonSmartBool(dump_options, "hint_seqscan", true);
+  if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(true);
+  ROCKSDB_SCOPE_EXIT(if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(false));
   auto iter = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
   auto iter2 = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
   ROCKSDB_SCOPE_EXIT(delete iter2; delete iter);
