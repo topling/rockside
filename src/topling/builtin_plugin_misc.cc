@@ -2061,7 +2061,8 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
   bool hint_seqscan = JsonSmartBool(dump_options, "hint_seqscan", true);
   if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(true);
   ROCKSDB_SCOPE_EXIT(if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(false));
-  auto iter = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
+  ReadOptions ro; // BlockBasedTable Iter references ReadOptions
+  auto iter = tr->NewIterator(ro, nullptr, nullptr, false, kSSTFileReader);
   ROCKSDB_SCOPE_EXIT(delete iter);
   using namespace std::chrono;
   bool html = JsonSmartBool(dump_options, "html", true);
@@ -2138,8 +2139,9 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
   bool hint_seqscan = JsonSmartBool(dump_options, "hint_seqscan", true);
   if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(true);
   ROCKSDB_SCOPE_EXIT(if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(false));
-  auto iter = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
-  auto iter2 = tr->NewIterator(ReadOptions(), nullptr, nullptr, false, kSSTFileReader);
+  ReadOptions ro; // BlockBasedTable Iter references ReadOptions
+  auto iter = tr->NewIterator(ro, nullptr, nullptr, false, kSSTFileReader);
+  auto iter2 = tr->NewIterator(ro, nullptr, nullptr, false, kSSTFileReader);
   ROCKSDB_SCOPE_EXIT(delete iter2; delete iter);
   using namespace std::chrono;
   bool fetch_value = JsonSmartBool(dump_options, "fetch_value", false);
