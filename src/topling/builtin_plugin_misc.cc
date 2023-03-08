@@ -2144,7 +2144,8 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
   auto iter2 = tr->NewIterator(ro, nullptr, nullptr, false, kSSTFileReader);
   ROCKSDB_SCOPE_EXIT(delete iter2; delete iter);
   using namespace std::chrono;
-  bool fetch_value = JsonSmartBool(dump_options, "fetch_value", false);
+  auto fetch_value = JsonSmartInt(dump_options, "fetch_value", 0);
+  auto point = JsonSmartBool(dump_options, "point", true);
   auto t0 = steady_clock::now();
   repeat = std::max(repeat, 1);
   auto props = tr->GetTableProperties();
@@ -2169,23 +2170,77 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
       keys.swap(keys2);
     }
     auto t2 = steady_clock::now();
+    size_t num_scan = 0, key_len = 0;
     for (int loop = 0; loop < repeat; loop++) {
-      for (size_t i = 0, n = keys.size(); i < n; i++) {
-        auto key = keys[i];
-        iter2->Seek(Slice(key.p, key.n));
-        ROCKSDB_VERIFY(iter2->Valid());
+      if (fetch_value > 1) { // ignore param `point`
+        for (size_t i = 0, n = keys.size(); i < n / fetch_value; i++) {
+          auto key = keys[i];
+          iter2->Seek(Slice(key.p, key.n));
+          ROCKSDB_VERIFY(iter2->Valid());
+          key_len += iter2->key().size();
+          int j = 1;
+          for (; j < fetch_value; j++) {
+            iter2->Next(); // at most (fetch_value-1) times
+            if (!iter2->Valid()) break;
+            key_len += iter2->key().size();
+          }
+          num_scan += j;
+        }
+      }
+      else {
+        for (size_t i = 0, n = keys.size(); i < n; i++) {
+          auto key = keys[i];
+          if (point) {
+            ROCKSDB_VERIFY(iter2->PointGet(Slice(key.p, key.n), false));
+          } else {
+            iter2->Seek(Slice(key.p, key.n));
+            ROCKSDB_VERIFY(iter2->Valid());
+          }
+        }
+        num_scan += keys.size();
+        key_len += keys.strpool.size();
       }
     }
     auto t3 = steady_clock::now();
     size_t vlen = 0;
+    size_t num_scan2 = 0, key_len2 = 0; // with fetch_value
     if (fetch_value) {
       for (int loop = 0; loop < repeat; loop++) {
-        for (size_t i = 0, n = keys.size(); i < n; i++) {
-          auto key = keys[i];
-          iter2->Seek(Slice(key.p, key.n));
-          ROCKSDB_VERIFY(iter2->Valid());
-          iter2->PrepareValue();
-          vlen += iter2->value().size();
+        if (fetch_value > 1) { // ignore param `point`
+          // pick second random range, different with first random range
+          size_t n = keys.size();
+          for (size_t i = n / fetch_value; i < 2*n / fetch_value; i++) {
+            auto key = keys[i];
+            iter2->Seek(Slice(key.p, key.n));
+            ROCKSDB_VERIFY(iter2->Valid());
+            iter2->PrepareValue();
+            key_len2 += iter2->key().size();
+            vlen += iter2->value().size();
+            int j = 1;
+            for (; j < fetch_value; j++) {
+              iter2->Next(); // at most (fetch_value-1) times
+              if (!iter2->Valid()) break;
+              iter2->PrepareValue();
+              key_len2 += iter2->key().size();
+              vlen += iter2->value().size();
+            }
+            num_scan2 += j;
+          }
+        }
+        else {
+          for (size_t i = 0, n = keys.size(); i < n; i++) {
+            auto key = keys[i];
+            if (point) {
+              ROCKSDB_VERIFY(iter2->PointGet(Slice(key.p, key.n), true));
+            } else {
+              iter2->Seek(Slice(key.p, key.n));
+              ROCKSDB_VERIFY(iter2->Valid());
+              iter2->PrepareValue();
+            }
+            vlen += iter2->value().size();
+          }
+          num_scan2 += keys.size();
+          key_len2 += keys.strpool.size();
         }
       }
     }
@@ -2213,30 +2268,31 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         {"MB/sec"   , fmt("%.3f", keys.strpool.size()/uf(t1,t2))}
       },
       {
-        {"stage"    , "seek"},
+        {"stage"    , fetch_value > 1 ? "seek+scankey"
+                                      : point ? "point" : "seek" },
         {"repeat"   , repeat},
         {"time(sec)", fmt("%.6f", sf(t2,t3))},
-        {"us/op"    , fmt("%.3f", uf(t2,t3)/(entries*repeat))},
-        {"M ops"    , fmt("%.3f", entries*repeat/uf(t2,t3))},
-        {"MB/sec"   , fmt("%.3f", keys.strpool.size()*repeat/uf(t2,t3))}
+        {"us/op"    , fmt("%.3f", uf(t2,t3)/num_scan)},
+        {"M ops"    , fmt("%.3f", num_scan/uf(t2,t3))},
+        {"MB/sec"   , fmt("%.3f", key_len/uf(t2,t3))}
       },
     });
     if (fetch_value) {
       js.push_back(json::object({
-        {"stage"    , "fetch value(+seek)"},
+        {"stage"    , "fetch value(+key)"},
         {"repeat"   , repeat},
         {"time(sec)", fmt("%.6f", sf(t3,t4))},
-        {"us/op"    , fmt("%.3f", uf(t3,t4)/(entries*repeat))},
-        {"M ops"    , fmt("%.3f", entries*repeat/uf(t3,t4))},
-        {"MB/sec"   , fmt("%.3f", vlen/uf(t3,t4))}
+        {"us/op"    , fmt("%.3f", uf(t3,t4)/num_scan2)},
+        {"M ops"    , fmt("%.3f", num_scan2/uf(t3,t4))},
+        {"MB/sec"   , fmt("%.3f", (key_len2 + vlen)/uf(t3,t4))}
       }));
       auto us = std::max(uf(t3,t4) - uf(t2,t3), 0.001);
       js.push_back(json::object({
-        {"stage"    , "fetch value(-seek)"},
+        {"stage"    , "fetch value(-key)"},
         {"repeat"   , repeat},
         {"time(sec)", fmt("%.6f", us/1e6)},
-        {"us/op"    , fmt("%.3f", us/(entries*repeat))},
-        {"M ops"    , fmt("%.3f", entries*repeat/us)},
+        {"us/op"    , fmt("%.3f", us/num_scan2)},
+        {"M ops"    , fmt("%.3f", num_scan2/us)},
         {"MB/sec"   , fmt("%.3f", vlen/us)}
       }));
     }
@@ -2363,7 +2419,7 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   " | <a href='" + window.location.href + "&bench=seek&fetch_value=1&repeat=1&rand=1'>rand value</a>" +
   '';
 </script>
-  )";
+)";
   return add_link + manip->ToString(*tr, dump_opt2, repo);
 }
 
