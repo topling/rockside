@@ -2364,7 +2364,7 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
   '';
 </script>
   )";
-  return manip->ToString(*tr, dump_opt2, repo) + add_link;
+  return add_link + manip->ToString(*tr, dump_opt2, repo);
 }
 
 // format not suitable for prometheus
