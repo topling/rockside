@@ -2141,8 +2141,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
   ROCKSDB_SCOPE_EXIT(if (TopTableSetSeqScan && hint_seqscan) TopTableSetSeqScan(false));
   ReadOptions ro; // BlockBasedTable Iter references ReadOptions
   auto iter = tr->NewIterator(ro, nullptr, nullptr, false, kSSTFileReader);
-  auto iter2 = tr->NewIterator(ro, nullptr, nullptr, false, kSSTFileReader);
-  ROCKSDB_SCOPE_EXIT(delete iter2; delete iter);
+  ROCKSDB_SCOPE_EXIT(delete iter);
   using namespace std::chrono;
   auto fetch_value = JsonSmartInt(dump_options, "fetch_value", 0);
   auto point = JsonSmartBool(dump_options, "point", true);
@@ -2329,31 +2328,35 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
       return JsonToString(js, dump_options);
     }
   }
-  size_t entries = 0;
-  for (int i = 0; i < repeat; i++) {
-    entries = 0;
-    iter->SeekToFirst();
-    ROCKSDB_VERIFY(iter->Valid());
-    while (iter->Valid()) {
-      if (fetch_value)
-        iter->PrepareValue();
-      iter2->Seek(iter->key());
-      ROCKSDB_VERIFY(iter2->Valid());
-      iter->Next();
-      entries++;
+  else {
+    auto iter2 = tr->NewIterator(ro, nullptr, nullptr, false, kSSTFileReader);
+    ROCKSDB_SCOPE_EXIT(delete iter2);
+    size_t entries = 0;
+    for (int i = 0; i < repeat; i++) {
+      entries = 0;
+      iter->SeekToFirst();
+      ROCKSDB_VERIFY(iter->Valid());
+      while (iter->Valid()) {
+        if (fetch_value)
+          iter->PrepareValue();
+        iter2->Seek(iter->key());
+        ROCKSDB_VERIFY(iter2->Valid());
+        iter->Next();
+        entries++;
+      }
     }
-  }
-  auto t1 = steady_clock::now();
-  auto us = duration<double, std::micro>(t1 - t0).count();
-  auto sec = us / 1e6;
-  std::string buf(8192, '\0');
-  auto len = snprintf(buf.data(), buf.size(),
+    auto t1 = steady_clock::now();
+    auto us = duration<double, std::micro>(t1 - t0).count();
+    auto sec = us / 1e6;
+    std::string buf(8192, '\0');
+    auto len = snprintf(buf.data(), buf.size(),
 R"(<pre>time = %.6f sec, entries = %zd, repeat = %d
 %.3f us per entry, %.3f M ops per sec, op includes Next and Seek
 </pre>)", sec, entries, repeat, us/(entries*repeat), entries*repeat/us
-  );
-  buf.resize(len);
-  return buf;
+    );
+    buf.resize(len);
+    return buf;
+  }
 }
 
 static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
