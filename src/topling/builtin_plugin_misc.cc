@@ -2149,6 +2149,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
   auto t0 = steady_clock::now();
   repeat = std::max(repeat, 1);
   auto props = tr->GetTableProperties();
+  bool rev = JsonSmartBool(dump_options, "reverse", false);
   bool html = JsonSmartBool(dump_options, "html", true);
   bool rand = JsonSmartBool(dump_options, "rand", false);
   if (rand) {
@@ -2180,7 +2181,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
           key_len += iter2->key().size();
           int j = 1;
           for (; j < fetch_value; j++) {
-            iter2->Next(); // at most (fetch_value-1) times
+            rev ? iter2->Prev() : iter2->Next(); // at most (fetch_value-1) times
             if (!iter2->Valid()) break;
             key_len += iter2->key().size();
           }
@@ -2218,7 +2219,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
             vlen += iter2->value().size();
             int j = 1;
             for (; j < fetch_value; j++) {
-              iter2->Next(); // at most (fetch_value-1) times
+              rev ? iter2->Prev() : iter2->Next(); // at most (fetch_value-1) times
               if (!iter2->Valid()) break;
               iter2->PrepareValue();
               key_len2 += iter2->key().size();
