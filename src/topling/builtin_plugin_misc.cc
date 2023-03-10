@@ -2176,14 +2176,14 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
       if (fetch_value > 1) { // ignore param `point`
         for (size_t i = 0, n = keys.size(); i < n / fetch_value; i++) {
           auto key = keys[i];
-          iter2->Seek(Slice(key.p, key.n));
-          ROCKSDB_VERIFY(iter2->Valid());
-          key_len += iter2->key().size();
+          iter->Seek(Slice(key.p, key.n));
+          ROCKSDB_VERIFY(iter->Valid());
+          key_len += iter->key().size();
           int j = 1;
           for (; j < fetch_value; j++) {
-            rev ? iter2->Prev() : iter2->Next(); // at most (fetch_value-1) times
-            if (!iter2->Valid()) break;
-            key_len += iter2->key().size();
+            rev ? iter->Prev() : iter->Next(); // at most (fetch_value-1) times
+            if (!iter->Valid()) break;
+            key_len += iter->key().size();
           }
           num_scan += j;
         }
@@ -2192,10 +2192,10 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
         for (size_t i = 0, n = keys.size(); i < n; i++) {
           auto key = keys[i];
           if (point) {
-            ROCKSDB_VERIFY(iter2->PointGet(Slice(key.p, key.n), false));
+            ROCKSDB_VERIFY(iter->PointGet(Slice(key.p, key.n), false));
           } else {
-            iter2->Seek(Slice(key.p, key.n));
-            ROCKSDB_VERIFY(iter2->Valid());
+            iter->Seek(Slice(key.p, key.n));
+            ROCKSDB_VERIFY(iter->Valid());
           }
         }
         num_scan += keys.size();
@@ -2212,18 +2212,18 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
           size_t n = keys.size();
           for (size_t i = n / fetch_value; i < 2*n / fetch_value; i++) {
             auto key = keys[i];
-            iter2->Seek(Slice(key.p, key.n));
-            ROCKSDB_VERIFY(iter2->Valid());
-            iter2->PrepareValue();
-            key_len2 += iter2->key().size();
-            vlen += iter2->value().size();
+            iter->Seek(Slice(key.p, key.n));
+            ROCKSDB_VERIFY(iter->Valid());
+            iter->PrepareValue();
+            key_len2 += iter->key().size();
+            vlen += iter->value().size();
             int j = 1;
             for (; j < fetch_value; j++) {
-              rev ? iter2->Prev() : iter2->Next(); // at most (fetch_value-1) times
-              if (!iter2->Valid()) break;
-              iter2->PrepareValue();
-              key_len2 += iter2->key().size();
-              vlen += iter2->value().size();
+              rev ? iter->Prev() : iter->Next(); // at most (fetch_value-1) times
+              if (!iter->Valid()) break;
+              iter->PrepareValue();
+              key_len2 += iter->key().size();
+              vlen += iter->value().size();
             }
             num_scan2 += j;
           }
@@ -2232,13 +2232,13 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
           for (size_t i = 0, n = keys.size(); i < n; i++) {
             auto key = keys[i];
             if (point) {
-              ROCKSDB_VERIFY(iter2->PointGet(Slice(key.p, key.n), true));
+              ROCKSDB_VERIFY(iter->PointGet(Slice(key.p, key.n), true));
             } else {
-              iter2->Seek(Slice(key.p, key.n));
-              ROCKSDB_VERIFY(iter2->Valid());
-              iter2->PrepareValue();
+              iter->Seek(Slice(key.p, key.n));
+              ROCKSDB_VERIFY(iter->Valid());
+              iter->PrepareValue();
             }
-            vlen += iter2->value().size();
+            vlen += iter->value().size();
           }
           num_scan2 += keys.size();
           key_len2 += keys.strpool.size();
