@@ -1056,7 +1056,7 @@ json TableUserPropsToJson(const UserCollectedProperties& uprops,
   else {
     auto ptr_cfd_val = iter.value().get<size_t>();
     auto cfd = (ColumnFamilyData*)(ptr_cfd_val);
-    auto collfacs = cfd->initial_cf_options().table_properties_collector_factories;
+    auto& collfacs = cfd->initial_cf_options().table_properties_collector_factories;
     for (auto& collfac: collfacs) {
       js[collfac->Name()] = collfac->UserPropToString(uprops);
     }
