@@ -304,7 +304,7 @@ RegTableFactoryMagicNumber(uint64_t magic, const char* name) {
 struct SstPartitionerFixedPrefixEx : public SstPartitioner {
   const char* Name() const override { return "SstPartitionerFixedPrefixEx"; }
   PartitionerResult ShouldPartition(const PartitionerRequest& req) final {
-    if (output_level <= 0 || req.current_output_file_size < min_file_size) {
+    if (output_level < min_level || req.current_output_file_size < min_file_size) {
       return kNotRequired;
     }
     Slice prev = *req.prev_user_key, curr = *req.current_user_key;
@@ -314,7 +314,8 @@ struct SstPartitionerFixedPrefixEx : public SstPartitioner {
   bool CanDoTrivialMove(const Slice& min_uk, const Slice& max_uk) final {
     return ShouldPartition({min_uk, max_uk, 0}) == kNotRequired;
   }
-  int output_level;
+  short min_level;
+  short output_level;
   unsigned prefix_len;
   size_t min_file_size;
 };
@@ -322,16 +323,19 @@ struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
   SstPartitionerFixedPrefixExFactory(const json& js, const SidePluginRepo&) {
     ROCKSDB_JSON_OPT_PROP(js, prefix_len);
     ROCKSDB_JSON_OPT_SIZE(js, min_file_size);
+    ROCKSDB_JSON_OPT_PROP(js, min_level);
   }
   const char* Name() const final { return "SstPartitionerFixedPrefixEx"; }
   std::unique_ptr<SstPartitioner>
   CreatePartitioner(const SstPartitioner::Context& context) const override {
     auto p = new SstPartitionerFixedPrefixEx();
-    p->output_level = context.output_level;
+    p->min_level = this->min_level;
+    p->output_level = short(context.output_level);
     p->prefix_len = this->prefix_len;
     p->min_file_size = this->min_file_size;
     return std::unique_ptr<SstPartitioner>(p);
   }
+  short min_level = 1; // partition by prefix if output_level >= min_level
   unsigned prefix_len = 0;
   size_t min_file_size = SIZE_MAX;
 };
