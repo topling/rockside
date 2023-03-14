@@ -337,7 +337,7 @@ struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
   }
   short min_level = 1; // partition by prefix if output_level >= min_level
   unsigned prefix_len = 0;
-  size_t min_file_size = SIZE_MAX;
+  size_t min_file_size = 0;
 };
 static std::shared_ptr<SstPartitionerFactory>
 NewFixedPrefixPartitionerFactoryJson(const json& js, const SidePluginRepo& repo) {
