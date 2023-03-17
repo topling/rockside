@@ -431,10 +431,23 @@ Status DispatcherTableFactory::NewTableReader(
   auto magic = (unsigned long long)footer.table_magic_number();
   auto fp_iter = m_magic_to_factory.find(magic);
   if (m_magic_to_factory.end() != fp_iter) {
-    const std::shared_ptr<TableFactory>& factory = fp_iter->second.factory;
-    const std::string&                   varname = fp_iter->second.varname;
+    const TableFactory* factory = fp_iter->second.factory.get();
+    const std::string&  varname = fp_iter->second.varname;
     ROCKS_LOG_DEBUG(info_log, "%s: found factory: %016llX : %s: %s\n",
          func, magic, factory->Name(), varname.c_str());
+    auto level = size_t(table_reader_options.level);
+    if (level < m_level_writers.size()) {
+      auto wfac = m_level_writers[level].get();
+      if (wfac != factory) {
+        if (Slice(wfac->Name()) == factory->Name()) {
+          factory = wfac;
+        } else {
+          ROCKS_LOG_WARN(info_log,
+              "%s: factory mismatch: by writer = %s[L%zd], use by magic = %s[%s]",
+              func, wfac->Name(), level, factory->Name(), varname.c_str());
+        }
+      }
+    }
     fp_iter->second.open_cnt++;
     fp_iter->second.sum_open_size += file_size;
     return factory->NewTableReader(ro, table_reader_options,
