@@ -2720,7 +2720,9 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
       this->max_subcompactions = max_subcompactions;
       this->target_path_id = target_path_id;
       ROCKSDB_JSON_OPT_ENUM(js, bottommost_level_compaction);
+      ROCKSDB_JSON_OPT_SIZE(js, max_compaction_bytes);
     }
+    uint64_t max_compaction_bytes = 0;
   };
   auto& cf_paths = cfh->cfd()->ioptions()->cf_paths;
   int default_target_path_id = (int)(cf_paths.size() - 1);
@@ -2743,7 +2745,17 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
 	 */
 	(void)prctl(PR_SET_NAME, "web-compact", 0, 0, 0);
 #endif
-    db->CompactRange(cro, cfh, nullptr, nullptr);
+    if (cro.max_compaction_bytes) {
+      auto old = db->GetOptions(cfh);
+      db->SetOptions(cfh, {{std::string("max_compaction_bytes"),
+                            std::to_string(cro.max_compaction_bytes)}});
+      db->CompactRange(cro, cfh, nullptr, nullptr);
+      db->SetOptions(cfh, {{std::string("max_compaction_bytes"),
+                            std::to_string(old.max_compaction_bytes)}});
+    } else {
+      db->CompactRange(cro, cfh, nullptr, nullptr);
+    }
+
     g_running_manual_compact_mtx.lock();
     g_running_manual_compact.erase(cfh);
     g_running_manual_compact_mtx.unlock();
