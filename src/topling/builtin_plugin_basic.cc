@@ -103,8 +103,7 @@ ROCKSDB_FACTORY_REG("HtmlTextUserKeyCoder", JS_NewHtmlTextUserKeyCoder);
 ROCKSDB_REG_AnyPluginManip("HtmlTextUserKeyCoder");
 
 struct HexUserKeyCoder : public UserKeyCoder {
-  unsigned prefix_len = 0;
-  unsigned max_width = UINT_MAX;
+  size_t prefix_len = 0;
   HexUserKeyCoder(const json& js, const SidePluginRepo& repo) {
     Update({}, js, repo);
   }
@@ -113,9 +112,6 @@ struct HexUserKeyCoder : public UserKeyCoder {
     ROCKSDB_JSON_OPT_PROP(js, prefix_len);
     if (prefix_len > 8)
       THROW_InvalidArgument("prefix_len must <= 8");
-    ROCKSDB_JSON_OPT_PROP(js, max_width);
-    max_width = std::max(max_width, 20u);
-    max_width = (max_width + 1) & ~1; // align to 2
   }
   std::string ToString(const json& dump_options, const SidePluginRepo&)
   const override {
@@ -144,41 +140,22 @@ struct HexUserKeyCoder : public UserKeyCoder {
       de->reserve(coded.size_*2 + 32);
       if (coded.size() >= prefix_len) {
         uint64_t prefix = ReadBigEndianUint64(coded.data(), prefix_len);
-        auto str_prefix = std::to_string(prefix);
         de->append("<b style='color:green'>");
-        de->append(str_prefix);
+        de->append(std::to_string(prefix));
         de->append("</b>:");
         coded.remove_prefix(prefix_len);
-        DecodeSuffix(coded, de, str_prefix.size() + 1);
+        DecodeSuffix(coded, de);
       } else {
         de->append("<b style='color:red'>");
-        DecodeSuffix(coded, de, 0);
+        DecodeSuffix(coded, de);
         de->append("</b>");
       }
     } else {
-      DecodeSuffix(coded, de, 0);
+      DecodeSuffix(coded, de);
     }
   }
-  virtual void DecodeSuffix(Slice coded, std::string* de, size_t prefix_width) const {
-    auto hex = coded.ToString(true);
-    size_t pos = 0;
-    size_t lim = hex.size();
-    prefix_width = (prefix_width + 1) & ~1; // align to 2
-    if (prefix_width < max_width) {
-      // write the beginning hex chars after prefix on first line
-      size_t len = std::min(max_width - prefix_width, lim);
-      de->append(hex, 0, len);
-      pos += len;
-      if (pos < lim)
-        de->append("<br/>");
-    }
-    while (pos < lim) {
-      auto len = std::min<size_t>(lim - pos, max_width);
-      de->append(hex, pos, len);
-      pos += len;
-      if (pos < lim)
-        de->append("<br/>");
-    }
+  virtual void DecodeSuffix(Slice coded, std::string* de) const {
+    de->append(coded.ToString(true));
   }
 };
 ROCKSDB_REG_Plugin(HexUserKeyCoder, AnyPlugin);
@@ -190,7 +167,7 @@ struct PrettyHexUserKeyCoder : public HexUserKeyCoder {
     de->append(coded.ToString(true));
     de->append("</em>");
   }
-  void DecodeSuffix(Slice coded, std::string* de, size_t) const override {
+  void DecodeSuffix(Slice coded, std::string* de) const override {
     size_t start = -1, len = 0;
     for (int i = 0; i < (int)coded.size(); i++) {
       const unsigned char ch = coded[i];
