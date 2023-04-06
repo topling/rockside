@@ -1764,7 +1764,7 @@ try {
     div * td.monoleft {
       text-align: left;
       font-family: monospace;
-      width: 40ch;
+      max-width: 40ch;
       word-break: break-all;
     }
     div * td.center {
