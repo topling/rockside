@@ -1191,6 +1191,24 @@ static void chomp(std::string& s) {
     s.pop_back();
   }
 }
+static void replace_append(std::string& buf, const std::string& text,
+                           unsigned char match, Slice replace) {
+  auto ptr = text.c_str();
+  auto len = text.size();
+  while (len) {
+    auto hit = (const char*)memchr(ptr, match, len);
+    if (hit) {
+      buf.append(ptr, hit);
+      buf.append(replace.data_, replace.size_);
+      len -= hit + 1 - ptr;
+      ptr = hit + 1;
+    } else {
+      buf.append(ptr, len);
+      break;
+    }
+  }
+}
+
 static std::string html_pre(const std::string& value) {
   std::string str;
   str.reserve(value.size() + 11);
@@ -1647,7 +1665,7 @@ try {
         html.append(p->compression_name);
       } else {
         html.append("<span title='");
-        html.append(p->compression_options);
+        replace_append(html, p->compression_options, ';', "&#x0A;");
         html.append("'>");
         html.append(p->compression_name);
         html.append("</span>");
