@@ -1676,10 +1676,11 @@ try {
     }
     AppendFmt("<td>%" PRIu64"</td>", x.smallest_seqno);
     AppendFmt("<td>%" PRIu64"</td>", x.largest_seqno);
+    AppendFmt("<td>%zd</td>", terark::commonPrefixLen(x.smallestkey, x.largestkey));
     Html_AppendInternalKey(html, x.smallest_ikey, coder);
     Html_AppendInternalKey(html, x.largest_ikey, coder);
     Html_AppendTime(html, buf, file_creation_time);
-    AppendFmt("<td>%" PRIu64"</td>", x.num_reads_sampled);
+    //AppendFmt("<td>%" PRIu64"</td>", x.num_reads_sampled);
     if (fcnt >= 0) {
       AppendFmt("<td>%d</td>", fcnt);
       if (fcnt && p) {
@@ -1713,10 +1714,11 @@ try {
     html.append("<th rowspan=2>ZipAlgo</th>");
     html.append("<th rowspan=2>Smallest<br>SeqNum</th>");
     html.append("<th rowspan=2>Largest<br>SeqNum</th>");
+    html.append("<th rowspan=2>Co<br>Pre</th>");
     html.append("<th colspan=3>Smallest Key</th>");
     html.append("<th colspan=3>Largest Key</th>");
     html.append("<th rowspan=2>FileTime</th>");
-    html.append("<th rowspan=2 title='num_reads_sampled'>nReads<br>Sample</th>");
+    //html.append("<th rowspan=2 title='num_reads_sampled'>nReads<br>Sample</th>");
     if (with_fcnt) {
       html.append("<th rowspan=2>File<br>CNT</th>");
       html.append("<th rowspan=2>Avg File<br>Zip Size</th>");
