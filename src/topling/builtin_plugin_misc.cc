@@ -1654,11 +1654,11 @@ try {
       AppendFmt("<td>%.1f%%</td>", 100*val_zip_ratio);
       AppendFmt("<td class='bghighlight'>%.1f%%</td>", 100*kv_zip_ratio);
 
-      AppendFmt("<td title='UserKey: %.3f, tag: %.3f (%.2f bits)'>%.3f</td>",
+      AppendFmt("<td title='UserKey: %.3f, tag: %.3f (%.2f bits)'>%.1f</td>",
                 avg_zip_key, tag_zip_ratio * 8, tag_zip_ratio * 64,
                 avg_zip_key + tag_zip_ratio * 8);
       AppendFmt("<td title='UserKey: %.1f, tag: 8'>%.1f</td>", avg_raw_key - 8, avg_raw_key);
-      AppendFmt("<td>%.3f</td>", avg_zip_val);
+      AppendFmt("<td>%.1f</td>", avg_zip_val);
       AppendFmt("<td>%.1f</td>", avg_raw_val);
       html.append("<td class='left'>");
       if (p->compression_options.empty()) {
@@ -1711,10 +1711,10 @@ try {
     html.append("<th colspan=3>ZipRatio(Zip/Raw)</th>");
     html.append("<th colspan=2>AvgKey</th>");
     html.append("<th colspan=2>AvgValue</th>");
-    html.append("<th rowspan=2>ZipAlgo</th>");
+    html.append("<th rowspan=2>Zip<br/>Algo</th>");
     html.append("<th rowspan=2>Smallest<br>SeqNum</th>");
     html.append("<th rowspan=2>Largest<br>SeqNum</th>");
-    html.append("<th rowspan=2>Co<br>Pre</th>");
+    html.append("<th rowspan=2 title='Common Prefix Length'>Co<br>Pr</th>");
     html.append("<th colspan=3>Smallest Key</th>");
     html.append("<th colspan=3>Largest Key</th>");
     html.append("<th rowspan=2>FileTime</th>");
