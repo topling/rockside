@@ -817,7 +817,8 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
     THROW_InvalidArgument("dup dbname = " + dbname);
   }
   if (SidePluginRepo::DebugLevel() >= 2) {
-    fprintf(stderr, "%s:%d: Impl_OpenDB_tpl(): dbname = %s, params = %s\n",
+    fprintf(stderr, "%s: INFO: %s:%d: Impl_OpenDB_tpl(): dbname = %s, params = %s\n",
+            StrDateTimeNow(),
             __FILE__, __LINE__, dbname.c_str(), params_js.dump(4).c_str());
   }
   // will open db by calling acq func such as DB::Open
@@ -988,7 +989,7 @@ try
 {
   const auto& http_js = m_impl->http_js;
   if (SidePluginRepo::DebugLevel() >= 2) {
-    fprintf(stderr, "INFO: http_js = %s\n", http_js.dump().c_str());
+    fprintf(stderr, "%s: INFO: http_js = %s\n", StrDateTimeNow(), http_js.dump().c_str());
   }
   if (http_js.is_object()) {
     m_impl->http.Init(http_js, this);
@@ -1014,8 +1015,8 @@ catch (const Status& s) {
 
 void SidePluginRepo::CloseHttpServer() {
   if (SidePluginRepo::DebugLevel() >= 2) {
-    fprintf(stderr, "INFO: CloseHttpServer(): http_js = %s\n",
-            m_impl->http_js.dump().c_str());
+    fprintf(stderr, "%s: INFO: CloseHttpServer(): http_js = %s\n",
+            StrDateTimeNow(), m_impl->http_js.dump().c_str());
   }
   m_impl->http.Close();
 }
