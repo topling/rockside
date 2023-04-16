@@ -2177,6 +2177,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
     terark::fstrvec keys{terark::valvec_no_init()};
     keys.reserve(props->num_entries);
     keys.reserve_strpool(props->raw_key_size);
+    keys.offsets.emplace_back(0);
     iter->SeekToFirst();
     ROCKSDB_VERIFY(iter->Valid());
     while (iter->Valid()) {
