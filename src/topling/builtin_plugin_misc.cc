@@ -2313,8 +2313,8 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
       }));
     }
     #undef fmt
-    terark::string_appender<> buf; buf.reserve(8192);
     if (html) {
+      terark::string_appender<> buf; buf.reserve(8192);
       buf|"entries = "|entries|", total key len = "|SizeToString(keys.strpool.size());
       if (fetch_value) {
          buf|", total value len = "|SizeToString(vlen/repeat)|"\n";
