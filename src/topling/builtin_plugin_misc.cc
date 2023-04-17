@@ -2174,24 +2174,17 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
   bool html = JsonSmartBool(dump_options, "html", true);
   bool rand = JsonSmartBool(dump_options, "rand", false);
   if (rand) {
-    terark::fstrvec keys{terark::valvec_no_init()};
-    keys.reserve(props->num_entries);
-    keys.reserve_strpool(props->raw_key_size);
-    keys.offsets.emplace_back(0);
+    using namespace terark;
+    fstrvec keys{valvec_reserve(), props->num_entries, props->raw_key_size};
     iter->SeekToFirst();
     ROCKSDB_VERIFY(iter->Valid());
     while (iter->Valid()) {
-      Slice ik = iter->key();
-      keys.emplace_back(ik.data_, ik.size_);
+      keys.push_back(iter->key());
       iter->Next();
     }
     auto t1 = steady_clock::now();
-    {
-      terark::fstrvec keys2;
-      auto seed = duration_cast<nanoseconds>(t1.time_since_epoch()).count();
-      keys.shuffle(&keys2, seed);
-      keys.swap(keys2);
-    }
+    // shuffle with seed
+    keys.shuffle(duration_cast<nanoseconds>(t1.time_since_epoch()).count());
     auto t2 = steady_clock::now();
     size_t num_scan = 0, key_len = 0;
     for (int loop = 0; loop < repeat; loop++) {
