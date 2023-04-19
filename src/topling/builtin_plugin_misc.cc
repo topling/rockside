@@ -3641,11 +3641,25 @@ JS_TransactionDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
 ROCKSDB_FACTORY_REG("TransactionDB::Open", JS_TransactionDB_MultiCF_Open);
 ROCKSDB_FACTORY_REG("TransactionDB::Open", JS_DB_MultiCF_Manip);
 
+static void Sanity_secondary_path(DBOptions& dbo, std::string& secondary_path) {
+  if (secondary_path.empty()) {
+    if (dbo.db_log_dir.empty())
+      THROW_InvalidArgument("secondary_path and db_log_dir are all empty");
+    else
+      secondary_path = dbo.db_log_dir;
+  } else {
+    if (dbo.db_log_dir.empty())
+      dbo.db_log_dir = secondary_path;
+    else if (dbo.db_log_dir != secondary_path)
+      THROW_InvalidArgument("secondary_path and db_log_dir are not equal");
+  }
+}
 static
 DB* JS_TransactionDB_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
   std::string name, path, secondary_path;
   ROCKSDB_JSON_OPT_PROP(js, secondary_path);
   Options options(JS_Options(js, repo, &name, &path));
+  Sanity_secondary_path(options, secondary_path);
   TransactionDBOptions trx_db_options(JS_TransactionDBOptions(js, repo));
   TransactionDB* db = nullptr;
   Status s = TransactionDB::OpenAsSecondary(options, trx_db_options, path, secondary_path, &db);
@@ -3667,6 +3681,7 @@ JS_TransactionDB_MultiCF_OpenAsSecondary(const json& js, const SidePluginRepo& r
       auto auto_catch_up_delay_ms = db->m_catch_up_delay_ms;
       ROCKSDB_JSON_OPT_PROP(js, secondary_path);
       ROCKSDB_JSON_OPT_PROP(js, auto_catch_up_delay_ms);
+      Sanity_secondary_path(*db_opt, secondary_path);
       TransactionDBOptions trx_db_options(JS_TransactionDBOptions(js, repo));
       TransactionDB* dbptr = nullptr;
       Status s = TransactionDB::OpenAsSecondary(*db_opt, trx_db_options, path,
