@@ -17978,8 +17978,8 @@ class basic_json
            handlers added in version 3.4.0; serialization of binary values added
            in version 3.8.0.
     */
-    string_t dump(const int indent = -1,
-                  const char indent_char = ' ',
+    string_t dump(const int indent,
+                  const char indent_char,
                   const bool ensure_ascii = false,
                   const error_handler_t error_handler = error_handler_t::strict) const
     {
@@ -17997,6 +17997,9 @@ class basic_json
 
         return result;
     }
+
+    // for call in debugger
+    string_t dump(int indent = -1) const { return dump(indent, ' '); }
 
     /*!
     @brief return the type of the JSON value (explicit)
