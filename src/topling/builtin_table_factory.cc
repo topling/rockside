@@ -304,7 +304,8 @@ RegTableFactoryMagicNumber(uint64_t magic, const char* name) {
 struct SstPartitionerFixedPrefixEx : public SstPartitioner {
   const char* Name() const override { return "SstPartitionerFixedPrefixEx"; }
   PartitionerResult ShouldPartition(const PartitionerRequest& req) final {
-    if (output_level < min_level || req.current_output_file_size < min_file_size) {
+    if (output_level < min_level || output_level >= max_level
+        || req.current_output_file_size < min_file_size) {
       return kNotRequired;
     }
     Slice prev = *req.prev_user_key, curr = *req.current_user_key;
@@ -315,28 +316,43 @@ struct SstPartitionerFixedPrefixEx : public SstPartitioner {
     return ShouldPartition({min_uk, max_uk, 0}) == kNotRequired;
   }
   short min_level;
+  short max_level;
   short output_level;
-  unsigned prefix_len;
+  unsigned short prefix_len;
   size_t min_file_size;
 };
 struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
-  SstPartitionerFixedPrefixExFactory(const json& js, const SidePluginRepo&) {
+  SstPartitionerFixedPrefixExFactory(const json& js, const SidePluginRepo& repo) {
+    Update(json{}, js, repo);
+  }
+  void Update(const json&, const json& js, const SidePluginRepo&) {
     ROCKSDB_JSON_OPT_PROP(js, prefix_len);
     ROCKSDB_JSON_OPT_SIZE(js, min_file_size);
     ROCKSDB_JSON_OPT_PROP(js, min_level);
+    ROCKSDB_JSON_OPT_PROP(js, max_level);
+  }
+  std::string ToString(const json& dump_options, const SidePluginRepo&) const {
+    json js;
+    ROCKSDB_JSON_SET_PROP(js, prefix_len);
+    ROCKSDB_JSON_SET_SIZE(js, min_file_size);
+    ROCKSDB_JSON_SET_PROP(js, min_level);
+    ROCKSDB_JSON_SET_PROP(js, max_level);
+    return JsonToString(js, dump_options);
   }
   const char* Name() const final { return "SstPartitionerFixedPrefixEx"; }
   std::unique_ptr<SstPartitioner>
   CreatePartitioner(const SstPartitioner::Context& context) const override {
     auto p = new SstPartitionerFixedPrefixEx();
     p->min_level = this->min_level;
+    p->max_level = this->max_level;
     p->output_level = short(context.output_level);
     p->prefix_len = this->prefix_len;
     p->min_file_size = this->min_file_size;
     return std::unique_ptr<SstPartitioner>(p);
   }
   short min_level = 1; // partition by prefix if output_level >= min_level
-  unsigned prefix_len = 0;
+  short max_level = SHRT_MAX; // partition by prefix if output_level < max_level
+  unsigned short prefix_len = 0;
   size_t min_file_size = 0;
 };
 static std::shared_ptr<SstPartitionerFactory>
@@ -346,16 +362,16 @@ NewFixedPrefixPartitionerFactoryJson(const json& js, const SidePluginRepo& repo)
   // SstPartitionerFixedPrefixEx added file size and output level check
   return std::make_shared<SstPartitionerFixedPrefixExFactory>(js, repo);
 }
-ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefixFactory",
-                    NewFixedPrefixPartitionerFactoryJson);
-ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefix",
-                    NewFixedPrefixPartitionerFactoryJson);
-ROCKSDB_FACTORY_REG("FixedPrefix", NewFixedPrefixPartitionerFactoryJson);
-ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefixExFactory",
-                    NewFixedPrefixPartitionerFactoryJson);
-ROCKSDB_FACTORY_REG("SstPartitionerFixedPrefixEx",
-                    NewFixedPrefixPartitionerFactoryJson);
-ROCKSDB_FACTORY_REG("FixedPrefixEx", NewFixedPrefixPartitionerFactoryJson);
+
+#define REG_SST_PARTITION(name) \
+  ROCKSDB_FACTORY_REG(#name, NewFixedPrefixPartitionerFactoryJson); \
+  ROCKSDB_REG_EasyProxyManip_3(#name, \
+    SstPartitionerFixedPrefixExFactory, SstPartitionerFactory)
+
+REG_SST_PARTITION(SstPartitionerFixedPrefix);
+REG_SST_PARTITION(FixedPrefix);
+REG_SST_PARTITION(SstPartitionerFixedPrefixEx);
+REG_SST_PARTITION(FixedPrefixEx);
 
 ////////////////////////////////////////////////////////////////////////////
 
