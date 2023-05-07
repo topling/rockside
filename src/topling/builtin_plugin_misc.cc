@@ -3186,7 +3186,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     const json& params_js = ijs.value();
     if (params_js.end() != (ijs = params_js.find("db_options"))) {
       if (ijs.value().is_string()) {
-        dbo_name = "json varname: " + ijs.value().get_ref<const std::string&>();
+        dbo_name = ijs.value().get_ref<const std::string&>();
       }
     } else {
       THROW_Corruption("p2name[" + dbname + "].params[db_options|options] are all missing");
@@ -3196,10 +3196,16 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     }
     const auto& def_cfo_js = ijs.value();
     bool html = JsonSmartBool(dump_options, "html", true);
-    if (dbo_name.empty()) dbo_name = "json varname: (defined inline)";
     djs["CFOptions"]; // insert
     djs["CFProps"]; // insert
-    djs["DBOptions"][0] = dbo_name;
+    if (dbo_name.empty()) {
+      djs["DBOptions"][0] = "json varname: (defined inline)";
+    } else {
+      if (html)
+        djs["DBOptions"][0] = "json varname: " + JsonRepoGetHtml_ahref("DBOptions", dbo_name);
+      else
+        djs["DBOptions"][0] = "json varname: " + dbo_name;
+    }
     djs["path"] = db.db->GetName();
     dbo.SaveToJson(djs["DBOptions"][1], repo, html);
     if (auto txn_db = dynamic_cast<const TransactionDB*>(db.db)) {
