@@ -139,6 +139,39 @@ static Status Json_EventListenerVec(const json& js, const SidePluginRepo& repo,
   return Status::OK();
 }
 
+template<class Obj>
+static bool TemplatePropLoadFromJson(Obj* self, const json& js, const SidePluginRepo& repo) {
+  if (auto iter = js.find("template"); js.end() != iter) {
+    auto name = iter.value().get_ref<const std::string&>().c_str();
+    auto tmpl = PluginFactorySP<Obj>::GetPlugin(name, ROCKSDB_FUNC, name, repo);
+    if (!tmpl) {
+      THROW_InvalidArgument(Slice("not found template name = ") + name);
+    }
+    *self = *tmpl;
+    return true;
+  }
+  return false;
+}
+
+template<class Obj>
+static void TemplatePropSaveToJson(json& js, const Obj* self,
+              const char* mapname,
+              const SidePluginRepo::Impl::ObjRepo<Obj>& obj_repo,
+              const SidePluginRepo& repo, bool html) {
+  if (const json* spec = repo.GetCreationSpec(self)) {
+    auto& param_js = (*spec)["params"];
+    if (auto tji = param_js.find("template"); param_js.end() != tji) {
+      auto name = tji.value().get_ref<const std::string&>().c_str();
+      auto tmpl = PluginFactorySP<Obj>::GetPlugin(name, ROCKSDB_FUNC, name, repo);
+      ROCKSDB_VERIFY(tmpl != nullptr);
+      JsonRepoSet(js["template"], tmpl.get(), obj_repo.p2name, mapname, html);
+    }
+  }
+}
+#define ROCKSDB_JSON_SET_TMPL(js, ObjClass, mapname)   \
+  TemplatePropSaveToJson<ObjClass>(js, this, #mapname, \
+                                   repo.m_impl->mapname, repo, html)
+
 struct DBOptions_Json : DBOptions {
   DBOptions_Json(const json& js, const SidePluginRepo& repo) {
     write_dbid_to_manifest = true;
@@ -146,6 +179,11 @@ struct DBOptions_Json : DBOptions {
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
+    if (!TemplatePropLoadFromJson<DBOptions>(this, js, repo)) {
+      stats_dump_period_sec = 0; // change default to 0
+      stats_persist_period_sec = 0; // change default to 0
+      persist_stats_to_disk = false; // change default to false
+    }
     ROCKSDB_JSON_OPT_PROP(js, create_if_missing);
     ROCKSDB_JSON_OPT_PROP(js, create_missing_column_families);
     ROCKSDB_JSON_OPT_PROP(js, error_if_exists);
@@ -198,9 +236,6 @@ struct DBOptions_Json : DBOptions {
    #if ROCKSDB_MAJOR < 7
     ROCKSDB_JSON_OPT_PROP(js, skip_log_error_on_recovery);
    #endif
-    stats_dump_period_sec = 0; // change default to 0
-    stats_persist_period_sec = 0; // change default to 0
-    persist_stats_to_disk = false; // change default to false
     ROCKSDB_JSON_OPT_PROP(js, stats_dump_period_sec);
     ROCKSDB_JSON_OPT_PROP(js, stats_persist_period_sec);
     ROCKSDB_JSON_OPT_PROP(js, persist_stats_to_disk);
@@ -275,6 +310,7 @@ struct DBOptions_Json : DBOptions {
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
+    ROCKSDB_JSON_SET_TMPL(js, DBOptions, db_options);
     ROCKSDB_JSON_SET_PROP(js, paranoid_checks);
     ROCKSDB_JSON_SET_PROP(js, flush_verify_memtable_count);
     ROCKSDB_JSON_SET_PROP(js, track_and_verify_wals_in_manifest);
@@ -499,6 +535,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
+    TemplatePropLoadFromJson<ColumnFamilyOptions>(this, js, repo);
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number);
     ROCKSDB_JSON_OPT_PROP(js, min_write_buffer_number_to_merge);
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number_to_maintain);
@@ -643,6 +680,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
+    ROCKSDB_JSON_SET_TMPL(js, ColumnFamilyOptions, cf_options);
     ROCKSDB_JSON_SET_PROP(js, max_write_buffer_number);
     ROCKSDB_JSON_SET_PROP(js, min_write_buffer_number_to_merge);
     ROCKSDB_JSON_SET_PROP(js, max_write_buffer_number_to_maintain);
