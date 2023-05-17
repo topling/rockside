@@ -433,6 +433,9 @@ bool TemplatePropLoadFromJson(Concret* self, const json& js, const SidePluginRep
     if (!tmpl) {
       THROW_InvalidArgument(Slice("not found template name = ") + name);
     }
+    if constexpr (std::is_polymorphic<Interface>::value) {
+      ROCKSDB_VERIFY(dynamic_cast<const Concret*>(tmpl.get()) != nullptr);
+    }
     *self = static_cast<const Concret&>(*tmpl);
     return true;
   }
