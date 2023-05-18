@@ -425,7 +425,8 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
   JsonRepoSet(inner, GetRawPtr(prop), \
               repo.m_impl->repo_field.p2name, #repo_field, html)
 
-template<class Interface, class Concret = Interface>
+// Intentional: Interface is first template arg
+template<class Interface, class Concret>
 bool TemplatePropLoadFromJson(Concret* self, const json& js, const SidePluginRepo& repo) {
   if (auto iter = js.find("template"); js.end() != iter) {
     auto name = iter.value().get_ref<const std::string&>().c_str();
@@ -442,24 +443,25 @@ bool TemplatePropLoadFromJson(Concret* self, const json& js, const SidePluginRep
   return false;
 }
 
-template<class Obj>
-void TemplatePropSaveToJson(json& js, const Obj* self,
-              const char* mapname,
-              const SidePluginRepo::Impl::ObjRepo<Obj>& obj_repo,
+template<class Interface, class Concret>
+void TemplatePropSaveToJson(json& js, const Concret* self,
+              const char* mapname, const char* func,
+              const SidePluginRepo::Impl::ObjRepo<Interface>& obj_repo,
               const SidePluginRepo& repo, bool html) {
+  static_assert(std::is_base_of<Interface, Concret>::value);
   if (const json* spec = repo.GetCreationSpec(self)) {
     auto& param_js = (*spec)["params"];
     if (auto tji = param_js.find("template"); param_js.end() != tji) {
-      auto name = tji.value().get_ref<const std::string&>().c_str();
-      auto tmpl = PluginFactorySP<Obj>::GetPlugin(name, ROCKSDB_FUNC, name, repo);
+      const json& namej = tji.value();
+      auto name = namej.get_ref<const std::string&>().c_str();
+      auto tmpl = PluginFactorySP<Interface>::GetPlugin(name, func, namej, repo);
       ROCKSDB_VERIFY(tmpl != nullptr);
       JsonRepoSet(js["template"], tmpl.get(), obj_repo.p2name, mapname, html);
     }
   }
 }
 #define ROCKSDB_JSON_SET_TMPL(js, mapname) TemplatePropSaveToJson \
-  <decltype(repo.m_impl->mapname.name2p->begin()->second)::element_type> \
-  (js, this, #mapname, repo.m_impl->mapname, repo, html)
+  (js, this, #mapname, ROCKSDB_FUNC, repo.m_impl->mapname, repo, html)
 
 bool SameVarName(const std::string&, const std::string&);
 bool JsonSmartBool(const json& js, const char* subname, bool Default = false);
