@@ -48,7 +48,7 @@ struct SidePluginRepo::Impl {
 
   struct ObjInfo {
     std::string name;
-    json params; // { class : "class_name", params : "params..." }
+    json spec; // { class : "class_name", params : "params..." }
   };
   template<class Ptr>
   class ObjMap {
@@ -428,6 +428,7 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 // Intentional: Interface is first template arg
 template<class Interface, class Concret>
 bool TemplatePropLoadFromJson(Concret* self, const json& js, const SidePluginRepo& repo) {
+  static_assert(std::is_base_of<Interface, Concret>::value);
   if (auto iter = js.find("template"); js.end() != iter) {
     auto name = iter.value().get_ref<const std::string&>().c_str();
     auto tmpl = PluginFactorySP<Interface>::GetPlugin(name, ROCKSDB_FUNC, name, repo);

@@ -343,12 +343,12 @@ PluginToString(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
   using Object = RemovePtr<Ptr>;
   auto iter = map.p2name.find(GetRawPtr(p));
   if (map.p2name.end() != iter) {
-    auto manip = PluginManip<Object>::NullablePlugin(iter->second.params, repo);
+    auto manip = PluginManip<Object>::NullablePlugin(iter->second.spec, repo);
     if (manip)
       return manip->ToString(*p, js, repo);
     json with_note = {
       {"note", "This Is Default Show"},
-      {"spec", iter->second.params}
+      {"spec", iter->second.spec}
     };
     return JsonToString(with_note, js);
   }
@@ -362,7 +362,7 @@ void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
   using Object = RemovePtr<Ptr>;
   auto iter = map.p2name.find(GetRawPtr(p));
   if (map.p2name.end() != iter) {
-    auto manip = PluginManip<Object>::AcquirePlugin(iter->second.params, repo);
+    auto manip = PluginManip<Object>::AcquirePlugin(iter->second.spec, repo);
     manip->Update(GetRawPtr(p), query, body, repo);
   }
 }

@@ -2829,11 +2829,11 @@ void PluginUpdate(const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& m
                   const json& query, const json& body, const SidePluginRepo& repo) {
   if (auto iter = map.p2name.find(p.db); map.p2name.end() != iter) {
     if (p.dbm) {
-      auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.params, repo);
+      auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.spec, repo);
       manip->Update(p.dbm, query, body, repo);
     }
     else {
-      auto manip = PluginManip<DB>::AcquirePlugin(iter->second.params, repo);
+      auto manip = PluginManip<DB>::AcquirePlugin(iter->second.spec, repo);
       manip->Update(p.db, query, body, repo);
     }
   }
@@ -3026,8 +3026,8 @@ struct DB_Manip : PluginManipFunc<DB> {
     if (MayHandleGetCmd(const_cast<DB*>(&db), djs, dump_options, repo)) {
       return JsonToString(djs, dump_options);
     }
-    auto ijs = i1->second.params.find("params");
-    if (i1->second.params.end() == ijs) {
+    auto ijs = i1->second.spec.find("params");
+    if (i1->second.spec.end() == ijs) {
       THROW_Corruption("p2name[" + dbname + "].params is missing");
     }
     const json& params_js = ijs.value();
@@ -3145,8 +3145,8 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     if (dbmap.p2name.end() == i1) {
       THROW_NotFound("db ptr is not registered in repo, dbname = " + dbname);
     }
-    auto ijs = i1->second.params.find("params");
-    if (i1->second.params.end() == ijs) {
+    auto ijs = i1->second.spec.find("params");
+    if (i1->second.spec.end() == ijs) {
       THROW_Corruption("p2name[" + dbname + "].params is missing");
     }
     std::string dbo_name;
@@ -3207,7 +3207,7 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
           result_cfo_js[cf_name][0] = "json varname: " + cfo_varname;
         }
         if (JsonSmartBool(dump_options, "full")) {
-          result_cfo_js[cf_name][1] = picf->second.params["params"];
+          result_cfo_js[cf_name][1] = picf->second.spec["params"];
           // overwrite with up to date cfo
           cfo.SaveToJson(result_cfo_js[cf_name][1], repo, html);
         } else {

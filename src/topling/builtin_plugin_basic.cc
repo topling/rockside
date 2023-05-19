@@ -354,7 +354,7 @@ struct LRUCache_Manip : PluginManipFunc<Cache> {
     auto& p2name = repo.m_impl->cache.p2name;
     json js;
     if (auto iter = p2name.find((Cache*)&r); p2name.end() != iter) {
-      js = iter->second.params;
+      js = iter->second.spec;
     }
     size_t usage = r.GetUsage();
     size_t pined_usage = r.GetPinnedUsage();

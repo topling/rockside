@@ -202,8 +202,8 @@ try {
             const auto iter = m_map->p2name.find(pobj);
             ROCKSDB_VERIFY_F(iter != m_map->p2name.end(), "%s : %s", name, m_ns.data_);
             const SidePluginRepo::Impl::ObjInfo& obj_info = iter->second;
-            const auto jter = obj_info.params.find("class");
-            ROCKSDB_VERIFY_F(jter != obj_info.params.end(), "%s : %s", name, m_ns.data_);
+            const auto jter = obj_info.spec.find("class");
+            ROCKSDB_VERIFY_F(jter != obj_info.spec.end(), "%s : %s", name, m_ns.data_);
             const auto clazz = jter.value().get_ref<const std::string&>().c_str();
             mg_printf(conn, "<tr><td><a href='/%.*s/%s?html=1'>%s</a></td><td>%s</td></tr>\n",
                       int(urilen), uri, name, name, clazz);

@@ -91,21 +91,21 @@ static void Impl_Import(SidePluginRepo::Impl::ObjMap<Ptr>& field,
       if (field.p2name.end() == oi_iter) {
         THROW_Corruption("p2name[ptr_of(\"" + inst_id + "\")] is missing");
       }
-      auto old_clazz = JsonGetClassName(ROCKSDB_FUNC, oi_iter->second.params);
+      auto old_clazz = JsonGetClassName(ROCKSDB_FUNC, oi_iter->second.spec);
       auto new_clazz = JsonGetClassName(ROCKSDB_FUNC, value);
       if (new_clazz == old_clazz) {
       #if defined(NDEBUG)
         try {
       #endif
           PluginUpdate(existing, field, json(), value, repo);
-          oi_iter->second.params.merge_patch(value);
+          oi_iter->second.spec.merge_patch(value);
           continue; // done for current item
       #if defined(NDEBUG)
         }
         catch (const Status& st) {
           // not found updater, overwrite with merged json
-          oi_iter->second.params.merge_patch(value);
-          value.swap(oi_iter->second.params);
+          oi_iter->second.spec.merge_patch(value);
+          value.swap(oi_iter->second.spec);
         }
       #endif
       }
@@ -150,7 +150,7 @@ static void Impl_ImportOptions(SidePluginRepo::Impl::ObjMap<Ptr>& field,
         THROW_Corruption("p2name[ptr_of(\"" + option_name + "\")] is missing");
       }
       PluginUpdate(existing, field, {}, params_js, repo);
-      oi_iter->second.params["params"].merge_patch(params_js);
+      oi_iter->second.spec["params"].merge_patch(params_js);
     }
     else {
       Ptr p = PluginFactory<Ptr>::AcquirePlugin(option_class_name, params_js, repo);
@@ -415,10 +415,10 @@ static void Impl_Export(const SidePluginRepo::Impl::ObjMap<Ptr>& field,
                    const char* name, json& main_js) {
   auto& field_js = main_js[name];
   for (auto& kv: field.p2name) {
-    auto& params_js = field_js[kv.second.name];
-    params_js = kv.second.params;
+    field_js[kv.second.name] = kv.second.spec;
   }
 }
+
 Status SidePluginRepo::Export(json* main_js) const
 #if defined(NDEBUG)
 try
@@ -548,7 +548,7 @@ Impl_GetConsParams(const Map& map, const Ptr& p) {
     //THROW_NotFound("p is not in repo");
     return nullptr;
   }
-  return &iter->second.params;
+  return &iter->second.spec;
 }
 
 #define JSON_REPO_TYPE_IMPL(field) \
@@ -1460,11 +1460,11 @@ PluginToString(const DB_Ptr& dbp,
                const json& js, const SidePluginRepo& repo) {
   if (auto iter = map.p2name.find(dbp.db); map.p2name.end() != iter) {
     if (dbp.dbm) {
-      auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.params, repo);
+      auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.spec, repo);
       return manip->ToString(*dbp.dbm, js, repo);
     }
     else {
-      auto manip = PluginManip<DB>::AcquirePlugin(iter->second.params, repo);
+      auto manip = PluginManip<DB>::AcquirePlugin(iter->second.spec, repo);
       return manip->ToString(*dbp.db, js, repo);
     }
   }
@@ -1509,7 +1509,7 @@ void JsonRepoSet(json& js, const void* prop,
   if (auto iter = p2name.find(prop); p2name.end() != iter) {
     ROCKSDB_VERIFY(nullptr != prop);
     if (iter->second.name.empty())
-      js = iter->second.params;
+      js = iter->second.spec;
     else if (html)
       JsonRepoSetHtml_ahref(js, mapname, iter->second.name);
     else
