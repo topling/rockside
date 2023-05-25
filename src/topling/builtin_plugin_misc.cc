@@ -1492,7 +1492,7 @@ try {
   TablePropertiesCollection props;
   version->GetColumnFamilyMetaData(&meta);
   {
-    Status s = version->GetPropertiesOfAllTables(&props);
+    Status s = version->GetPropertiesOfAllTables(ROCKSDB_8_X_COMMA(ReadOptions())&props);
     if (!s.ok()) {
       html = "GetPropertiesOfAllTables() fail: " + s.ToString();
       return html;
@@ -2401,7 +2401,11 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
  #else
   FileDescriptor& f = fd;
  #endif
+ #if ROCKSDB_MAJOR < 8
   Cache::Handle* ch = nullptr;
+ #else
+  TableCache::TypedHandle* ch = nullptr;
+ #endif
   auto& icmp = cfd->internal_comparator();
   auto& fopt = *cfd->soptions(); // file_options
  #if ROCKSDB_MAJOR < 7
@@ -2409,7 +2413,8 @@ static std::string Json_DB_OneSST(const DB& db, ColumnFamilyHandle* cfh,
  #else
   auto& pref_ext = mut_cfo->prefix_extractor;
  #endif
-  auto s = tc->FindTable(ReadOptions(), fopt, icmp, f, &ch, pref_ext);
+  auto s = tc->FindTable(ReadOptions(), fopt, icmp, f, &ch,
+      ROCKSDB_8_X_COMMA(mut_cfo->block_protection_bytes_per_key)pref_ext);
   if (!s.ok()) {
     THROW_InvalidArgument(s.ToString());
   }

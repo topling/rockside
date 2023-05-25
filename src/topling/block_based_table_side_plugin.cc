@@ -284,7 +284,9 @@ json ToWebViewJson(const json& dump_options) const {
   djs["blocks"] = json::object({
       {"flags", {
         {"blocks_maybe_compressed", r->blocks_maybe_compressed},
+   #if ROCKSDB_MAJOR < 8
         {"blocks_definitely_zstd_compressed", r->blocks_definitely_zstd_compressed}
+   #endif
       }},
       {"data", data},
       {"index", index},

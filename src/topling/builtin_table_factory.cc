@@ -117,7 +117,9 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_OPT_PROP(js, block_align);
     if (!IsCompactionWorker()) {
       ROCKSDB_JSON_OPT_FACT(js, block_cache);
+     #if ROCKSDB_MAJOR < 8
       ROCKSDB_JSON_OPT_FACT(js, block_cache_compressed);
+     #endif
       ROCKSDB_JSON_OPT_FACT(js, persistent_cache);
       ROCKSDB_JSON_OPT_FACT(js, filter_policy);
     }
@@ -180,7 +182,9 @@ struct BlockBasedTableOptions_Json : BlockBasedTableOptions {
     ROCKSDB_JSON_SET_PROP(js, block_align);
     if (!IsCompactionWorker()) {
       ROCKSDB_JSON_SET_FACX(js, block_cache, cache);
+     #if ROCKSDB_MAJOR < 8
       ROCKSDB_JSON_SET_FACX(js, block_cache_compressed, cache);
+     #endif
       ROCKSDB_JSON_SET_FACT(js, persistent_cache);
       ROCKSDB_JSON_SET_FACT(js, filter_policy);
     }

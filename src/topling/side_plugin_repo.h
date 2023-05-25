@@ -9,10 +9,19 @@
 #include "json_fwd.h"
 #include "rocksdb/rocksdb_namespace.h"
 #include "rocksdb/status.h"
+#include "rocksdb/version.h"
 #include <memory>
 
 #define ROCKSDB_VERSION \
        (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH)
+
+#if ROCKSDB_MAJOR < 8
+  #define ROCKSDB_8_COMMA_X(...)
+  #define ROCKSDB_8_X_COMMA(...)
+#else
+  #define ROCKSDB_8_COMMA_X(...)  , __VA_ARGS__
+  #define ROCKSDB_8_X_COMMA(...)    __VA_ARGS__ ,
+#endif
 
 namespace ROCKSDB_NAMESPACE {
 
