@@ -10,7 +10,12 @@
 #include <cache/lru_cache.h>
 
 #include <util/coding_lean.h>
+
+#if ROCKSDB_VERSION >= 80040
+#include <util/rate_limiter_impl.h>
+#else
 #include <util/rate_limiter.h>
+#endif
 
 #include <utilities/table_properties_collectors/compact_on_deletion_collector.h>
 
