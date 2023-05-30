@@ -86,7 +86,7 @@ PluginFactory<Ptr>::AcquirePlugin(const std::string& clazz, const json& js,
   auto iter = imp.func_map.find(clazz);
   if (imp.func_map.end() != iter) {
     Ptr ptr = iter->second.acq(js, repo);
-    ROCKSDB_VERIFY(nullptr != ptr);
+    TERARK_VERIFY_S(nullptr != ptr, "class = %s, js = %s", clazz, js.dump());
     return ptr;
   }
   else {
@@ -103,7 +103,7 @@ PluginFactory<Ptr>::NullablePlugin(const std::string& clazz, const json& js,
   auto iter = imp.func_map.find(clazz);
   if (imp.func_map.end() != iter) {
     Ptr ptr = iter->second.acq(js, repo);
-    ROCKSDB_VERIFY(nullptr != ptr);
+    TERARK_VERIFY_S(nullptr != ptr, "class = %s, js = %s", clazz, js.dump());
     return ptr;
   }
   return Ptr(nullptr);
