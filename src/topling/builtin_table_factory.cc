@@ -308,7 +308,7 @@ RegTableFactoryMagicNumber(uint64_t magic, const char* name) {
 struct SstPartitionerFixedPrefixEx : public SstPartitioner {
   const char* Name() const override { return "SstPartitionerFixedPrefixEx"; }
   PartitionerResult ShouldPartition(const PartitionerRequest& req) final {
-    if (output_level < min_level || output_level >= max_level
+    if (output_level < min_level || output_level > max_level
         || req.current_output_file_size < min_file_size) {
       return kNotRequired;
     }
@@ -355,7 +355,7 @@ struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
     return std::unique_ptr<SstPartitioner>(p);
   }
   short min_level = 1; // partition by prefix if output_level >= min_level
-  short max_level = SHRT_MAX; // partition by prefix if output_level < max_level
+  short max_level = SHRT_MAX; // partition by prefix if output_level <= max_level
   unsigned short prefix_len = 0;
   size_t min_file_size = 0;
 };
