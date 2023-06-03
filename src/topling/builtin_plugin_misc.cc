@@ -2119,14 +2119,14 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
         entries = 0;
         iter->SeekToFirst();
         ROCKSDB_VERIFY(iter->Valid());
-        while (iter->Valid()) {
+        IterateResult ir;
+        do {
           if (fetch_value) {
             iter->PrepareValue();
             vlen += iter->value().size();
           }
-          iter->Next();
           entries++;
-        }
+        } while (iter->NextAndGetResult(&ir));
       }
     }
   };
@@ -2183,9 +2183,10 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
     fstrvec keys{valvec_reserve(), props->num_entries, props->raw_key_size};
     iter->SeekToFirst();
     ROCKSDB_VERIFY(iter->Valid());
-    while (iter->Valid()) {
-      keys.push_back(iter->key());
-      iter->Next();
+    {
+      IterateResult ir; ir.SetKey(iter->key());
+      do keys.push_back(ir.key());
+      while (iter->NextAndGetResult(&ir));
     }
     auto t1 = steady_clock::now();
     // shuffle with seed
