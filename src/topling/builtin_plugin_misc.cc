@@ -2119,14 +2119,16 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
         entries = 0;
         iter->SeekToFirst();
         ROCKSDB_VERIFY(iter->Valid());
-        IterateResult ir;
+        //IterateResult ir;
         do {
           if (fetch_value) {
             iter->PrepareValue();
             vlen += iter->value().size();
           }
           entries++;
-        } while (iter->NextAndGetResult(&ir));
+        }
+        while (iter->Next(), iter->Valid());
+        //while (iter->NextAndGetResult(&ir)); // slower
       }
     }
   };
