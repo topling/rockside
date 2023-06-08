@@ -154,6 +154,7 @@ databases:
       cf_options: "$default" # for single cf db
       column_families:       # for multi  cf db
         default: "$default"
+      dyna_cf_opt: "$default"
       #path is optional, if not defined, use name as path
       #last part of path must be same as name(here is 'db_bench_enterprise')
       path: /dev/shm/db_bench_enterprise

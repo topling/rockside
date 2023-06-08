@@ -3393,7 +3393,7 @@ struct MultiCF_Open {
       THROW_InvalidArgument("missing param \"column_families\"");
     }
     js_cf_desc = &iter.value();
-    if (!js_cf_desc->contains("default")) {
+    if (!js_cf_desc->contains("default") && !js.contains("dyna_cf_opt")) {
       THROW_InvalidArgument("missing param column_families[\"default\"]");
     }
     iter = js.find("db_options");
@@ -3412,6 +3412,27 @@ struct MultiCF_Open {
     }
     if (cfdvec.empty()) {
       THROW_InvalidArgument("param \"column_families\" is empty");
+    }
+    // if "dyna_cf_opt" is defined, it will be used for cf which
+    // are not specified in "column_families"
+    iter = js.find("dyna_cf_opt");
+    if (js.end() != iter) {
+      auto& cf_js = iter.value();
+      auto cf_options = ROCKSDB_OBTAIN_OPT(cf_options, cf_js, repo);
+      std::vector<std::string> cfname_vec;
+      Status s = DB::ListColumnFamilies(*db_opt, path, &cfname_vec);
+      if (!s.ok()) {
+        throw s;
+      }
+      std::sort(cfname_vec.begin(), cfname_vec.end());
+      std::set<std::string> defined_cf;
+      for (auto& desc : cfdvec) {
+        defined_cf.insert(desc.name);
+      }
+      for (auto& cf_name : cfname_vec) {
+        if (!defined_cf.count(cf_name))
+          cfdvec.emplace_back(cf_name, *cf_options);
+      }
     }
   }
 };
