@@ -3384,6 +3384,9 @@ struct MultiCF_Open {
       THROW_InvalidArgument("missing param \"column_families\"");
     }
     js_cf_desc = &iter.value();
+    if (!js_cf_desc->contains("default")) {
+      THROW_InvalidArgument("missing param column_families[\"default\"]");
+    }
     iter = js.find("db_options");
     if (js.end() == iter) {
       THROW_InvalidArgument("missing param \"db_options\"");
