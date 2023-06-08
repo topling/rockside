@@ -55,6 +55,7 @@ CXXFLAGS += ${INCS}
 LDFLAGS += -L${TOPLINGDB_HOME} \
            -l${LIBROCKSDB} \
            -L${TOPLING_CORE_DIR}/${BUILD_ROOT}/lib_shared \
+           -lpthread \
            -lterark-{zbs,fsa,core}-${COMPILER}-${BUILD_TYPE_SIG}
 
 BINARY_EXE := $(patsubst %.cc, $(OBJ_DIR)/%, $(wildcard *.cc))
