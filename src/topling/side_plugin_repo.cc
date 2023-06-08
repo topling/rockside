@@ -822,7 +822,13 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
             __FILE__, __LINE__, dbname.c_str(), params_js.dump(4).c_str());
   }
   // will open db by calling acq func such as DB::Open
-  auto db = PluginFactory<DBT*>::AcquirePlugin(method, params_js, repo);
+  DBT* db = nullptr;
+  try {
+    db = PluginFactory<DBT*>::AcquirePlugin(method, params_js, repo);
+  } catch (...) {
+    dbmap.name2p->erase(ib.first); // rollback
+    throw;
+  }
   assert(nullptr != db);
   ib.first->second = DB_Ptr(db);
   auto ib2 = dbmap.p2name.emplace(GetDB(db),
