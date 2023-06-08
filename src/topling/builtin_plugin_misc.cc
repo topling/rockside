@@ -1026,7 +1026,15 @@ Options JS_Options(const json& js, const SidePluginRepo& repo,
     auto& db_options_js = iter.value();
     iter = js.find("cf_options");
     if (js.end() == iter) {
-      THROW_InvalidArgument("missing param \"cf_options\"");
+      iter = js.find("column_families");
+      if (js.end() == iter) {
+        THROW_InvalidArgument("missing param \"cf_options\" and \"column_families\"");
+      }
+      const json& cfs_js = iter.value();
+      iter = cfs_js.find("default");
+      if (cfs_js.end() == iter) {
+        THROW_InvalidArgument("missing param column_families[\"default\"]");
+      }
     }
     auto& cf_options_js = iter.value();
     auto db_options = ROCKSDB_OBTAIN_OPT(db_options, db_options_js, repo);
