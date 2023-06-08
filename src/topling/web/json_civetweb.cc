@@ -121,6 +121,15 @@ std::string ReadPostData(mg_connection* conn) {
   return post;
 }
 
+// life time of rvalue which bind to const ref extends
+// to life time of containing code block.
+// so it is safe to bind the return value to a const reference
+template<class T>
+T CopyOrNotCopy(const T& x, std::true_type) { return x; }
+
+template<class T>
+const T& CopyOrNotCopy(const T& x, std::false_type) { return x; }
+
 template<class Ptr>
 class RepoHandler : public CivetHandler {
 public:
@@ -171,10 +180,17 @@ try {
     while ('/' == *uri) uri++;
     size_t urilen = strlen(uri);
     auto slash = (const char*)memchr(uri, '/', urilen);
+    typedef std::shared_ptr<CFPropertiesWebView> CFPropertiesWebViewSP;
     if (NULL == slash) {
+      if (std::is_same_v<Ptr, CFPropertiesWebViewSP>) {
+        m_repo->m_impl->props_mtx.lock_shared();
+      }
       std::vector<std::pair<std::string, Ptr> > vec;
       vec.reserve(m_map->name2p->size());
       vec.assign(m_map->name2p->begin(), m_map->name2p->end());
+      if (std::is_same_v<Ptr, CFPropertiesWebViewSP>) {
+        m_repo->m_impl->props_mtx.unlock();
+      }
       std::sort(vec.begin(), vec.end());
       if (!html) {
         json djs;
@@ -199,9 +215,16 @@ try {
           for (auto& kv : vec) {
             const auto name = kv.first.c_str();
             const auto pobj = GetRawPtr(kv.second);
+            if (std::is_same_v<Ptr, CFPropertiesWebViewSP>) {
+              m_repo->m_impl->props_mtx.lock_shared();
+            }
             const auto iter = m_map->p2name.find(pobj);
             ROCKSDB_VERIFY_F(iter != m_map->p2name.end(), "%s : %s", name, m_ns.data_);
-            const SidePluginRepo::Impl::ObjInfo& obj_info = iter->second;
+            const SidePluginRepo::Impl::ObjInfo& obj_info =
+                CopyOrNotCopy(iter->second, std::is_same<Ptr, CFPropertiesWebViewSP>());
+            if (std::is_same_v<Ptr, CFPropertiesWebViewSP>) {
+              m_repo->m_impl->props_mtx.unlock();
+            }
             const auto jter = obj_info.spec.find("class");
             ROCKSDB_VERIFY_F(jter != obj_info.spec.end(), "%s : %s", name, m_ns.data_);
             const auto clazz = jter.value().get_ref<const std::string&>().c_str();
@@ -214,9 +237,18 @@ try {
       return true;
     }
     const char* name = slash + 1;
+    Ptr p{nullptr};
+    if (std::is_same_v<Ptr, CFPropertiesWebViewSP>) {
+      m_repo->m_impl->props_mtx.lock_shared();
+    }
     auto iter = m_map->name2p->find(name);
     if (m_map->name2p->end() != iter) {
-      auto& p = iter->second;
+      p = iter->second;
+    }
+    if (std::is_same_v<Ptr, CFPropertiesWebViewSP>) {
+      m_repo->m_impl->props_mtx.unlock();
+    }
+    if (p) {
       if (html) {
         int refresh = JsonSmartInt(query, "refresh", 0);
         if (refresh > 0) {

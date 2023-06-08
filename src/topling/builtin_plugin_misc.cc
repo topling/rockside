@@ -2637,6 +2637,14 @@ static void SetCFPropertiesWebView(DB_MultiCF* mcf, const std::string& dbname,
     SetCFPropertiesWebView(db, cfh, dbname, cfname, crepo);
   }
 }
+void AddCFPropertiesWebView(DB_MultiCF* mcf, ColumnFamilyHandle* cfh,
+                            const std::string& cfname,
+                            const SidePluginRepo& repo) {
+  DB* db = mcf->db;
+  std::string dbname = Json_dbname(db, repo);
+  std::lock_guard<std::shared_mutex> write_lock(repo.m_impl->props_mtx);
+  SetCFPropertiesWebView(db, cfh, dbname, cfname, repo);
+}
 
 static void
 JS_Add_CFPropertiesWebView_Link(json& djs, const DB& db, bool html,
@@ -2828,7 +2836,7 @@ static std::string RunManualFlushAll(const DB_MultiCF& dbm, const json& dump_opt
   DB* db = const_cast<DB*>(dbm.db);
   DBOptions dbo = db->GetDBOptions();
   MyFO fo(dump_options);
-  Status s = db->Flush(fo, dbm.cf_handles);
+  Status s = db->Flush(fo, dbm.get_cf_handles_view());
   if (s.ok()) {
     return R"({"status": "OK"})";
   }
@@ -3192,8 +3200,9 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     }
     auto& result_cfo_js = djs["CFOptions"];
     auto& cf_props = djs["CFProps"];
-    for (size_t i = 0; i < db.cf_handles.size(); ++i) {
-      ColumnFamilyHandle* cf = db.cf_handles[i];
+    auto cf_handles = db.get_cf_handles_view();
+    for (size_t i = 0; i < cf_handles.size(); ++i) {
+      ColumnFamilyHandle* cf = cf_handles[i];
       ColumnFamilyDescriptor cfd;
       cf->GetDescriptor(&cfd);
       const std::string& cf_name = cfd.name;

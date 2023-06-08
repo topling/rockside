@@ -1471,6 +1471,25 @@ PluginToString(const DB_Ptr& dbp,
   THROW_NotFound("db ptr is not in repo");
 }
 
+std::string
+PluginToString(const std::shared_ptr<CFPropertiesWebView>& prop,
+               const SidePluginRepo::Impl::ObjRepo<CFPropertiesWebView>& map,
+               const json& js, const SidePluginRepo& repo) {
+  SidePluginRepo::Impl::ObjInfo info;
+  {
+    repo.m_impl->props_mtx.lock_shared();
+    auto iter = map.p2name.find(prop.get());
+    ROCKSDB_SCOPE_EXIT(repo.m_impl->props_mtx.unlock());
+    if (map.p2name.end() != iter) {
+      info = iter->second;
+    } else {
+      THROW_NotFound("prop not found");
+    }
+  }
+  auto manip = PluginManip<CFPropertiesWebView>::AcquirePlugin(info.spec, repo);
+  return manip->ToString(*prop, js, repo);
+}
+
 static void append_varname(std::string& res, const std::string& varname) {
   if ('$' == varname[0]) {
     if ('{' == varname[1])

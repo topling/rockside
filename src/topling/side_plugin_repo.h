@@ -72,6 +72,7 @@ struct DB_MultiCF {
   virtual Status CreateColumnFamily(const std::string& cfname, const std::string& json_str, ColumnFamilyHandle**) = 0;
   virtual Status DropColumnFamily(const std::string& cfname) = 0;
   virtual Status DropColumnFamily(ColumnFamilyHandle*) = 0;
+  virtual std::vector<ColumnFamilyHandle*> get_cf_handles_view() const = 0;
   ColumnFamilyHandle* operator[](const std::string& cfname) const { return Get(cfname); }
 
   DB* db = nullptr;

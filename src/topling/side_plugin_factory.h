@@ -7,6 +7,7 @@
 #pragma once
 
 #include <mutex>
+#include <shared_mutex>
 
 #include "side_plugin_repo.h"
 #include "web/json_civetweb.h"
@@ -98,6 +99,7 @@ struct SidePluginRepo::Impl {
   ObjRepo<CFPropertiesWebView> props;
   ObjMap<DB_Ptr> db;
   std::mutex db_mtx;
+  std::shared_mutex props_mtx;
 
   json db_js; // not evaluated during import
   json open_js;
@@ -193,6 +195,10 @@ PluginToString(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
                const json& js, const SidePluginRepo& repo);
 std::string
 PluginToString(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
+               const json& js, const SidePluginRepo& repo);
+std::string
+PluginToString(const std::shared_ptr<CFPropertiesWebView>&,
+               const SidePluginRepo::Impl::ObjRepo<CFPropertiesWebView>& map,
                const json& js, const SidePluginRepo& repo);
 
 // use SerDeFunc as plugin, register SerDeFunc as plugin

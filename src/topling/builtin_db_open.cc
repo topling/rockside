@@ -66,7 +66,16 @@ try {
     return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
   }
   *cfh = m_create_cf(db, cfname, *cfo, js);
-  cf_handles.push_back(*cfh);
+  {
+    std::lock_guard<std::shared_mutex> lk(m_mtx);
+    AddOneCF_ToMap(cfname, *cfh, js);
+    cf_handles.push_back(*cfh);
+  }
+  extern // defined in builtin_pluin_misc.cc
+  void AddCFPropertiesWebView(DB_MultiCF* mcf, ColumnFamilyHandle* cfh,
+                              const std::string& cfname,
+                              const SidePluginRepo& repo);
+  AddCFPropertiesWebView(this, *cfh, cfname, *m_repo);
   return Status::OK();
 }
 catch (const std::exception& ex) {
@@ -77,15 +86,20 @@ catch (const Status& st) {
 }
 
 Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname) try {
-  auto iter = m_cfhs.name2p->find(cfname);
-  if (m_cfhs.name2p->end() == iter) {
-    return Status::NotFound(ROCKSDB_FUNC, "cfname = " + cfname);
+  ColumnFamilyHandle* cfh = nullptr;
+  {
+    std::lock_guard<std::shared_mutex> write_lock(m_mtx);
+    auto iter = m_cfhs.name2p->find(cfname);
+    if (m_cfhs.name2p->end() == iter) {
+      return Status::NotFound(ROCKSDB_FUNC, "cfname = " + cfname);
+    }
+    cfh = iter->second;
+    m_cfhs.name2p->erase(iter);
+    m_cfhs.p2name.erase(cfh);
   }
-  ColumnFamilyHandle* cfh = iter->second;
-  m_cfhs.name2p->erase(iter);
-  m_cfhs.p2name.erase(cfh);
   db->DropColumnFamily(cfh);
   db->DestroyColumnFamilyHandle(cfh);
+  //delete cfh; // intentional leak
   return Status::OK();
 }
 catch (const std::exception& ex) {
@@ -97,6 +111,12 @@ catch (const Status& st) {
 
 Status DB_MultiCF_Impl::DropColumnFamily(ColumnFamilyHandle* cfh) {
   return DropColumnFamily(cfh->GetName());
+}
+
+std::vector<ColumnFamilyHandle*> DB_MultiCF_Impl::get_cf_handles_view() const {
+  m_mtx.lock_shared();
+  ROCKSDB_SCOPE_EXIT(m_mtx.unlock());
+  return cf_handles;
 }
 
 void DB_MultiCF_Impl::AddOneCF_ToMap(const std::string& cfname,

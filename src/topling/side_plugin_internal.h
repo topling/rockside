@@ -1,5 +1,6 @@
 #include "side_plugin_factory.h"
 #include <thread>
+#include <shared_mutex>
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -10,6 +11,7 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   Status CreateColumnFamily(const std::string& cfname, const std::string& json_str, ColumnFamilyHandle**) override;
   Status DropColumnFamily(const std::string& cfname) override;
   Status DropColumnFamily(ColumnFamilyHandle*) override;
+  std::vector<ColumnFamilyHandle*> get_cf_handles_view() const override;
   void AddOneCF_ToMap(const std::string& cfname, ColumnFamilyHandle*, const json&);
   void InitAddCF_ToMap(const json& js_cf_desc);
   SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*> m_cfhs;
@@ -20,6 +22,7 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   std::unique_ptr<std::thread> m_catch_up_thread;
   bool m_catch_up_running;
   int m_catch_up_delay_ms;
+  mutable std::shared_mutex m_mtx;
 };
 template<class Ptr>
 Ptr ObtainOPT(SidePluginRepo::Impl::ObjMap<Ptr>& field,
