@@ -13,6 +13,10 @@
 #include <rocksdb/db.h>
 #include <rocksdb/sst_file_manager.h>
 #include <port/likely.h>
+#include <utilities/merge_operators/bytesxor.h>
+#include <utilities/merge_operators/sortlist.h>
+#include <utilities/merge_operators/uint64add.h>
+#include <utilities/merge_operators/string_append/stringappend2.h>
 
 #include "side_plugin_factory.h"
 #include "side_plugin_internal.h"
@@ -129,5 +133,26 @@ JS_NewSstFileManager(const json& js, const SidePluginRepo& repo) {
 ROCKSDB_FACTORY_REG("SstFileManager", JS_NewSstFileManager);
 ROCKSDB_FACTORY_REG("Default", JS_NewSstFileManager);
 
+/////////////////////////////////////////////////////////////////////////////
+
+ROCKSDB_REG_Plugin(BytesXOROperator, MergeOperator);
+ROCKSDB_REG_Plugin("BytesXOR", BytesXOROperator, MergeOperator);
+ROCKSDB_REG_Plugin("bytesxor", BytesXOROperator, MergeOperator);
+
+ROCKSDB_REG_Plugin("sortlist", SortList, MergeOperator);
+ROCKSDB_REG_Plugin("MergeSortOperator", SortList, MergeOperator);
+
+ROCKSDB_REG_Plugin(UInt64AddOperator, MergeOperator);
+ROCKSDB_REG_Plugin("uint64add", UInt64AddOperator, MergeOperator);
+
+static std::shared_ptr<MergeOperator>
+JS_NewStringAppendMergeOperator(const json& js, const SidePluginRepo&) {
+  std::string delim;
+  ROCKSDB_JSON_OPT_PROP(js, delim);
+  // StringAppendTESTOperator implements MergeOperator V2
+  return std::make_shared<StringAppendTESTOperator>(delim);
+}
+ROCKSDB_FACTORY_REG("StringAppendTESTOperator", JS_NewStringAppendMergeOperator);
+ROCKSDB_FACTORY_REG("stringappendtest", JS_NewStringAppendMergeOperator);
 
 } // ROCKSDB_NAMESPACE
