@@ -15,7 +15,6 @@
 #include <port/likely.h>
 #include <utilities/merge_operators/bytesxor.h>
 #include <utilities/merge_operators/sortlist.h>
-#include <utilities/merge_operators/uint64add.h>
 #include <utilities/merge_operators/string_append/stringappend2.h>
 
 #include "side_plugin_factory.h"
@@ -142,8 +141,12 @@ ROCKSDB_REG_Plugin("bytesxor", BytesXOROperator, MergeOperator);
 ROCKSDB_REG_Plugin("sortlist", SortList, MergeOperator);
 ROCKSDB_REG_Plugin("MergeSortOperator", SortList, MergeOperator);
 
-ROCKSDB_REG_Plugin(UInt64AddOperator, MergeOperator);
-ROCKSDB_REG_Plugin("uint64add", UInt64AddOperator, MergeOperator);
+static std::shared_ptr<MergeOperator>
+JS_CreateUInt64AddOperator(const json&, const SidePluginRepo&) {
+  return MergeOperators::CreateUInt64AddOperator();
+}
+ROCKSDB_FACTORY_REG("UInt64AddOperator", JS_CreateUInt64AddOperator);
+ROCKSDB_FACTORY_REG("uint64add", JS_CreateUInt64AddOperator);
 
 static std::shared_ptr<MergeOperator>
 JS_NewStringAppendMergeOperator(const json& js, const SidePluginRepo&) {
