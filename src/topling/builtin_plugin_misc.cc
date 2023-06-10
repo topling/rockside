@@ -404,6 +404,14 @@ struct DBOptions_Json : DBOptions {
   }
 };
 ROCKSDB_REG_Plugin("DBOptions", DBOptions_Json, DBOptions);
+
+json DBOptionsToJson(const DBOptions& cfo, const SidePluginRepo& repo) {
+  bool html = false;
+  json djs;
+  static_cast<const DBOptions_Json&>(cfo).SaveToJson(djs, repo, html);
+  return djs;
+}
+
 struct DBOptions_Manip : PluginManipFunc<DBOptions> {
   void Update(DBOptions* p, const json&, const json& js, const SidePluginRepo& repo)
   const final {
@@ -773,6 +781,13 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
 };
 using CFOptions = ColumnFamilyOptions;
 using CFOptions_Json = ColumnFamilyOptions_Json;
+
+json CFOptionsToJson(const ColumnFamilyOptions& cfo, const SidePluginRepo& repo) {
+  bool html = false;
+  json djs;
+  static_cast<const ColumnFamilyOptions_Json&>(cfo).SaveToJson(djs, repo, html);
+  return djs;
+}
 
 ROCKSDB_REG_Plugin("ColumnFamilyOptions", CFOptions_Json, CFOptions);
 ROCKSDB_REG_Plugin("CFOptions", CFOptions_Json, CFOptions);

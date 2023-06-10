@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "rocksdb/db.h"
 #include "rocksdb/env.h"
 #include "rocksdb/options.h"
 #include "options/db_options.h"
@@ -478,7 +479,7 @@ Status SidePluginRepo::Export(string* json_str, bool pretty) const {
 
 template<class Map, class Ptr>
 static void
-Impl_Put(const std::string& name, json&& spec, Map& map, const Ptr& p) {
+Impl_PutTpl(const std::string& name, json&& spec, Map& map, const Ptr& p) {
   auto& name2p = *map.name2p;
   if (p) { // put
     auto ib = name2p.emplace(name, p);
@@ -502,14 +503,69 @@ Impl_Put(const std::string& name, json&& spec, Map& map, const Ptr& p) {
    #endif
   }
 }
+template<class Map, class Ptr>
+static void
+Impl_Put(const std::string& name, json&& spec, Map& map, const Ptr& p,
+         const SidePluginRepo& repo) {
+  Impl_PutTpl(name, std::move(spec), map, p);
+}
+
+template<class Map>
+static void
+Impl_Put(const std::string& name, json&& spec, Map& map, DB_Ptr p,
+         const SidePluginRepo& repo) {
+  json DBOptionsToJson(const DBOptions&, const SidePluginRepo&);
+  json CFOptionsToJson(const ColumnFamilyOptions&, const SidePluginRepo&);
+  ROCKSDB_VERIFY(nullptr != p.db);
+  spec.erase("class");
+  if (!spec.contains("method")) {
+    spec["method"] = "ManuallyOpened";
+  }
+  json& params = spec["params"];
+  params["name"] = name;
+  params["path"] = p.db->GetName(); // RocksDB name is really path
+  if (p.dbm) {
+    if (params.contains("column_families")) {
+      json& column_families = params["column_families"];
+      ROCKSDB_VERIFY_EQ(column_families.size(), p.dbm->cf_handles.size());
+      size_t idx = 0;
+      for (auto& item : column_families.items()) {
+        ROCKSDB_VERIFY_LT(idx, p.dbm->cf_handles.size());
+        const std::string& cfname_db = p.dbm->cf_handles[idx]->GetName();
+        const std::string& cfname_js = item.key();
+        TERARK_VERIFY_S_EQ(cfname_js, cfname_db);
+        idx++;
+      }
+      ROCKSDB_VERIFY_EQ(idx, p.dbm->cf_handles.size());
+    } else {
+      json& column_families = params["column_families"];
+      for (auto& cfh : p.dbm->cf_handles) {
+        ColumnFamilyDescriptor desc;
+        Status s = cfh->GetDescriptor(&desc);
+        ROCKSDB_VERIFY_F(s.ok(), "%s", s.ToString().c_str());
+        column_families[desc.name] = CFOptionsToJson(desc.options, repo);
+      }
+    }
+  } else if (params.contains("column_families")) {
+    json& column_families = params["column_families"];
+    ROCKSDB_VERIFY(column_families.contains("default"));
+  } else if (!params.contains("cf_options") && !params.contains("options")) {
+    params["cf_options"] = CFOptionsToJson(p.db->GetOptions(), repo);
+  }
+  if (!params.contains("db_options") && !params.contains("options")) {
+    params["db_options"] = DBOptionsToJson(p.db->GetOptions(), repo);
+  }
+  Impl_PutTpl(name, std::move(spec), map, p);
+}
 
 template<class Map, class Ptr>
 static void
-Impl_Put(const std::string& name, const char* spec, Map& map, const Ptr& p) {
+Impl_Put(const std::string& name, const char* spec, Map& map, const Ptr& p,
+         const SidePluginRepo& repo) {
   try {
     const char* spec_end = spec + strlen(spec);
     json jspec(json::parse(spec, spec_end));
-    Impl_Put(name, std::move(jspec), map, p);
+    Impl_Put(name, std::move(jspec), map, p, repo);
   } catch (const std::exception& ex) {
     fprintf(stderr,
       "ERROR: SidePluginRepo::Put(name, str_spec, ptr), ex.what = %s\n",
@@ -520,11 +576,12 @@ Impl_Put(const std::string& name, const char* spec, Map& map, const Ptr& p) {
 
 template<class Map, class Ptr>
 static void
-Impl_Put(const std::string& name, Map& map, const Ptr& p) {
+Impl_Put(const std::string& name, Map& map, const Ptr& p,
+         const SidePluginRepo& repo) {
   Impl_Put(name, json{
     {"class", "(manual)"},
     {"params", {"manual", true}}
-  }, map, p);
+  }, map, p, repo);
 }
 
 template<class Map, class Ptr>
@@ -555,15 +612,15 @@ Impl_GetConsParams(const Map& map, const Ptr& p) {
 #define JSON_REPO_TYPE_IMPL(field) \
 void SidePluginRepo::Put(const string& name, \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
-  Impl_Put(name, m_impl->field, p); \
+  Impl_Put(name, m_impl->field, p, *this); \
 } \
 void SidePluginRepo::Put(const string& name, json spec, \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
-  Impl_Put(name, std::move(spec), m_impl->field, p); \
+  Impl_Put(name, std::move(spec), m_impl->field, p, *this); \
 } \
 void SidePluginRepo::Put(const string& name, const char* spec, \
                 decltype((RepoPtrCref(((Impl*)0)->field))) p) { \
-  Impl_Put(name, spec, m_impl->field, p); \
+  Impl_Put(name, spec, m_impl->field, p, *this); \
 } \
 bool SidePluginRepo::Get(const string& name, \
                 decltype(RepoPtrType(((Impl*)0)->field))* pp) const { \
@@ -663,22 +720,22 @@ void SidePluginRepo::Put(const std::string& name, json spec, DB* db,
   Put(name, std::move(spec), dbm);
 }
 void SidePluginRepo::Put(const std::string& name, DB* db) {
-  Impl_Put(name, m_impl->db, DB_Ptr(db));
+  Impl_Put(name, m_impl->db, DB_Ptr(db), *this);
 }
 void SidePluginRepo::Put(const std::string& name, DB_MultiCF* db) {
-  Impl_Put(name, m_impl->db, DB_Ptr(db));
+  Impl_Put(name, m_impl->db, DB_Ptr(db), *this);
 }
 void SidePluginRepo::Put(const std::string& name, json spec, DB* db) {
-  Impl_Put(name, std::move(spec), m_impl->db, DB_Ptr(db));
+  Impl_Put(name, std::move(spec), m_impl->db, DB_Ptr(db), *this);
 }
 void SidePluginRepo::Put(const std::string& name, json spec, DB_MultiCF* db) {
-  Impl_Put(name, std::move(spec), m_impl->db, DB_Ptr(db));
+  Impl_Put(name, std::move(spec), m_impl->db, DB_Ptr(db), *this);
 }
 void SidePluginRepo::Put(const std::string& name, const char* spec, DB* db) {
-  Impl_Put(name, spec, m_impl->db, DB_Ptr(db));
+  Impl_Put(name, spec, m_impl->db, DB_Ptr(db), *this);
 }
 void SidePluginRepo::Put(const std::string& name, const char* spec, DB_MultiCF* db) {
-  Impl_Put(name, spec, m_impl->db, DB_Ptr(db));
+  Impl_Put(name, spec, m_impl->db, DB_Ptr(db), *this);
 }
 
 bool SidePluginRepo::Get(const std::string& name, DB** db, Status* s) const {
