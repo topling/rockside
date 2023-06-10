@@ -148,6 +148,7 @@ class SidePluginRepo {
 
   // The caller should ensure DB handle's life time is longer than SidePluginRepo
   void Put(const std::string& name, DB*);
+  void Put(const std::string& name, DB*, const std::vector<ColumnFamilyHandle*>& cf_handles);
   void Put(const std::string& name, DB_MultiCF*);
 
   void Put(const std::string& name, const std::shared_ptr<AnyPlugin>&);
@@ -186,6 +187,7 @@ class SidePluginRepo {
 
   // The caller should ensure DB handle's life time is longer than SidePluginRepo
   void Put(const std::string& name, json spec, DB*);
+  void Put(const std::string& name, json spec, DB*, const std::vector<ColumnFamilyHandle*>& cf_handles);
   void Put(const std::string& name, json spec, DB_MultiCF*);
 
   void Put(const std::string& name, json spec, const std::shared_ptr<AnyPlugin>&);
@@ -223,6 +225,7 @@ class SidePluginRepo {
 
   // The caller should ensure DB handle's life time is longer than SidePluginRepo
   void Put(const std::string& name, const char* spec, DB*);
+  void Put(const std::string& name, const char* spec, DB*, const std::vector<ColumnFamilyHandle*>& cf_handles);
   void Put(const std::string& name, const char* spec, DB_MultiCF*);
 
   void Put(const std::string& name, const char* spec, const std::shared_ptr<AnyPlugin>&);
@@ -343,6 +346,7 @@ class SidePluginRepo {
   const json* GetCreationSpec(const std::shared_ptr<WriteBufferManager>&) const;
   const json* GetCreationSpec(const std::shared_ptr<WBWIFactory>&) const;
 
+  const json* GetCreationSpec(const DB*) const;
   const json* GetCreationSpec(const Options*) const;
   const json* GetCreationSpec(const DBOptions*) const;
   const json* GetCreationSpec(const ColumnFamilyOptions*) const;

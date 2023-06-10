@@ -22,6 +22,7 @@
 
 #include "json.h"
 #include "side_plugin_factory.h"
+#include "side_plugin_internal.h"
 
 #if defined(__GNUC__)
 # include <cxxabi.h>
@@ -643,6 +644,24 @@ JSON_GetConsParams(options)
 JSON_GetConsParams(db_options)
 JSON_GetConsParams(cf_options)
 
+const json* SidePluginRepo::GetCreationSpec(const DB* db) const {
+  return Impl_GetConsParams(m_impl->db, db);
+}
+void SidePluginRepo::Put(const std::string& name, DB* db,
+                         const std::vector<ColumnFamilyHandle*>& cf_handles) {
+  DB_MultiCF* dbm = new DB_MultiCF_Impl(this, name, db, cf_handles, -1);
+  Put(name, dbm);
+}
+void SidePluginRepo::Put(const std::string& name, const char* spec, DB* db,
+                         const std::vector<ColumnFamilyHandle*>& cf_handles) {
+  DB_MultiCF* dbm = new DB_MultiCF_Impl(this, name, db, cf_handles, -1);
+  Put(name, spec, dbm);
+}
+void SidePluginRepo::Put(const std::string& name, json spec, DB* db,
+                         const std::vector<ColumnFamilyHandle*>& cf_handles) {
+  DB_MultiCF* dbm = new DB_MultiCF_Impl(this, name, db, cf_handles, -1);
+  Put(name, std::move(spec), dbm);
+}
 void SidePluginRepo::Put(const std::string& name, DB* db) {
   Impl_Put(name, m_impl->db, DB_Ptr(db));
 }

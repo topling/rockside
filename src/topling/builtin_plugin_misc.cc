@@ -3448,6 +3448,26 @@ JS_CreateCF(DB* db, const std::string& cfname,
   return cfh;
 }
 
+DB_MultiCF_Impl::DB_MultiCF_Impl(const SidePluginRepo* repo,
+        const std::string& dbname, DB* db,
+        const std::vector<ColumnFamilyHandle*>& cf_handles,
+        int catch_up_delay_ms) {
+  this->db = db;
+  this->cf_handles = cf_handles;
+  m_repo = repo;
+  m_catch_up_running = false;
+  m_catch_up_delay_ms = catch_up_delay_ms;
+  m_create_cf = &JS_CreateCF;
+  std::vector<ColumnFamilyDescriptor> cfdvec(cf_handles.size());
+  for (size_t i = 0; i < cf_handles.size(); i++) {
+    cf_handles[i]->GetDescriptor(&cfdvec[i]);
+  }
+  SetCFPropertiesWebView(this, dbname, cfdvec, *repo);
+  for (auto* cfh : cf_handles) {
+    AddOneCF_ToMap(cfh->GetName(), cfh, "{}");
+  }
+}
+
 static
 DB_MultiCF* JS_DB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
   struct X : MultiCF_Open {

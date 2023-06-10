@@ -5,6 +5,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 struct DB_MultiCF_Impl : public DB_MultiCF {
+  DB_MultiCF_Impl(const SidePluginRepo*, const std::string& name, DB*, const std::vector<ColumnFamilyHandle*>&, int catch_up_delay_ms = -1);
   DB_MultiCF_Impl();
   ~DB_MultiCF_Impl() override;
   ColumnFamilyHandle* Get(const std::string& cfname) const override;
