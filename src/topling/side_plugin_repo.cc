@@ -517,9 +517,14 @@ Impl_Put(const std::string& name, json&& spec, Map& map, DB_Ptr p,
   json DBOptionsToJson(const DBOptions&, const SidePluginRepo&);
   json CFOptionsToJson(const ColumnFamilyOptions&, const SidePluginRepo&);
   ROCKSDB_VERIFY(nullptr != p.db);
-  spec.erase("class");
-  if (!spec.contains("method")) {
-    spec["method"] = "ManuallyOpened";
+  if (!spec.contains("class") && !spec.contains("method")) {
+    spec["class"] = "DB::Open"; // default
+  }
+  else if (!spec.contains("class") && spec.contains("method")) {
+    spec["class"] = spec["method"];
+  }
+  else {
+    fprintf(stderr, "WARN: SidePluginRepo::Put(db): spec has 'class' and 'method' both, ignore 'method'\n");
   }
   json& params = spec["params"];
   params["name"] = name;
