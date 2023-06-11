@@ -3437,7 +3437,8 @@ struct MultiCF_Open {
       std::vector<std::string> cfname_vec;
       Status s = DB::ListColumnFamilies(*db_opt, path, &cfname_vec);
       if (!s.ok()) {
-        throw s;
+        //throw s;
+        return; // ignore the error
       }
       std::sort(cfname_vec.begin(), cfname_vec.end());
       std::set<std::string> defined_cf;
