@@ -590,6 +590,28 @@ Impl_Put(const std::string& name, Map& map, const Ptr& p,
 }
 
 template<class Map, class Ptr>
+static void
+Impl_PutOPT(const std::string& name, Map& map, const Ptr& p,
+         const SidePluginRepo& repo, const char* clazz) {
+  Impl_Put(name, json{
+    {"class", clazz},
+    {"params", {"manual", true}}
+  }, map, p, repo);
+}
+
+#define Impl_Put_OPT_define(OPT) \
+static void \
+Impl_Put(const std::string& name, \
+         SidePluginRepo::Impl::ObjRepo<OPT>& map, \
+         const shared_ptr<OPT>& p, \
+         const SidePluginRepo& repo) \
+{ Impl_PutOPT(name, map, p, repo, #OPT); }
+
+Impl_Put_OPT_define(Options)
+Impl_Put_OPT_define(DBOptions)
+Impl_Put_OPT_define(ColumnFamilyOptions)
+
+template<class Map, class Ptr>
 static bool
 Impl_Get(const std::string& name, const Map& map, Ptr* pp) {
   auto& name2p = *map.name2p;
