@@ -560,6 +560,12 @@ Impl_Put(const std::string& name, json&& spec, Map& map, DB_Ptr p,
   if (!params.contains("db_options") && !params.contains("options")) {
     params["db_options"] = DBOptionsToJson(p.db->GetOptions(), repo);
   }
+  if (params.contains("options") && params.contains("cf_options")) {
+    ROCKSDB_DIE("spec['params'] has both 'options' and 'cf_options'");
+  }
+  if (params.contains("options") && params.contains("db_options")) {
+    ROCKSDB_DIE("spec['params'] has both 'options' and 'db_options'");
+  }
   Impl_PutTpl(name, std::move(spec), map, p);
 }
 
