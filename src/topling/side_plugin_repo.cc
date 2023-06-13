@@ -589,20 +589,22 @@ template<class Map, class Ptr>
 static void
 Impl_Put(const std::string& name, Map& map, const Ptr& p,
          const SidePluginRepo& repo) {
-  Impl_Put(name, json{
+  json spec{
     {"class", "(manual)"},
     {"params", {"manual", true}}
-  }, map, p, repo);
+  };
+  Impl_Put(name, std::move(spec), map, p, repo);
 }
 
 template<class Map, class Ptr>
 static void
 Impl_PutOPT(const std::string& name, Map& map, const Ptr& p,
-         const SidePluginRepo& repo, const char* clazz) {
-  Impl_Put(name, json{
+            const SidePluginRepo& repo, const char* clazz) {
+  json spec{
     {"class", clazz},
     {"params", {"manual", true}}
-  }, map, p, repo);
+  };
+  Impl_Put(name, std::move(spec), map, p, repo);
 }
 
 #define Impl_Put_OPT_define(OPT) \
