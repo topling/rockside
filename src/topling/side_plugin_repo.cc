@@ -111,7 +111,6 @@ static void Impl_Import(SidePluginRepo::Impl::ObjMap<Ptr>& field,
         }
       #endif
       }
-      field.p2name.erase(GetRawPtr(existing));
     }
     // do not use ObtainPlugin, to disallow define var2 = var1
     Ptr p = PluginFactory<Ptr>::AcquirePlugin(value, repo);
@@ -119,6 +118,9 @@ static void Impl_Import(SidePluginRepo::Impl::ObjMap<Ptr>& field,
       THROW_InvalidArgument(
           "fail to AcquirePlugin: inst_id = " + inst_id +
               ", value_js = " + value.dump());
+    }
+    if (!ib.second) { // erase after throw, to be exception safe
+      field.p2name.erase(GetRawPtr(existing));
     }
     existing = p;
     if (value.is_string()) {
