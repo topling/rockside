@@ -121,6 +121,42 @@ std::string ReadPostData(mg_connection* conn) {
   return post;
 }
 
+static bool StartsWithNoCase(const char* text, const char* prefix) {
+  size_t len = strlen(prefix);
+  return strncasecmp(text, prefix, len) == 0;
+}
+
+static bool IsBrowser(struct mg_connection *conn) {
+  auto ua = mg_get_header(conn, "User-Agent");
+  if (SidePluginRepo::DebugLevel() >= 3) {
+    fprintf(stderr, "INFO: http: User-Agent: %s\n", ua);
+  }
+  if (!ua) {
+    return false;
+  }
+  static const char* cmd_tools[] = { "curl", "Wget", "telnet", "netcat" };
+  for (auto prefix : cmd_tools) {
+    if (StartsWithNoCase(ua, prefix))
+      return false;
+  }
+  static const char* browsers[] = {
+    "Mozilla", "AppleWebKit", "Chrome", "Safari",
+  };
+  for (auto prefix : browsers) {
+    if (StartsWithNoCase(ua, prefix))
+      return true;
+  }
+  return true; // unknown, true
+}
+
+static bool IsHtmlOrSetIsBrowser(json* query, struct mg_connection *conn) {
+  if (query->contains("html")) {
+    return JsonSmartBool(*query, "html", true);
+  } else {
+    return (*query)["html"] = IsBrowser(conn);
+  }
+}
+
 // life time of rvalue which bind to const ref extends
 // to life time of containing code block.
 // so it is safe to bind the return value to a const reference
@@ -176,7 +212,7 @@ try {
       mg_printf(conn, "ERROR: local uri is null\r\n");
       return true;
     }
-    const bool html = JsonSmartBool(query, "html", true);
+    const bool html = IsHtmlOrSetIsBrowser(&query, conn);
     while ('/' == *uri) uri++;
     size_t urilen = strlen(uri);
     auto slash = (const char*)memchr(uri, '/', urilen);

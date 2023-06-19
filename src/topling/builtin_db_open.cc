@@ -23,22 +23,6 @@ using std::shared_ptr;
 using std::vector;
 using std::string;
 
-/*
-{
-  "DB::Open": {
-    "cf_options" : {
-      "default": {},
-      "user-cf1": {}
-    },
-    "db_options" : {
-
-    }
-  },
-  "db": "DB::Open"
-}
-
-*/
-
 DB_MultiCF_Impl::DB_MultiCF_Impl() {
   m_catch_up_running = false;
   m_catch_up_delay_ms = 10;
