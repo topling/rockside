@@ -382,19 +382,23 @@ try
   JSON_IMPORT_REPO(WriteBufferManager       , write_buffer_manager);
   JSON_IMPORT_REPO(WBWIFactory              , wbwi_factory);
 
-  extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
-  for (auto& kv : *m_impl->table_factory.name2p) {
-    if (Slice(kv.second->Name()) == "DispatcherTable") {
-      auto tf = kv.second.get();
-      DispatcherTableBackPatch(tf, repo);
+  if (main_js.contains("TableFactory")) {
+    extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
+    for (auto& kv : *m_impl->table_factory.name2p) {
+      if (Slice(kv.second->Name()) == "DispatcherTable") {
+        auto tf = kv.second.get();
+        DispatcherTableBackPatch(tf, repo);
+      }
     }
   }
 
-  extern void DynaMemTableBackPatch(MemTableRepFactory*, const SidePluginRepo&);
-  for (auto& kv : *m_impl->memtable_factory.name2p) {
-    if (Slice(kv.second->Name()) == "Dyna") {
-      auto tf = kv.second.get();
-      DynaMemTableBackPatch(tf, repo);
+  if (main_js.contains("MemTableRepFactory")) {
+    extern void DynaMemTableBackPatch(MemTableRepFactory*, const SidePluginRepo&);
+    for (auto& kv : *m_impl->memtable_factory.name2p) {
+      if (Slice(kv.second->Name()) == "Dyna") {
+        auto tf = kv.second.get();
+        DynaMemTableBackPatch(tf, repo);
+      }
     }
   }
 
