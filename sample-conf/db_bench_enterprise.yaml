@@ -135,6 +135,10 @@ CFOptions:
     level0_stop_writes_trigger: 36
     level0_file_num_compaction_trigger: 4
     ttl: 0
+  cf2:
+    template: "$default"
+    target_file_size_base: 32M # override
+    max_bytes_for_level_base: 16M
 DBOptions:
   dbo:
     create_if_missing: true
@@ -145,7 +149,9 @@ DBOptions:
     inplace_update_support: false
     WAL_size_limit_MB: 0
     statistics: "${stat}"
-    allow_mmap_reads: true
+  dbo2:
+    template: "$dbo"
+    max_level1_subcompactions: 3 # override this param
 databases:
   db_bench_enterprise:
     method: DB::Open
@@ -158,4 +164,8 @@ databases:
       #path is optional, if not defined, use name as path
       #last part of path must be same as name(here is 'db_bench_enterprise')
       path: /dev/shm/db_bench_enterprise
+  db_test:
+    method: DB::Open
+    params:
+      db_options: "$dbo"
 open: db_bench_enterprise
