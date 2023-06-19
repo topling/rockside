@@ -920,30 +920,38 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
         "dbname = '" + dbname + "', params[path] must be a string if defined");
     }
   }
-  auto& dbmap = repo.m_impl->db;
 
-  // CompactionFilter ... may find db on opening
-  std::lock_guard<std::mutex> lock(repo.m_impl->db_mtx);
+  // Compactions may be scheduled during db open, and CompactionFilter ... may
+  // access db during compaction, in this case, caller should disable auto
+  // compaction before open db, and enable auto compation after db is opened.
+  //
+  // If CompactionFilter ... are simple and need not access DB, caller need
+  // not do such complex and error prone things.
 
-  auto ib = dbmap.name2p->emplace(dbname, DB_Ptr(nullptr));
-  if (!ib.second) {
-    THROW_InvalidArgument("dup dbname = " + dbname);
-  }
   if (SidePluginRepo::DebugLevel() >= 2) {
     fprintf(stderr, "%s: INFO: %s:%d: Impl_OpenDB_tpl(): dbname = %s, params = %s\n",
             StrDateTimeNow(),
             __FILE__, __LINE__, dbname.c_str(), params_js.dump(4).c_str());
   }
   // will open db by calling acq func such as DB::Open
+  //
+  // this may be time consuming, some applications open many db concurrently,
+  // so it should be out of mutex lock, to allow open db concurrently
   DBT* db = nullptr;
   try {
     db = PluginFactory<DBT*>::AcquirePlugin(method, params_js, repo);
   } catch (...) {
-    dbmap.name2p->erase(ib.first); // rollback
     throw;
   }
   assert(nullptr != db);
-  ib.first->second = DB_Ptr(db);
+  // now insert db ptr into repo, need lock
+  std::lock_guard<std::mutex> lock(repo.m_impl->db_mtx);
+  auto& dbmap = repo.m_impl->db;
+  auto ib = dbmap.name2p->emplace(dbname, DB_Ptr(db));
+  if (!ib.second) {
+    TERARK_DIE_S("dup dbname = %s, method = %s, params = %s",
+                dbname, method, params_js.dump(4));
+  }
   auto ib2 = dbmap.p2name.emplace(GetDB(db),
     decltype(dbmap.p2name.end()->second) {
       dbname,
