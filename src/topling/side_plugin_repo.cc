@@ -1190,7 +1190,8 @@ static unsigned long long strtoull_base_10(const char* s, char** endptr) {
 }
 
 static long long DoParseSizeXiB(const char* s) {
-  if (strchr(s, '.')) {
+  // 1.01 M, 1e3 K
+  if (strchr(s, '.') || strchr(s, 'e')) {
     return DoParseSizeXiB_1(s, &strtod);
   }
   else if ('-' == s[0]) {
@@ -1212,6 +1213,8 @@ ParseSizeXiB::ParseSizeXiB(const json& js) {
     m_val = js.get<long long>();
   else if (js.is_number_unsigned())
     m_val = js.get<unsigned long long>();
+  else if (js.is_number_float())
+    m_val = (long long)js.get<double>();
   else if (js.is_string())
     *this = ParseSizeXiB(js.get_ref<const std::string&>());
   else
@@ -1228,6 +1231,8 @@ ParseSizeXiB::ParseSizeXiB(const json& js, const char* key) {
         m_val = sub_js.get<long long>();
       else if (sub_js.is_number_unsigned())
         m_val = sub_js.get<unsigned long long>();
+      else if (sub_js.is_number_float())
+        m_val = (long long)sub_js.get<double>();
       else if (sub_js.is_string())
         *this = ParseSizeXiB(sub_js.get_ref<const std::string&>());
       else
