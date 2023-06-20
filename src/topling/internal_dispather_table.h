@@ -74,6 +74,8 @@ public:
   };
   void UpdateStat(size_t lev, const Stat& st);
 
+  friend Cache* GetBlockCacheFromAnyTableFactory(TableFactory* self);
+
 protected:
   mutable std::mutex m_mtx;
   std::vector<std::shared_ptr<TableFactory> > m_level_writers;

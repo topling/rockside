@@ -382,6 +382,20 @@ REG_SST_PARTITION(FixedPrefixEx);
 using namespace std::chrono;
 class DispatcherTableFactory;
 
+Cache* GetBlockCacheFromAnyTableFactory(TableFactory* fac) {
+  if (auto bb = dynamic_cast<BlockBasedTableFactory*>(fac)) {
+    return bb->GetOptions<Cache>(TableFactory::kBlockCacheOpts());
+  }
+  if (auto dispatch = dynamic_cast<DispatcherTableFactory*>(fac)) {
+    for (auto& [name, sub] : *dispatch->m_all) {
+      if (auto bb = dynamic_cast<BlockBasedTableFactory*>(sub.get())) {
+        return bb->GetOptions<Cache>(TableFactory::kBlockCacheOpts());
+      }
+    }
+  }
+  return nullptr;
+}
+
 // for hook TableBuilder::Add(key, value) to perform statistics
 class DispatcherTableBuilder : public TableBuilder {
  public:
