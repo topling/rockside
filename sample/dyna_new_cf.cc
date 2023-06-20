@@ -35,7 +35,8 @@ int main(int argc, char* argv[]) {
   bool stop = false;
   std::thread thr([&]{
     size_t i = 0;
-    std::string cfjs = R"("${default}")";
+    //std::string cfjs = R"("${default}")";
+    std::string cfjs = "default";
     while (!stop) {
       i++;
       rocksdb::ColumnFamilyHandle* cfh = nullptr;

@@ -44,7 +44,21 @@ Status DB_MultiCF_Impl::CreateColumnFamily(const std::string& cfname,
                                            const std::string& json_str,
                                            ColumnFamilyHandle** cfh)
 try {
-  auto js = json::parse(json_str);
+  const char* beg = json_str.data();
+  const char* end = json_str.data() + json_str.size();
+  while (beg < end && isspace((unsigned char)(*beg))) {
+    beg++;
+  }
+  if (beg == end) {
+    return Status::InvalidArgument("spec json_str is empty or all spaces");
+  }
+  json js;
+  if (beg[0] == '{' || beg[0] == '[') { // object or array
+    js = json::parse(beg, end);
+  }
+  else {
+    js = json(std::string(beg, end)); // string
+  }
   auto cfo = ObtainOPT(m_repo->m_impl->cf_options, "CFOptions", js, *m_repo);
   if (!m_create_cf) {
     return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
