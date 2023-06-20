@@ -57,6 +57,12 @@ try {
     js = json::parse(beg, end);
   }
   else {
+    if (end - beg >= 2 && (
+             (beg[0] == '"'  && end[-1] == '"') ||
+             (beg[0] == '\'' && end[-1] == '\''))) {
+      beg++;
+      end--;
+    }
     js = json(std::string(beg, end)); // string
   }
   auto cfo = ObtainOPT(m_repo->m_impl->cf_options, "CFOptions", js, *m_repo);

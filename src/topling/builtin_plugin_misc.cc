@@ -3193,10 +3193,6 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     } else {
       THROW_Corruption("p2name[" + dbname + "].params[db_options|options] are all missing");
     }
-    if (params_js.end() == (ijs = params_js.find("column_families"))) {
-      THROW_Corruption("p2name[" + dbname + "].params.column_families are all missing");
-    }
-    const auto& def_cfo_js = ijs.value();
     bool html = JsonSmartBool(dump_options, "html", true);
     djs["CFOptions"]; // insert
     djs["CFProps"]; // insert
@@ -3222,12 +3218,20 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
       cf->GetDescriptor(&cfd);
       const std::string& cf_name = cfd.name;
       auto cfo = static_cast<CFOptions_Json&>(static_cast<CFOptions&>(cfd.options));
-      if (def_cfo_js.end() == (ijs = def_cfo_js.find(cf_name))) {
-        THROW_Corruption(dbname + ".params.column_families." + cf_name + " is missing");
+      json cfo_js;
+      {
+        auto& dbm_impl = static_cast<const DB_MultiCF_Impl&>(db);
+        std::shared_lock<std::shared_mutex> lk(dbm_impl.m_mtx);
+        auto& cfhs = dbm_impl.m_cfhs;
+        auto iter = cfhs.p2name.find(cf);
+        if (cfhs.p2name.end() == iter) {
+          THROW_Corruption(dbname + ".params.column_families." + cf_name + " is missing in dbm_impl.m_cfhs");
+        }
+        cfo_js = iter->second.spec;
       }
-      if (ijs.value().is_string()) {
+      if (cfo_js.is_string()) {
         // find in repo.m_impl->cf_options
-        auto cfo_varname = ijs.value().get_ref<const std::string&>();
+        auto cfo_varname = cfo_js.get_ref<const std::string&>();
         auto icf = IterPluginFind(repo.m_impl->cf_options, cfo_varname);
         if (repo.m_impl->cf_options.name2p->end() == icf) {
           THROW_Corruption("Missing cfo_varname = " + cfo_varname);
@@ -3269,11 +3273,11 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
           result_cfo_js[cf_name][1] = jRes;
         }
       }
-      else { // ijs point to inline defined CFOptions
+      else { // cfo_js is inline defined CFOptions
         result_cfo_js[cf_name][0] = "json varname: (defined inline)";
-        result_cfo_js[cf_name][1] = ijs.value();
+        result_cfo_js[cf_name][1] = cfo_js;
         //result_cfo_js[cf_name][1]["class"] = "CFOptions";
-	      //result_cfo_js[cf_name][1]["params"] = ijs.value();
+	      //result_cfo_js[cf_name][1]["params"] = cfo_js;
         cfo.SaveToJson(result_cfo_js[cf_name][1], repo, html);
       }
       //result_cfo_js[cf_name][1]["MaxMemCompactionLevel"] = db.db->MaxMemCompactionLevel(cf);
