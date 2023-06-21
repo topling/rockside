@@ -861,12 +861,13 @@ Status SidePluginRepo::OpenDB(const json& js, DB_MultiCF** dbp) {
   return OpenDB_tpl<DB_MultiCF>(*this, js, dbp);
 }
 
+extern json JsonFromText(const std::string& text);
 Status SidePluginRepo::OpenDB(const std::string& js, DB** dbp)
 #if defined(NDEBUG)
 try
 #endif
 {
-  return OpenDB_tpl<DB>(*this, js, dbp);
+  return OpenDB_tpl<DB>(*this, JsonFromText(js), dbp);
 }
 #if defined(NDEBUG)
 catch (const std::exception& ex) {
@@ -878,7 +879,7 @@ Status SidePluginRepo::OpenDB(const std::string& js, DB_MultiCF** dbp)
 try
 #endif
 {
-  return OpenDB_tpl<DB_MultiCF>(*this, js, dbp);
+  return OpenDB_tpl<DB_MultiCF>(*this, JsonFromText(js), dbp);
 }
 #if defined(NDEBUG)
 catch (const std::exception& ex) {

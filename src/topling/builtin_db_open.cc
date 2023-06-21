@@ -40,31 +40,37 @@ ColumnFamilyHandle* DB_MultiCF_Impl::Get(const std::string& cfname) const {
   return nullptr;
 }
 
+json JsonFromText(const std::string& text) {
+  const char* beg = text.data();
+  const char* end = text.data() + text.size();
+  while (beg < end && isspace((unsigned char)(*beg))) {
+    beg++;
+  }
+  while (beg < end && isspace((unsigned char)(end[-1]))) {
+    end--;
+  }
+  if (beg == end) {
+    //THROW_InvalidArgument("json text is empty or all spaces");
+    return json(std::string()); // empty string
+  }
+  if (beg[0] == '{' || beg[0] == '[' || beg[0] == '"') {
+    // object or array or string
+    return json::parse(beg, end);
+  }
+  else {
+    if (end - beg >= 2 && beg[0] == '\'' && end[-1] == '\'') {
+      beg++;
+      end--;
+    }
+    return json(std::string(beg, end)); // string
+  }
+}
+
 Status DB_MultiCF_Impl::CreateColumnFamily(const std::string& cfname,
                                            const std::string& json_str,
                                            ColumnFamilyHandle** cfh)
 try {
-  const char* beg = json_str.data();
-  const char* end = json_str.data() + json_str.size();
-  while (beg < end && isspace((unsigned char)(*beg))) {
-    beg++;
-  }
-  if (beg == end) {
-    return Status::InvalidArgument("spec json_str is empty or all spaces");
-  }
-  json js;
-  if (beg[0] == '{' || beg[0] == '[') { // object or array
-    js = json::parse(beg, end);
-  }
-  else {
-    if (end - beg >= 2 && (
-             (beg[0] == '"'  && end[-1] == '"') ||
-             (beg[0] == '\'' && end[-1] == '\''))) {
-      beg++;
-      end--;
-    }
-    js = json(std::string(beg, end)); // string
-  }
+  json js = JsonFromText(json_str);
   auto cfo = ObtainOPT(m_repo->m_impl->cf_options, "CFOptions", js, *m_repo);
   if (!m_create_cf) {
     return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
