@@ -115,6 +115,11 @@ TableFactory:
       - zip
       - zip
       - zip
+WriteBufferManager:
+  wbm:
+    class: WriteBufferManager
+    params:
+      buffer_size: 2048M
 CFOptions:
   default:
     max_write_buffer_number: 4
@@ -147,6 +152,7 @@ DBOptions:
     max_subcompactions: 1
     max_level1_subcompactions: 7
     inplace_update_support: false
+    write_buffer_manager: "${wbm}"
     WAL_size_limit_MB: 0
     statistics: "${stat}"
   dbo2:
