@@ -507,6 +507,12 @@ CompressionOptions_Json NestForBase(const CompressionOptions&);
 
 struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
   ColumnFamilyOptions_Json(const json& js, const SidePluginRepo& repo) {
+    // rocksdb changed default level_compaction_dynamic_level_bytes to true in
+    // bc04ec85dbf8d37ab429894a78e23ec52eadeb44(2023-06-15 by Changyu Bi), this
+    // makes data in L0 may be compacted directly to non-L1 levels(L2, L3 ...),
+    // thus disabled L1 concurrent sub compactions(max_level1_subcompactions),
+    // this kill ToplingDB performance, especially for distributed compaction.
+    level_compaction_dynamic_level_bytes = false;
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
