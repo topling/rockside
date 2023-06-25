@@ -76,7 +76,8 @@ try {
     return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
   }
   auto cfh1 = m_create_cf(db, cfname, *cfo, js);
-  *cfh = cfh1->CloneHandle(); // return a clone
+//*cfh = cfh1->CloneHandle(); // return a clone
+  *cfh = cfh1;
   {
     std::lock_guard<std::shared_mutex> lk(m_mtx);
     AddOneCF_ToMap(cfname, cfh1, js);
