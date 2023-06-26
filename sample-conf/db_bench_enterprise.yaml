@@ -115,6 +115,15 @@ TableFactory:
       - zip
       - zip
       - zip
+  dispatch_all_fast:
+    class: DispatcherTable
+    params:
+      default: fast
+      readers:
+        SingleFastTable: fast
+        ToplingZipTable: zip
+        BlockBasedTable: bb
+      level_writers: [fast, fast, fast, fast, fast, fast, fast]
 WriteBufferManager:
   wbm:
     class: WriteBufferManager
@@ -122,20 +131,18 @@ WriteBufferManager:
       buffer_size: 2048M
 CFOptions:
   default:
-    max_write_buffer_number: 4
+    max_write_buffer_number: 3
     memtable_factory: "${cspp}"
-    write_buffer_size: 8M
-    # set target_file_size_base as small as 512K is to make many SST files,
-    # thus key prefix cache can present efficiency
-    # 把 target_file_size_base 设得很小是为了产生很多文件，从而体现 key prefix cache 的效果
-    target_file_size_base: 512K
-    target_file_size_multiplier: 1
-    table_factory: dispatch
+    write_buffer_size: 768M
+    target_file_size_base: 32M
+    target_file_size_multiplier: 2
+    #table_factory: dispatch
+    table_factory: dispatch_all_fast
     compaction_options_level:
       L1_score_boost: 1
-    max_bytes_for_level_base: 4M
-    max_bytes_for_level_multiplier: 4
-    #level_compaction_dynamic_level_bytes: true
+    max_bytes_for_level_base: 512M
+    max_bytes_for_level_multiplier: 10
+    level_compaction_dynamic_level_bytes: false
     level0_slowdown_writes_trigger: 20
     level0_stop_writes_trigger: 36
     level0_file_num_compaction_trigger: 4
@@ -148,7 +155,7 @@ DBOptions:
   dbo:
     create_if_missing: true
     create_missing_column_families: true
-    max_background_compactions: 40
+    max_background_compactions: 13
     max_subcompactions: 1
     max_level1_subcompactions: 7
     inplace_update_support: false

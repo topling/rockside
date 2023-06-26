@@ -1,8 +1,9 @@
 http:
   # normally parent path of db path
-  document_root: /dev/shm/db_bench_community
+  document_root: /dev/shm/db_bench_enterprise
   listening_ports: '2011'
 setenv:
+  DictZipBlobStore_zipThreads: 32
   StrSimpleEnvNameNotOverwrite: StringValue
   IntSimpleEnvNameNotOverwrite: 16384
   OverwriteThisEnv:
@@ -13,7 +14,7 @@ Cache:
   lru_cache:
     class: LRUCache
     params:
-      capacity: 8G
+      capacity: 4G
       num_shard_bits: -1
       strict_capacity_limit: false
       high_pri_pool_ratio: 0.5
@@ -66,6 +67,25 @@ MemTableRepFactory:
     params:
       lookahead: 0
 TableFactory:
+  fast:
+    class: SingleFastTable
+    params:
+      indexType: MainPatricia
+      keyPrefixLen: 0
+  zip:
+    class: ToplingZipTable
+    params:
+      localTempDir: /tmp
+      indexNestLevel: 1
+      enableStatistics: false
+      warmupLevel: kIndex
+      acceptCompressionRatio: 0.8
+      offsetArrayBlockUnits: 128
+      sampleRatio: 0.01
+      checksumLevel: 0
+      debugLevel: 0
+      minDictZipValueSize: 30
+      minPreadLen: -1
   bb:
     class: BlockBasedTable
     params:
@@ -82,10 +102,24 @@ TableFactory:
   dispatch:
     class: DispatcherTable
     params:
-      default: bb
+      default: fast
       readers:
+        SingleFastTable: fast
+        ToplingZipTable: zip
         BlockBasedTable: bb
-      level_writers: [bb, bb, bb, bb, bb, bb]
+      level_writers:
+      - fast
+      - zip
+      - zip
+      - zip
+      - zip
+      - zip
+      - zip
+WriteBufferManager:
+  wbm:
+    class: WriteBufferManager
+    params:
+      buffer_size: 2048M
 CFOptions:
   default:
     max_write_buffer_number: 4
@@ -105,14 +139,11 @@ CFOptions:
     level0_slowdown_writes_trigger: 20
     level0_stop_writes_trigger: 36
     level0_file_num_compaction_trigger: 4
-    compression_per_level:
-    - kNoCompression
-    - kNoCompression
-    - kZSTD
-    - kZSTD
-    - kZSTD
-    - kZSTD
-    - kZSTD
+    ttl: 0
+  cf2:
+    template: "$default"
+    target_file_size_base: 32M # override
+    max_bytes_for_level_base: 16M
 DBOptions:
   dbo:
     create_if_missing: true
@@ -121,18 +152,26 @@ DBOptions:
     max_subcompactions: 1
     max_level1_subcompactions: 7
     inplace_update_support: false
+    write_buffer_manager: "${wbm}"
     WAL_size_limit_MB: 0
     statistics: "${stat}"
-    allow_mmap_reads: true
+  dbo2:
+    template: "$dbo"
+    max_level1_subcompactions: 3 # override this param
 databases:
-  db_bench_community:
+  db_bench_enterprise:
     method: DB::Open
     params:
       db_options: "$dbo"
       cf_options: "$default" # for single cf db
       column_families:       # for multi  cf db
         default: "$default"
+      dyna_cf_opt: "$default"
       #path is optional, if not defined, use name as path
-      #last part of path must be same as name(here is 'db_bench_community')
-      path: /dev/shm/db_bench_community
-open: db_bench_community
+      #last part of path must be same as name(here is 'db_bench_enterprise')
+      path: /dev/shm/db_bench_enterprise
+  db_test:
+    method: DB::Open
+    params:
+      db_options: "$dbo"
+open: db_bench_enterprise

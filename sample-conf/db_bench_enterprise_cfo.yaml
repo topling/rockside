@@ -1,0 +1,21 @@
+CFOptions:
+  default:
+    max_write_buffer_number: 4
+    memtable_factory: "${cspp}"
+    write_buffer_size: 768M
+    target_file_size_base: 32M
+    target_file_size_multiplier: 2
+    table_factory: dispatch
+    compaction_options_level:
+      L1_score_boost: 1
+    max_bytes_for_level_base: 512M
+    max_bytes_for_level_multiplier: 10
+    level_compaction_dynamic_level_bytes: false
+    level0_slowdown_writes_trigger: 20
+    level0_stop_writes_trigger: 36
+    level0_file_num_compaction_trigger: 4
+    ttl: 0
+  cf2:
+    template: "$default"
+    target_file_size_base: 32M # override
+    max_bytes_for_level_base: 512M
