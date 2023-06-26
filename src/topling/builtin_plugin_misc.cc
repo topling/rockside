@@ -510,8 +510,13 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     // rocksdb changed default level_compaction_dynamic_level_bytes to true in
     // bc04ec85dbf8d37ab429894a78e23ec52eadeb44(2023-06-15 by Changyu Bi), this
     // makes data in L0 may be compacted directly to non-L1 levels(L2, L3 ...),
-    // thus disabled L1 concurrent sub compactions(max_level1_subcompactions),
     // this kill ToplingDB performance, especially for distributed compaction.
+    //      the reason is:
+    // the skipping of L1 is not friendly for distributed compaction, because
+    // L1 act as the role of dividing data to many SST files for later high
+    // parallel compaction by distributed compaction, and data on L0 is very
+    // likely in page cache and L1 is often not compressed to minimize local
+    // concurrent (max_subcompaction) compaction's CPU overhead.
     level_compaction_dynamic_level_bytes = false;
     Update(js, repo);
   }
