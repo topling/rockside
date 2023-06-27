@@ -101,7 +101,7 @@ Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname, bool del_cfh
   ColumnFamilyHandle* cfh = nullptr;
   Status s = DropColumnFamilyImpl(cfname, &cfh);
   if (del_cfh) {
-    delete cfh;
+    db->DestroyColumnFamilyHandle(cfh); // check and delete
   }
   return s;
 }
@@ -124,7 +124,6 @@ try {
     cf_handles.erase(rm_iter, cf_handles.end());
   }
   db->DropColumnFamily(cfh);
-  db->DestroyColumnFamilyHandle(cfh);
   *p_cfh = cfh;
   return Status::OK();
 }
@@ -141,11 +140,9 @@ Status DB_MultiCF_Impl::DropColumnFamily(ColumnFamilyHandle* cfh, bool del_cfh) 
   Status s = DropColumnFamilyImpl(cfh->GetName(), &my_cfh);
   if (my_cfh && del_cfh) {
     if (my_cfh != cfh) {
-      delete cfh;
-      delete my_cfh;
-    } else {
-      delete cfh;
+      db->DestroyColumnFamilyHandle(my_cfh); // check and delete
     }
+    db->DestroyColumnFamilyHandle(cfh); // check and delete
   }
   return s;
 }
