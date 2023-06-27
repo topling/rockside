@@ -97,7 +97,18 @@ catch (const Status& st) {
   return st;
 }
 
-Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname) try {
+Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname, bool del_cfh) {
+  ColumnFamilyHandle* cfh = nullptr;
+  Status s = DropColumnFamilyImpl(cfname, &cfh);
+  if (del_cfh) {
+    delete cfh;
+  }
+  return s;
+}
+
+Status DB_MultiCF_Impl::DropColumnFamilyImpl(const std::string& cfname,
+                                             ColumnFamilyHandle** p_cfh)
+try {
   ColumnFamilyHandle* cfh = nullptr;
   {
     std::lock_guard<std::shared_mutex> write_lock(m_mtx);
@@ -114,7 +125,7 @@ Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname) try {
   }
   db->DropColumnFamily(cfh);
   db->DestroyColumnFamilyHandle(cfh);
-  delete cfh; // this cfh is managed by 'this'
+  *p_cfh = cfh;
   return Status::OK();
 }
 catch (const std::exception& ex) {
@@ -124,8 +135,19 @@ catch (const Status& st) {
   return st;
 }
 
-Status DB_MultiCF_Impl::DropColumnFamily(ColumnFamilyHandle* cfh) {
-  return DropColumnFamily(cfh->GetName());
+///@param del_cfh: delete param cfh or internal cfh both or neither
+Status DB_MultiCF_Impl::DropColumnFamily(ColumnFamilyHandle* cfh, bool del_cfh) {
+  ColumnFamilyHandle* my_cfh = nullptr;
+  Status s = DropColumnFamilyImpl(cfh->GetName(), &my_cfh);
+  if (my_cfh && del_cfh) {
+    if (my_cfh != cfh) {
+      delete cfh;
+      delete my_cfh;
+    } else {
+      delete cfh;
+    }
+  }
+  return s;
 }
 
 std::vector<ColumnFamilyHandle*> DB_MultiCF_Impl::get_cf_handles_view() const {

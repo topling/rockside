@@ -10,8 +10,9 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   ~DB_MultiCF_Impl() override;
   ColumnFamilyHandle* Get(const std::string& cfname) const override;
   Status CreateColumnFamily(const std::string& cfname, const std::string& json_str, ColumnFamilyHandle**) override;
-  Status DropColumnFamily(const std::string& cfname) override;
-  Status DropColumnFamily(ColumnFamilyHandle*) override;
+  Status DropColumnFamilyImpl(const std::string& cfname, ColumnFamilyHandle**);
+  Status DropColumnFamily(const std::string& cfname, bool del_cfh) override;
+  Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh) override;
   std::vector<ColumnFamilyHandle*> get_cf_handles_view() const override;
   void AddOneCF_ToMap(const std::string& cfname, ColumnFamilyHandle*, const json&);
   void InitAddCF_ToMap(const json& js_cf_desc);
