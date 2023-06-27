@@ -10,11 +10,13 @@
 
 namespace ROCKSDB_NAMESPACE {
 
-json from_query_string(const char* qry) {
+
+json from_query_string(const Slice qry_slice) {
   json js;
-  if (!qry)
+  if (qry_slice.empty())
     return js;
-  const char* end = qry + strlen(qry);
+  const char* qry = qry_slice.begin();
+  const char* end = qry_slice.end();
   while (qry < end) {
     const char* sep = std::find(qry, end, '&');
     const char* eq = std::find(qry, sep, '=');
@@ -37,6 +39,9 @@ json from_query_string(const char* qry) {
     qry = sep + 1;
   }
   return js;
+}
+json from_query_string(const char* qry) {
+  return from_query_string(Slice(qry?:""));
 }
 
 int mg_write(mg_connection* conn, Slice s) {
