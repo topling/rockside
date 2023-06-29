@@ -2569,9 +2569,12 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
       string name = *key;
       replace_char(name);
       for (auto const& v_iter : value) {
-        string suffix = v_iter.first;
-        replace_char(suffix);
-        oss|name|"{flag=\""|suffix|"\"} "|v_iter.second|"\n";
+        if (std::all_of(v_iter.second.begin(), v_iter.second.end(),
+                        [](unsigned char c) { return ::isdigit(c); })) {
+          string suffix = v_iter.first;
+          replace_char(suffix);
+          oss|name|"{flag=\""|suffix|"\"} "|v_iter.second|"\n";
+        }
       }
     }
   };
