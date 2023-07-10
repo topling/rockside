@@ -92,6 +92,8 @@ TableFactory:
       checksum: kCRC32c
       block_size: 4K
       block_restart_interval: 16
+      #block_size: 512  # small, makes block_cache nearly a row cache
+      #block_restart_interval: 1  # fit for small block_size
       index_block_restart_interval: 1
       metadata_block_size: 4K
       enable_index_compression: true
