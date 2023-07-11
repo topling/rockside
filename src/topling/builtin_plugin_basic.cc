@@ -379,11 +379,14 @@ struct LRUCache_Manip : PluginManipFunc<Cache> {
     ROCKSDB_JSON_SET_FACT(js, memory_allocator);
     ROCKSDB_JSON_SET_PROP(js, occupancy_count);
     ROCKSDB_JSON_SET_PROP(js, table_address_count);
+   #if 0
     auto lru = dynamic_cast<const LRUCache*>(&r);
     if (lru) {
+      // TEST_GetLRUSize() complexity is O(n) where n is elem num
       size_t cached_elem_num = const_cast<LRUCache*>(lru)->TEST_GetLRUSize();
       ROCKSDB_JSON_SET_PROP(js, cached_elem_num);
     }
+   #endif
     auto sharded = dynamic_cast<const ShardedCacheBase*>(&r);
     if (sharded) {
       auto num_shards = sharded->GetNumShards();
