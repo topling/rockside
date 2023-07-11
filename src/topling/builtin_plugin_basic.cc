@@ -364,6 +364,8 @@ struct LRUCache_Manip : PluginManipFunc<Cache> {
     size_t usage = r.GetUsage();
     size_t pined_usage = r.GetPinnedUsage();
     size_t capacity = r.GetCapacity();
+    size_t occupancy_count = r.GetOccupancyCount();
+    size_t table_address_count = r.GetTableAddressCount();
     bool strict_capacity = r.HasStrictCapacityLimit();
     double usage_rate = 1.0*usage / capacity;
     double pined_rate = 1.0*pined_usage / capacity;
@@ -375,10 +377,19 @@ struct LRUCache_Manip : PluginManipFunc<Cache> {
     ROCKSDB_JSON_SET_PROP(js, usage_rate);
     ROCKSDB_JSON_SET_PROP(js, pined_rate);
     ROCKSDB_JSON_SET_FACT(js, memory_allocator);
+    ROCKSDB_JSON_SET_PROP(js, occupancy_count);
+    ROCKSDB_JSON_SET_PROP(js, table_address_count);
     auto lru = dynamic_cast<const LRUCache*>(&r);
     if (lru) {
       size_t cached_elem_num = const_cast<LRUCache*>(lru)->TEST_GetLRUSize();
       ROCKSDB_JSON_SET_PROP(js, cached_elem_num);
+    }
+    auto sharded = dynamic_cast<const ShardedCacheBase*>(&r);
+    if (sharded) {
+      auto num_shards = sharded->GetNumShards();
+      auto num_shard_bits = sharded->GetNumShardBits();
+      ROCKSDB_JSON_SET_PROP(js, num_shards);
+      ROCKSDB_JSON_SET_PROP(js, num_shard_bits);
     }
     return JsonToString(js, dump_options);
   }
