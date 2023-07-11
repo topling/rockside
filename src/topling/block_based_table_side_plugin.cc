@@ -41,9 +41,13 @@ json SliceStringIntoJson(std::string s) {
 }
 
 // transfer uint64 time value to string
-std::string Uint64ToTimeString(uint64_t tparam) {
+static std::string Uint64ToTimeString(uint64_t tparam) {
+  char buf[64];
   time_t t = (time_t)tparam;
-  return ctime(&t);
+  struct tm tm1; // NOLINT
+  struct tm* timeinfo = port::LocalTimeR(&t, &tm1);
+  auto len = strftime(buf, sizeof(buf), "%F %T", timeinfo);
+  return std::string(buf, len);
 }
 
 void Html_AppendInternalKey(std::string& html, Slice ikey, const UserKeyCoder*);
