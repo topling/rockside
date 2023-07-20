@@ -471,6 +471,7 @@ void TemplatePropSaveToJson(json& js, const Concret* self,
   (js, this, #mapname, ROCKSDB_FUNC, repo.m_impl->mapname, repo, html)
 
 bool SameVarName(const std::string&, const std::string&);
+bool JsonSmartBool(const json& js);
 bool JsonSmartBool(const json& js, const char* subname, bool Default = false);
 void JsonSmartBool(bool* result, const json& js, const char* subname);
 int  JsonSmartInt(const json& js, const char* subname, int Default);

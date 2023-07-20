@@ -155,10 +155,12 @@ static bool IsBrowser(struct mg_connection *conn) {
 }
 
 static bool IsHtmlOrSetIsBrowser(json* query, struct mg_connection *conn) {
-  if (query->contains("html")) {
-    return JsonSmartBool(*query, "html", true);
+  if (auto iter = query->find("html"); query->end() != iter) {
+    return JsonSmartBool(iter.value());
   } else {
-    return (*query)["html"] = IsBrowser(conn);
+    bool html = IsBrowser(conn);
+    (*query)["html"] = html;
+    return html;
   }
 }
 
