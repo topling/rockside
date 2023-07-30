@@ -675,6 +675,11 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
       m_level_writers.push_back(p);
     }
   }
+  std::set<const TableFactory*> sub_fac_set;
+  sub_fac_set.insert(m_default_writer.get());
+  for (auto& fac : m_level_writers) {
+    sub_fac_set.insert(fac.get());
+  }
   for (auto& stv : m_stats) {
     stv.resize(m_level_writers.size() + 1);
   }
@@ -760,12 +765,10 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   m_json_obj = json{}; // reset
   m_is_back_patched = true;
   m_is_delete_range_supported = true;
-  for (auto& kv : *m_all) {
-    auto& varname = kv.first; // factory varname
-    auto& factory = kv.second;
+  for (auto factory : sub_fac_set) {
     if (!factory->IsDeleteRangeSupported()) {
       m_is_delete_range_supported = false;
-      INFO("Dispatch::BackPatch: '%s' IsDeleteRangeSupported = false", varname.c_str());
+      INFO("Dispatch::BackPatch: '%s' IsDeleteRangeSupported = false", factory->Name());
     }
   }
   DEBG("Dispatch::BackPatch: IsDeleteRangeSupported = %d", m_is_delete_range_supported);
