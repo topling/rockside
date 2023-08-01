@@ -117,7 +117,7 @@ JS_NewSstFileManager(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, trash_dir);
   ROCKSDB_JSON_OPT_SIZE(js, rate_bytes_per_sec);
   ROCKSDB_JSON_OPT_PROP(js, max_trash_db_ratio);
-  ROCKSDB_JSON_OPT_PROP(js, bytes_max_delete_chunk);
+  ROCKSDB_JSON_OPT_SIZE(js, bytes_max_delete_chunk);
   if (!fs) {
     fs = env->GetFileSystem();
   }
