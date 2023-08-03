@@ -13,6 +13,7 @@
 #include <rocksdb/db.h>
 #include <rocksdb/sst_file_manager.h>
 #include <port/likely.h>
+#include <logging/auto_roll_logger.h>
 #include <utilities/merge_operators/bytesxor.h>
 #include <utilities/merge_operators/sortlist.h>
 #include <utilities/merge_operators/string_append/stringappend2.h>
@@ -99,6 +100,31 @@ public:
 ROCKSDB_REG_Plugin(AntiDependsLogger, Logger);
 ROCKSDB_REG_Plugin("CreateLoggerFromOptions", AntiDependsLogger, Logger);
 
+static std::shared_ptr<Logger>
+JS_NewAutoRollLogger(const json& js, const SidePluginRepo& repo) {
+  std::shared_ptr<FileSystem> fs;
+  std::shared_ptr<SystemClock> clock = Env::Default()->GetSystemClock();
+  std::string dbname;
+  std::string db_log_dir;
+  size_t log_max_size = 0;
+  size_t log_file_time_to_roll = 0;
+  size_t keep_log_file_num = 1000; // same with DBOptions default
+  InfoLogLevel log_level = INFO_LEVEL;
+  ROCKSDB_JSON_OPT_FACT(js, fs);
+//ROCKSDB_JSON_OPT_FACT(js, clock); // not factoy
+  ROCKSDB_JSON_REQ_PROP(js, dbname);
+  ROCKSDB_JSON_OPT_PROP(js, db_log_dir);
+  ROCKSDB_JSON_OPT_SIZE(js, log_max_size);
+  ROCKSDB_JSON_OPT_PROP(js, log_file_time_to_roll);
+  ROCKSDB_JSON_OPT_PROP(js, keep_log_file_num);
+  ROCKSDB_JSON_OPT_ENUM(js, log_level);
+  if (!fs) {
+    fs = Env::Default()->GetFileSystem();
+  }
+  return std::make_shared<AutoRollLogger>(fs, clock, dbname, db_log_dir,
+           log_max_size, log_file_time_to_roll, keep_log_file_num, log_level);
+}
+ROCKSDB_FACTORY_REG("AutoRollLogger", JS_NewAutoRollLogger);
 
 static std::shared_ptr<SstFileManager>
 JS_NewSstFileManager(const json& js, const SidePluginRepo& repo) {
