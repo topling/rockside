@@ -28,11 +28,16 @@ using std::string;
 
 // lazy create logger to kill dependency from logger to DBOptions,
 // this is not needed on most all cases, just for some corner use case.
+//
+// NOTE: can not be used for multi thread open multi db, because
+//       `m_repo->m_impl->db_options` is not protected by mutex.
+//
 class AntiDependsLogger : public Logger {
   std::string dbopt_varname;
   std::string dbhome;
   mutable std::shared_ptr<Logger> m_target;
   mutable std::mutex m_mtx;
+  bool use_dbopt_log = true;
   const SidePluginRepo* m_repo;
   Logger* Target() const {
     if (LIKELY(m_target != nullptr)) {
@@ -42,7 +47,7 @@ class AntiDependsLogger : public Logger {
     if (m_target != nullptr) {
       return m_target.get();
     }
-    const DBOptions* dbo = nullptr;
+    DBOptions* dbo = nullptr;
     {
       auto name2p = m_repo->m_impl->db_options.name2p.get();
       auto iter = name2p->find(dbopt_varname);
@@ -51,10 +56,22 @@ class AntiDependsLogger : public Logger {
       }
       dbo = iter->second.get();
     }
-    Status s = CreateLoggerFromOptions(dbhome, *dbo, &m_target);
-    if (!s.ok()) {
-      throw s;
+    if (use_dbopt_log && dbo->info_log) {
+      m_target = dbo->info_log;
     }
+    if (!m_target) {
+      Status s = CreateLoggerFromOptions(dbhome, *dbo, &m_target);
+      if (!s.ok()) {
+        throw s;
+      }
+      ROCKSDB_VERIFY(m_target != nullptr);
+      if (use_dbopt_log) {
+        ROCKSDB_VERIFY_EZ(dbo->info_log.get());
+        dbo->info_log = m_target;
+      }
+    }
+    const_cast<AntiDependsLogger*>(this)->
+      Logger::SetInfoLogLevel(m_target->GetInfoLogLevel());
     return m_target.get();
   }
 public:
@@ -62,6 +79,7 @@ public:
     m_repo = &repo;
     ROCKSDB_JSON_REQ_PROP(js, dbopt_varname);
     ROCKSDB_JSON_REQ_PROP(js, dbhome); // dbname(default db home dir)
+    ROCKSDB_JSON_OPT_PROP(js, use_dbopt_log);
   }
   void LogHeader(const char* format, va_list ap) override {
     Target()->LogHeader(format, ap);
