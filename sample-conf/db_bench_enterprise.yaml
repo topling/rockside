@@ -57,9 +57,11 @@ Statistics:
       stats_level: kDisableAll
 MemTableRepFactory:
   cspp:
+    #class: CSPPMemTab # canonical class name, "cspp" is simplified class name
     class: cspp
     params:
       mem_cap: 2G  # just reserve virtual address space
+      chunk_size: 256K # default 2M
       use_vm: true # default is true
       # use_hugepage: false # equivalent to kNone, default
       # use_hugepage: true  # equivalent to kMmap
@@ -68,6 +70,15 @@ MemTableRepFactory:
       # use_hugepage: kTransparent # mmap(normal) + madvise(MADV_HUGEPAGE)
       token_use_idle: true
       read_by_writer_token: true
+      # convert_to_sst: kDontConvert
+      # convert_to_sst: kDumpMem
+      convert_to_sst: kFileMmap
+      sync_sst_file: false
+  # used by cspp_memtab_sst, mainly for webview, cspp_memtab_sst can use
+  # instance of varname 'cspp', but that will mix sst stat and memtab stat.
+  cspp_sst_reader:
+    class: CSPPMemTab
+    params:
   skiplist:
     class: SkipList
     params:
@@ -114,6 +125,10 @@ TableFactory:
       block_cache_compressed:
       persistent_cache:
       filter_policy: bloom # use ~20% of raw ukey size in db_bench key_size=8
+  cspp_memtab_sst:
+    class: CSPPMemTabTable
+    params:
+      sst_reader: cspp_sst_reader
   dispatch:
     class: DispatcherTable
     params:
@@ -122,6 +137,7 @@ TableFactory:
         SingleFastTable: fast
         ToplingZipTable: zip
         BlockBasedTable: bb
+        CSPPMemTabTable: cspp_memtab_sst
       level_writers: [fast, zip, zip, zip, zip, zip, zip]
   dispatch_all_fast:
     class: DispatcherTable
@@ -131,6 +147,7 @@ TableFactory:
         SingleFastTable: fast
         ToplingZipTable: zip
         BlockBasedTable: bb
+        CSPPMemTabTable: cspp_memtab_sst
       level_writers: [fast, fast, fast, fast, fast, fast, fast]
   dispatch_fast_bb:
     class: DispatcherTable
@@ -140,12 +157,37 @@ TableFactory:
         SingleFastTable: fast
         ToplingZipTable: zip
         BlockBasedTable: bb
+        CSPPMemTabTable: cspp_memtab_sst
       level_writers: [fast, bb, bb, bb, bb, bb, bb]
 WriteBufferManager:
   wbm:
     class: WriteBufferManager
     params:
       buffer_size: 2048M
+Logger:
+  log:
+    class: AutoRollLogger
+    params:
+      # dbname for rocksdb::DB::Open, should be same with db path
+      dbname: /dev/shm/db_bench_enterprise
+      #db_log_dir: # default empty
+      #log_max_size: 0 # default 0
+      #log_file_time_to_roll: #default 0
+      #keep_log_file_num: 1000 #default 1000
+      #log_level: DEBUG_LEVEL
+      log_level: INFO_LEVEL # default
+      #log_level: WARN_LEVEL
+      #log_level: ERROR_LEVEL
+      #log_level: FATAL_LEVEL
+      #log_level: HEADER_LEVEL
+SstFileManager:
+  sst_file_mgr:
+    class: SstFileManager
+    params:
+      info_log: log
+      # trash_dir: /trash # default is empty
+      # bytes_max_delete_chunk: 64M # default is 64M
+      bytes_max_delete_chunk: 0
 CFOptions:
   default:
     max_write_buffer_number: 3
@@ -183,14 +225,20 @@ CFOptions:
     max_bytes_for_level_base: 16M
 DBOptions:
   dbo:
+    allow_fallocate: false # default true
+    allow_fdatasync: false # default true
     create_if_missing: true
     create_missing_column_families: true
+    enable_pipelined_write: true
+    max_background_flushes: 2 # default is -1
     max_background_compactions: 13 # default is -1
     max_subcompactions: 1 # default is 1
     max_level1_subcompactions: 7 # default 0 to use max_subcompactions
     inplace_update_support: false # default is false
     write_buffer_manager: "${wbm}"
     WAL_size_limit_MB: 0
+    info_log: log # sst_file_mgr using log, so use explicit defined log
+    sst_file_manager: sst_file_mgr
     statistics: "${stat}"
   dbo2:
     template: "$dbo"
