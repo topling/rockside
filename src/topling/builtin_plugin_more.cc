@@ -121,18 +121,8 @@ JS_NewAutoRollLogger(const json& js, const SidePluginRepo& repo) {
   if (!fs) {
     fs = Env::Default()->GetFileSystem();
   }
-  auto log = std::make_shared<AutoRollLogger>(fs, clock, dbname, db_log_dir,
+  return std::make_shared<AutoRollLogger>(fs, clock, dbname, db_log_dir,
            log_max_size, log_file_time_to_roll, keep_log_file_num, log_level);
-  Status s = log->GetStatus();
-  if (!s.ok()) {
-    if (s.IsPathNotFound()) {
-      std::string msg = s.ToString();
-      std::string prefix = Status::PathNotFound("", "").ToString();
-      throw Status::PathNotFound(msg.substr(prefix.size()),
-        "When define AutoRollLogger in SidePlugin, dbname(path) must existed");
-    }
-  }
-  return log;
 }
 ROCKSDB_FACTORY_REG("AutoRollLogger", JS_NewAutoRollLogger);
 
