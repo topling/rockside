@@ -123,7 +123,6 @@ DBOptions:
     inplace_update_support: false
     WAL_size_limit_MB: 0
     statistics: "${stat}"
-    allow_mmap_reads: true
 databases:
   db_bench_community:
     method: DB::Open
