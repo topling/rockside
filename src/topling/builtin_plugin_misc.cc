@@ -3268,12 +3268,24 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
           json orig;  static_cast<const CFOptions_Json&>(*icf->second).SaveToJson(orig, repo, false);
           json jNew;  cfo.SaveToJson(jNew, repo, false);
           json hNew;  cfo.SaveToJson(hNew, repo, html);
+          orig.erase("template"); // "template" is special, don't show it
           json diff = json::diff(orig, jNew);
           //fprintf(stderr, "CF %s: orig = %s\n", cf_name.c_str(), orig.dump(4).c_str());
           //fprintf(stderr, "CF %s: jNew = %s\n", cf_name.c_str(), jNew.dump(4).c_str());
           //fprintf(stderr, "CF %s: diff = %s\n", cf_name.c_str(), diff.dump(4).c_str());
-          for (auto& kv : diff.items()) {
-            kv.value()["op"] = "add";
+          for (auto& [ith, patch] : diff.items()) {
+            auto iter = patch.find("op");
+            if (patch.end() != iter) {
+              if (iter.value() == "remove") {
+                // we will change op to "add", which needs "value",
+                // so we add a place holder.
+                // we have erase'd "template", so there has no "remove",
+                // but we keep the code for future accidentally added a
+                // field like "template"
+                patch["value"] = "place holder";
+              }
+              iter.value() = "add";
+            }
           }
           json show = json().patch(diff);
           //fprintf(stderr, "CF %s: show = %s\n", cf_name.c_str(), show.dump(4).c_str());
