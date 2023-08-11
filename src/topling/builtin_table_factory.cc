@@ -589,6 +589,19 @@ static std::string str_input_levels(const Compaction* c) {
   s.pop_back();
   return s;
 }
+static bool sst_match_fatory(const CompactionInputFiles& files,
+                             const TableFactory* factory) {
+  for (FileMetaData* meta : files.files) {
+    const TableReader* reader = meta->fd.table_reader;
+    if (nullptr == reader) {
+      return false;
+    }
+    if (!reader->IsMyFactory(factory)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) const {
   if (!allow_trivial_move) {
@@ -615,6 +628,9 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
     const TableFactory* input_factory = get_fac(each_input.level);
     if (input_factory != output_factory) {
       debug_print("false");
+      return false;
+    }
+    if (!sst_match_fatory(each_input, input_factory)) {
       return false;
     }
   }
