@@ -625,7 +625,11 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_NEST(js, compression_opts);
     ROCKSDB_JSON_OPT_PROP(js, level0_file_num_compaction_trigger);
     ROCKSDB_JSON_OPT_FACT(js, prefix_extractor);
-    ROCKSDB_JSON_OPT_SIZE(js, max_bytes_for_level_base);
+    if (js.contains("max_bytes_for_level_base")) {
+      ROCKSDB_JSON_OPT_SIZE(js, max_bytes_for_level_base);
+    } else {
+      terark::maximize(max_bytes_for_level_base, write_buffer_size);
+    }
     ROCKSDB_JSON_OPT_PROP(js, snap_refresh_nanos);
     ROCKSDB_JSON_OPT_PROP(js, disable_auto_compactions);
     ROCKSDB_JSON_OPT_FACT(js, table_factory);
