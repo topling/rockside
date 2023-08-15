@@ -74,11 +74,6 @@ MemTableRepFactory:
       # convert_to_sst: kDumpMem
       convert_to_sst: kFileMmap
       sync_sst_file: false
-  # used by cspp_memtab_sst, mainly for webview, cspp_memtab_sst can use
-  # instance of varname 'cspp', but that will mix sst stat and memtab stat.
-  cspp_sst_reader:
-    class: CSPPMemTab
-    params:
   skiplist:
     class: SkipList
     params:
@@ -127,8 +122,7 @@ TableFactory:
       filter_policy: bloom # use ~20% of raw ukey size in db_bench key_size=8
   cspp_memtab_sst:
     class: CSPPMemTabTable
-    params:
-      sst_reader: cspp_sst_reader
+    params: # empty params
   dispatch:
     class: DispatcherTable
     params:
