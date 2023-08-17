@@ -3978,6 +3978,12 @@ DB_MultiCF::~DB_MultiCF() = default;
 // users should ensure databases are alive when calling this function
 void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
   m_impl->http.Close();
+#if 0
+  // info_log is the product, not factory, but Close here cause coredump
+  for (auto& [varname, log] : *m_impl->info_log.name2p) {
+    log->Close();
+  }
+#endif
 #if 1
   using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
   //using view_kv_ptr = const std::pair<const void* const, Impl::ObjInfo>*;
