@@ -476,7 +476,7 @@ Status DispatcherTableFactory::NewTableReader(
         if (Slice(wfac->Name()) == factory->Name()) {
           factory = wfac;
         } else {
-          ROCKS_LOG_WARN(info_log,
+          ROCKS_LOG_DEBUG(info_log,
               "%s: factory mismatch: by writer = %s[L%zd], use by magic = %s[%s]",
               func, wfac->Name(), level, factory->Name(), varname.c_str());
         }
