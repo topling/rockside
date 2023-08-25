@@ -628,7 +628,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     if (js.contains("max_bytes_for_level_base")) {
       ROCKSDB_JSON_OPT_SIZE(js, max_bytes_for_level_base);
     } else {
-      terark::maximize(max_bytes_for_level_base, write_buffer_size);
+      max_bytes_for_level_base = write_buffer_size;
     }
     ROCKSDB_JSON_OPT_PROP(js, snap_refresh_nanos);
     ROCKSDB_JSON_OPT_PROP(js, disable_auto_compactions);
