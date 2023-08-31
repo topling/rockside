@@ -518,6 +518,10 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     // likely in page cache and L1 is often not compressed to minimize local
     // concurrent (max_subcompaction) compaction's CPU overhead.
     level_compaction_dynamic_level_bytes = false;
+
+    // rocksdb init this option to true, but true yields many small sst file,
+    // even only several KB, thus makes too many files, so we set it to false.
+    level_compaction_dynamic_file_size = false;
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
