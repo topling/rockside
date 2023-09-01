@@ -1526,6 +1526,7 @@ std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd, Ta
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
                                      TableProperties* all_agg, bool show_per_level) {
   std::string html;
+  const double GB = 1L << 30;
 #if defined(NDEBUG)
 try {
 #endif
@@ -1636,7 +1637,7 @@ try {
       html.append(x.being_compacted ? "&#128994;" : "&#128309;"); // green/blue circle
       html.append("</th>");
     }
-    AppendFmt("<td>%.6f</td>", x.size/1e9);
+    AppendFmt("<td>%.6f</td>", x.size/GB);
     uint64_t file_creation_time;
     if (!p) {
       html.append("<td>unkown</td>"); // raw size (key + value)
@@ -1673,7 +1674,7 @@ try {
       auto tag_zip_ratio = double(p->tag_size)/(rows * 8);
       auto val_zip_ratio = double(p->data_size)/p->raw_value_size;
       auto kv_zip_ratio = kv_zip_size/kv_raw_size;
-      AppendFmt("<td>%.6f</td>", kv_raw_size/1e9);
+      AppendFmt("<td>%.6f</td>", kv_raw_size/GB);
       AppendFmt("<td>%" PRIu64"</td>", rows);
       AppendFmt("<td>%" PRIu64"</td>", p->num_deletions);
       AppendFmt("<td>%" PRIu64"</td>", p->num_merge_operands);
@@ -1682,16 +1683,16 @@ try {
 
       AppendFmt("<td title='index: %s, tag: %s'>%.6f</td>",
                 SizeToString(p->index_size).c_str(),
-                SizeToString(p->tag_size).c_str(), zip_key_tag/1e9);
-      AppendFmt("<td>%.6f</td>", p->data_size/1e9);
+                SizeToString(p->tag_size).c_str(), zip_key_tag/GB);
+      AppendFmt("<td>%.6f</td>", p->data_size/GB);
       AppendFmt("<td title='index: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
                 100*p->index_size/zip_key_tag,
                 100*p->tag_size/zip_key_tag, 100*zip_key_tag/kv_zip_size);
 
       AppendFmt("<td title='UserKey: %s, tag: %s'>%.6f</td>",
                 SizeToString(p->raw_key_size - 8*rows).c_str(),
-                SizeToString(8*rows).c_str(), p->raw_key_size/1e9);
-      AppendFmt("<td>%.6f</td>", p->raw_value_size/1e9);
+                SizeToString(8*rows).c_str(), p->raw_key_size/GB);
+      AppendFmt("<td>%.6f</td>", p->raw_value_size/GB);
       AppendFmt("<td title='UserKey: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
                 100.0*(p->raw_key_size - 8*rows)/p->raw_key_size,
                 800.0*rows/p->raw_key_size, 100*p->raw_key_size/kv_raw_size);
@@ -1851,9 +1852,9 @@ try {
   );
   html.append("<p>");
   AppendFmt("all levels summary: file count = %zd, ", meta.file_count);
-  AppendFmt("total size = %.3f GB, ", meta.size/1e9);
+  AppendFmt("total size = %.3f GB, ", meta.size/GB);
   if (meta.file_count > 1) {
-    AppendFmt("avg size = %.3f GB", meta.size/1e9/meta.file_count);
+    AppendFmt("avg size = %.3f GB", meta.size/GB/meta.file_count);
   }
   html.append("</p>\n");
   html.append("<table border=1>\n");
@@ -1888,7 +1889,7 @@ if (show_per_level) {
     html.append("<hr><p>");
     AppendFmt("level = %d, ", curr_level.level);
     AppendFmt("file count = %zd, ", curr_level.files.size());
-    AppendFmt("total size = %.3f GB", curr_level.size/1e9);
+    AppendFmt("total size = %.3f GB", curr_level.size/GB);
     html.append("</p>\n");
     html.append("<table border=1>\n");
     writeHeader(false);
