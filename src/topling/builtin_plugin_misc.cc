@@ -1146,9 +1146,9 @@ static void replace_substr(std::string& s, const std::string& f,
     {}
 }
 
-static string& metrics_DB_Staticstics(const Statistics* st, string& res) {
+static string metrics_DB_Staticstics(const Statistics* st) {
   std::ostringstream oss;
-
+  string res;
   auto replace=[](const string &name) {
     string res = name;
     const string str_rocksdb {"rocksdb"};
@@ -1214,19 +1214,14 @@ struct Statistics_Manip : PluginManipFunc<Statistics> {
   }
   std::string ToString(const Statistics& db, const json& dump_options,
                        const SidePluginRepo& repo) const final {
+    if (JsonSmartBool(dump_options, "metric", false)) {
+      return metrics_DB_Staticstics(&db);
+    }
     bool html = JsonSmartBool(dump_options, "html", true);
     bool nozero = JsonSmartBool(dump_options, "nozero");
-    bool metric = JsonSmartBool(dump_options, "metric");
-
-    if (metric) {
-      string res;
-      metrics_DB_Staticstics(&db, res);
-      return res;
-    } else {
-      json djs;
-      Json_DB_Statistics(&db, djs, html, nozero);
-      return JsonToString(djs, dump_options);
-    }
+    json djs;
+    Json_DB_Statistics(&db, djs, html, nozero);
+    return JsonToString(djs, dump_options);
   }
 };
 ROCKSDB_REG_PluginManip("default", Statistics_Manip);
@@ -2621,8 +2616,7 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   }
   std::string ToString(const CFPropertiesWebView& cfp, const json& dump_options,
                        const SidePluginRepo& repo) const final {
-    bool metric = JsonSmartBool(dump_options, "metric", false);
-    if (metric) {
+    if (JsonSmartBool(dump_options, "metric", false)) {
       return CFPropertiesMetric(*cfp.db, cfp.cfh);
     }
     bool html = JsonSmartBool(dump_options, "html", true);
