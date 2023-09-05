@@ -2621,9 +2621,11 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
   }
   std::string ToString(const CFPropertiesWebView& cfp, const json& dump_options,
                        const SidePluginRepo& repo) const final {
-    bool html = JsonSmartBool(dump_options, "html", true);
     bool metric = JsonSmartBool(dump_options, "metric", false);
-    if (metric) html = false;
+    if (metric) {
+      return CFPropertiesMetric(*cfp.db, cfp.cfh);
+    }
+    bool html = JsonSmartBool(dump_options, "html", true);
     json djs;
     int file_num = JsonSmartInt(dump_options, "file", -1);
     if (file_num >= 0) {
@@ -2634,14 +2636,8 @@ struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
       bool nozero = JsonSmartBool(dump_options, "nozero");
       Json_DB_IntProps(*cfp.db, cfp.cfh, djs, showbad, nozero);
     }
-
     Json_DB_Level_Stats(*cfp.db, cfp.cfh, djs, html, dump_options, repo);
-
-    if (metric) {
-      return CFPropertiesMetric(*cfp.db, cfp.cfh);
-    } else {
-      return JsonToString(djs, dump_options);
-    }
+    return JsonToString(djs, dump_options);
   }
 };
 ROCKSDB_REG_PluginManip("builtin", CFPropertiesWebView_Manip);
