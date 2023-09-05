@@ -1208,19 +1208,19 @@ static string metrics_DB_Staticstics(const Statistics* st) {
 }
 
 struct Statistics_Manip : PluginManipFunc<Statistics> {
-  void Update(Statistics* db, const json&, const json& js,
+  void Update(Statistics* st, const json&, const json& js,
               const SidePluginRepo& repo) const final {
     THROW_NotSupported("TODO");
   }
-  std::string ToString(const Statistics& db, const json& dump_options,
+  std::string ToString(const Statistics& st, const json& dump_options,
                        const SidePluginRepo& repo) const final {
     if (JsonSmartBool(dump_options, "metric", false)) {
-      return metrics_DB_Staticstics(&db);
+      return metrics_DB_Staticstics(&st);
     }
     bool html = JsonSmartBool(dump_options, "html", true);
     bool nozero = JsonSmartBool(dump_options, "nozero");
     json djs;
-    Json_DB_Statistics(&db, djs, html, nozero);
+    Json_DB_Statistics(&st, djs, html, nozero);
     return JsonToString(djs, dump_options);
   }
 };
