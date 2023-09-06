@@ -491,7 +491,11 @@ Status DispatcherTableFactory::NewTableReader(
   auto& map = GetDispatcherTableMagicNumberMap();
   if (auto iter = map.find(magic); map.end() != iter) {
     const std::string& facname = iter->second;
-    if (PluginFactorySP<TableFactory>::HasPlugin(facname)) {
+    const bool AllowUndefined = false; // do not allow
+    if (AllowUndefined && PluginFactorySP<TableFactory>::HasPlugin(facname)) {
+      // if there is not defined TableFactory, here will create a temporary
+      // TableFactory, which is dangerous -- many TableReader/TableBuilder
+      // references its factory.
       try {
         ROCKS_LOG_WARN(info_log,
             "%s: not found factory: %016llX : %s, onfly create it.\n",
