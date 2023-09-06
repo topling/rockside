@@ -1846,7 +1846,8 @@ try {
   </style>)EOS"
   );
   html.append("<p>");
-  AppendFmt("all levels summary: file count = %zd, ", meta.file_count);
+  AppendFmt("all levels summary: version# %lld, file count = %zd, ",
+             (long long)version->GetVersionNumber(), meta.file_count);
   AppendFmt("total size = %.3f GB, ", meta.size/GB);
   if (meta.file_count > 1) {
     AppendFmt("avg size = %.3f GB", meta.size/GB/meta.file_count);
