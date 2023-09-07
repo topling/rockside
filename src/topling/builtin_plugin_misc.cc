@@ -1587,12 +1587,16 @@ try {
     auto& curr_level = meta.levels[level];
     auto& agg = levels_agg[level];
     std::map<std::string, int> algos;
+    const auto num_files = curr_level.files.size();
     for (const auto & x : curr_level.files) {
       std::string fullname = x.db_path + x.name;
       const TableProperties* p = nullptr;
       if (auto iter = props.find(fullname); props.end() != iter) {
         p = iter->second.get();
         algos[p->compression_name]++;
+        if (num_files == 1) {
+          agg.compression_options = p->compression_options;
+        }
       }
       agg_sst(agg, x, p, x.being_compacted?1:0);
     }
@@ -1857,6 +1861,7 @@ try {
   writeHeader(true);
   html.append("<tbody>\n");
   SstProp all_levels_agg;
+  int num_non_empty_level = 0;
   for (int level = 0; level < (int)levels_agg.size(); level++) {
     auto& curr_agg = levels_agg[level];
     if (0 == curr_agg.size) {
@@ -1866,15 +1871,19 @@ try {
     write(curr_agg, &curr_agg, (int)meta.levels[level].files.size());
     // use creation_time as num_compacting
     agg_sst(all_levels_agg, curr_agg, &curr_agg, curr_agg.creation_time);
+    num_non_empty_level++;
   }
   all_levels_agg.compression_name = AggregateNames(algos_all, "<br>");
   if (all_agg) {
     *all_agg = all_levels_agg;
   }
   html.append("</tbody>\n");
-  html.append("<tfoot>\n");
-  write(all_levels_agg, &all_levels_agg, (int)meta.file_count);
-  html.append("</tfoot></table>\n");
+  if (num_non_empty_level > 1) {
+    html.append("<tfoot>\n");
+    write(all_levels_agg, &all_levels_agg, (int)meta.file_count);
+    html.append("</tfoot>\n");
+  }
+  html.append("</table>\n");
 
 if (show_per_level) {
   for (int level = 0; level < (int)meta.levels.size(); level++) {
@@ -1902,10 +1911,13 @@ if (show_per_level) {
       }
       html.append("</tbody>\n");
     }
-    html.append("<tfoot>\n");
-    levels_agg[level].name = ""; // sum
-    write(levels_agg[level], &levels_agg[level], -1);
-    html.append("</tfoot></table>\n");
+    if (curr_level.files.size() > 1) {
+      html.append("<tfoot>\n");
+      levels_agg[level].name = ""; // sum
+      write(levels_agg[level], &levels_agg[level], -1);
+      html.append("</tfoot>\n");
+    }
+    html.append("</table>\n");
   }
 } // if (show_per_level)
   html.append("</div>");
