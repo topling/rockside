@@ -6,8 +6,6 @@ CFOptions:
     target_file_size_base: 32M
     target_file_size_multiplier: 2
     table_factory: dispatch
-    compaction_options_level:
-      L1_score_boost: 1
     # max_bytes_for_level_base: 512M # default = max(256M, write_buffer_size)
     max_bytes_for_level_multiplier: 10
     level_compaction_dynamic_level_bytes: false

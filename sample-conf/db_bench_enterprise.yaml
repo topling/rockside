@@ -168,8 +168,6 @@ CFOptions:
     table_factory: dispatch
     #table_factory: dispatch_all_fast
     #table_factory: dispatch_fast_bb
-    compaction_options_level:
-      L1_score_boost: 1
     #max_bytes_for_level_base: 512M # default = max(256M, write_buffer_size)
     max_bytes_for_level_multiplier: 10
     ########

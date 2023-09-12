@@ -115,8 +115,6 @@ CFOptions:
     target_file_size_base: 16M
     target_file_size_multiplier: 2
     table_factory: dispatch
-    compaction_options_level:
-      L1_score_boost: 10
     level0_slowdown_writes_trigger: 20
     level0_stop_writes_trigger: 36
     level0_file_num_compaction_trigger: 4

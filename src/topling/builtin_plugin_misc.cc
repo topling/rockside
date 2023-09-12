@@ -649,14 +649,6 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
         THROW_InvalidArgument("bad html_user_key_coder = %s" + js["html_user_key_coder"].dump());
       }
     }
-    if (kCompactionStyleLevel == compaction_style) {
-      if (auto iter = js.find("compaction_options_level"); js.end() != iter) {
-        auto L1_score_boost = compaction_options_universal.size_ratio;
-        auto& sub = iter.value();
-        ROCKSDB_JSON_OPT_PROP(sub, L1_score_boost);
-        compaction_options_universal.size_ratio = L1_score_boost;
-      }
-    }
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70050
     ROCKSDB_JSON_OPT_PROP(js, blob_file_starting_level);
     ROCKSDB_JSON_OPT_FACT(js, blob_cache);
@@ -714,8 +706,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     if (kCompactionStyleUniversal == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_universal);
     } else if (kCompactionStyleLevel == compaction_style) {
-      auto L1_score_boost = compaction_options_universal.size_ratio;
-      ROCKSDB_JSON_SET_PROP(js["compaction_options_level"], L1_score_boost);
+      // do nothing now
     } else if (kCompactionStyleFIFO == compaction_style) {
       ROCKSDB_JSON_SET_NEST(js, compaction_options_fifo);
     }

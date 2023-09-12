@@ -219,7 +219,6 @@
         "num_levels": 10, "max_bytes_for_level_multiplier": 4,
         "///memtable_factory": "$cspp",
         "//memtable_factory": "$skiplist",
-        "compaction_options_level": { "L1_score_boost": 10 },
         "html_user_key_coder": "${db_bench_key_coder}",
         "max_write_buffer_number": 6,
         "write_buffer_size": "3G",
