@@ -547,6 +547,7 @@ const {
         " returns null, try default: %s\n",
         level, m_level_writers[level]->Name(), m_default_writer->Name());
       builder = m_default_writer->NewTableBuilder(tbo, file);
+      ROCKSDB_VERIFY_F(nullptr != builder, "L[%d]: use m_default_writer = %s", level, m_default_writer->Name());
       m_writer_files[0]++;
     } else {
       m_writer_files[level+1]++;
@@ -557,8 +558,10 @@ const {
         "Dispatch::NewTableBuilder: level = %d, use default factory = %s\n",
         level, m_default_writer->Name());
     builder = m_default_writer->NewTableBuilder(tbo, file);
+    ROCKSDB_VERIFY_F(nullptr != builder, "L[%d]: use m_default_writer = %s", level, m_default_writer->Name());
     m_writer_files[0]++;
   }
+  ROCKSDB_VERIFY(nullptr != builder);
   return new DispatcherTableBuilder(builder, this, level);
 }
 
