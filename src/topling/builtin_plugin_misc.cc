@@ -2852,11 +2852,8 @@ namespace {
     }
   };
 } // namespace
-static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
-                                  const json& dump_options) {
-  DB* db = const_cast<DB*>(dbc);
-  MyFO fo(dump_options);
-  Status s = db->Flush(fo, cfh);
+
+std::string StatusToJsonString(const Status& s) {
   if (s.ok()) {
     return R"({"status": "OK"})";
   }
@@ -2864,17 +2861,19 @@ static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
     return R"({"status": ")" + s.ToString() + R"("})";
   }
 }
+static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
+                                  const json& dump_options) {
+  DB* db = const_cast<DB*>(dbc);
+  MyFO fo(dump_options);
+  Status s = db->Flush(fo, cfh);
+  return StatusToJsonString(s);
+}
 static std::string RunManualFlushAll(const DB_MultiCF& dbm, const json& dump_options) {
   DB* db = const_cast<DB*>(dbm.db);
   DBOptions dbo = db->GetDBOptions();
   MyFO fo(dump_options);
   Status s = db->Flush(fo, dbm.get_cf_handles_view());
-  if (s.ok()) {
-    return R"({"status": "OK"})";
-  }
-  else {
-    return R"({"status": ")" + s.ToString() + R"("})";
-  }
+  return StatusToJsonString(s);
 }
 
 void PluginUpdate(const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
@@ -3189,6 +3188,9 @@ struct DB_MultiCF_Manip : PluginManipFunc<DB_MultiCF> {
     }
     if (dump_options.contains("flushall")) {
       return RunManualFlushAll(db, dump_options);
+    }
+    if (dump_options.contains("ResumeFromBackgroundError")) {
+      return StatusToJsonString(db.db->Resume());
     }
     if (MayHandleGetCmd(db.db, djs, dump_options, repo)) {
       return JsonToString(djs, dump_options);
