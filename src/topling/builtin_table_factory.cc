@@ -582,10 +582,6 @@ const {
   return Status::OK();
 }
 
-bool DispatcherTableFactory::AllowIntraL0Compaction() const {
-  return false;
-}
-
 bool DispatcherTableFactory::IsDeleteRangeSupported() const {
   return m_is_delete_range_supported;
 }

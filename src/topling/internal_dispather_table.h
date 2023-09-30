@@ -31,7 +31,6 @@ public:
 
   Status ValidateOptions(const DBOptions&, const ColumnFamilyOptions&) const override;
   std::string GetPrintableOptions() const override;
-  bool AllowIntraL0Compaction() const override;
   bool IsDeleteRangeSupported() const override;
   bool InputCompressionMatchesOutput(const class Compaction*) const override;
 
