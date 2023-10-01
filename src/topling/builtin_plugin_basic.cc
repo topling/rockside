@@ -624,10 +624,11 @@ struct DynaMemTableFactory : public MemTableRepFactory {
   }
   MemTableRep*
   CreateMemTableRep(const std::string& level0_dir,
+                    const MutableCFOptions& mcfopt,
                     const MemTableRep::KeyComparator& kc, Allocator* a,
                     const SliceTransform* st, Logger* logger,
                     uint32_t cf_id) override {
-    return real_fac->CreateMemTableRep(level0_dir, kc, a, st, logger, cf_id);
+    return real_fac->CreateMemTableRep(level0_dir, mcfopt, kc, a, st, logger, cf_id);
   }
   bool IsInsertConcurrentlySupported() const override {
     return real_fac->IsInsertConcurrentlySupported();
