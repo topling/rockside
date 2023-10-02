@@ -1201,7 +1201,9 @@ static string metrics_DB_Staticstics(const Statistics* st) {
 struct Statistics_Manip : PluginManipFunc<Statistics> {
   void Update(Statistics* st, const json&, const json& js,
               const SidePluginRepo& repo) const final {
-    THROW_NotSupported("TODO");
+    auto stats_level = st->get_stats_level();
+    ROCKSDB_JSON_OPT_ENUM(js, stats_level);
+    st->set_stats_level(stats_level);
   }
   std::string ToString(const Statistics& st, const json& dump_options,
                        const SidePluginRepo& repo) const final {
