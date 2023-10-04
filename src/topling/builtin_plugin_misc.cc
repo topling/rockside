@@ -1888,6 +1888,10 @@ if (show_per_level) {
     AppendFmt("level = %d, ", curr_level.level);
     AppendFmt("file count = %zd, ", curr_level.files.size());
     AppendFmt("total size = %.3f GB", curr_level.size/GB);
+    if (level && meta.levels[level-1].size) {
+      AppendFmt(", over prev level = %.6f",
+                double(curr_level.size)/meta.levels[level-1].size);
+    }
     html.append("</p>\n");
     html.append("<table border=1>\n");
     writeHeader(false);
