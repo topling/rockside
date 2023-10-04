@@ -437,6 +437,7 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   ignoreInputCompressionMatchesOutput = false;
   ROCKSDB_JSON_OPT_PROP(js, allow_trivial_move);
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
+  ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
 }
 
 const char* DispatcherTableFactory::Name() const {
@@ -648,6 +649,36 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
   return true;
 }
 
+bool DispatcherTableFactory::ShouldCompactMarkForCompaction
+(const CompactionInputFiles** level_inputs, size_t num) const
+{
+  if (num < 2) {
+    return true;
+  }
+  std::vector<uint64_t> vec_bytes(num, 0);
+  for (size_t i = 0; i < num; i++) {
+    for (auto* f : level_inputs[i]->files) {
+      vec_bytes[i] += std::max({f->raw_key_size + f->raw_value_size,
+                                f->fd.file_size, f->compensated_file_size});
+    }
+  }
+  auto max_bytes = *std::max_element(vec_bytes.begin(), vec_bytes.end());
+  auto sum_bytes = std::accumulate(vec_bytes.begin(), vec_bytes.end(), uint64_t(0));
+  if (max_bytes == sum_bytes) {
+    // only 1 non-empty sorted run
+    return true;
+  }
+  auto wamp = (sum_bytes + 1.0) /
+              (sum_bytes + 1.0 - max_bytes);
+  DEBG("sorted_runs_bytes: max = %11s, others = %11s, sum = %11s, max_wamp = %.3f, wamp = %11.1f"
+       , SizeToString(max_bytes).c_str()
+       , SizeToString(sum_bytes - max_bytes).c_str()
+       , SizeToString(sum_bytes).c_str()
+       , mark_for_compaction_max_wamp, wamp
+       );
+  return wamp <= mark_for_compaction_max_wamp;
+}
+
 void DispatcherTableBackPatch(TableFactory* f, const SidePluginRepo& repo) {
   auto dispatcher = dynamic_cast<DispatcherTableFactory*>(f);
   assert(nullptr != dispatcher);
@@ -854,6 +885,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   json js;
   ROCKSDB_JSON_SET_PROP(js["options"], allow_trivial_move);
   ROCKSDB_JSON_SET_PROP(js["options"], ignoreInputCompressionMatchesOutput);
+  ROCKSDB_JSON_SET_PROP(js["options"], mark_for_compaction_max_wamp);
   for (size_t i = 0, n = m_level_writers.size(); i < n; ++i) {
     auto& tf = m_level_writers[i];
     if (auto iter = p2name.find(tf.get()); p2name.end() == iter) {
@@ -965,6 +997,7 @@ MetricStr(const json& dump_options, const SidePluginRepo& repo) const {
 
 void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
+  ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
   if (auto iter = js.find("level_writers"); js.end() != iter) {
     auto& level_writers_js = iter.value();
     if (!level_writers_js.is_array()) {

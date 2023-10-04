@@ -33,6 +33,7 @@ public:
   std::string GetPrintableOptions() const override;
   bool IsDeleteRangeSupported() const override;
   bool InputCompressionMatchesOutput(const class Compaction*) const override;
+  bool ShouldCompactMarkForCompaction(const CompactionInputFiles**, size_t) const override;
 
 // non TableFactory methods:
   void BackPatch(const SidePluginRepo& repo);
@@ -93,6 +94,7 @@ protected:
   bool m_is_delete_range_supported;
   bool allow_trivial_move;
   bool ignoreInputCompressionMatchesOutput;
+  double mark_for_compaction_max_wamp = 1e9; // do not limit by default
   friend class DispatcherTableBuilder;
 };
 
