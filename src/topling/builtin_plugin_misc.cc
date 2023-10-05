@@ -1879,6 +1879,7 @@ try {
   html.append("</table>\n");
 
 if (show_per_level) {
+  int level_prev = 0;
   for (int level = 0; level < (int)meta.levels.size(); level++) {
     auto& curr_level = meta.levels[level];
     if (curr_level.files.empty()) {
@@ -1887,10 +1888,12 @@ if (show_per_level) {
     html.append("<hr><p>");
     AppendFmt("level = %d, ", curr_level.level);
     AppendFmt("file count = %zd, ", curr_level.files.size());
-    AppendFmt("total size = %.3f GB", curr_level.size/GB);
-    if (level && meta.levels[level-1].size) {
-      AppendFmt(", over prev level = %.6f",
-                double(curr_level.size)/meta.levels[level-1].size);
+    AppendFmt("total zip = %.3f GB", curr_level.size/GB);
+    AppendFmt(", raw = %.3f GB", levels_agg[level].raw_size()/GB);
+    if (level && meta.levels[level_prev].size) {
+      AppendFmt(", over prev level: zip = %.6f, raw = %.6f",
+        double(curr_level.size)/meta.levels[level_prev].size,
+        double(levels_agg[level].raw_size())/levels_agg[level_prev].raw_size());
     }
     html.append("</p>\n");
     html.append("<table border=1>\n");
@@ -1915,6 +1918,7 @@ if (show_per_level) {
       html.append("</tfoot>\n");
     }
     html.append("</table>\n");
+    level_prev = level;
   }
 } // if (show_per_level)
   html.append("</div>");
