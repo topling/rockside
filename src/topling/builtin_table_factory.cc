@@ -438,6 +438,7 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, allow_trivial_move);
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
   ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
+  ROCKSDB_JSON_OPT_PROP(js, trivial_move_max_file_size_multiplier);
 }
 
 const char* DispatcherTableFactory::Name() const {
@@ -644,6 +645,32 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
   }
   if (strcmp(output_factory->Name(), kBlockBasedTableName()) == 0) {
     return output_factory->InputCompressionMatchesOutput(c);
+  }
+  if (c->mutable_cf_options()->target_file_size_multiplier > 1) {
+    const auto& inputs = *c->inputs();
+    for (size_t i = 0, n = inputs.size(); i < n; i++) {
+      if (inputs[i].files.empty()) {
+        continue;
+      }
+      uint64_t sum_fsize = 0;
+      for (auto& f : inputs[i].files) {
+        if (auto rd = f->fd.table_reader) {
+          auto props = rd->GetTableProperties();
+          sum_fsize += props->raw_size();
+        } else {
+          sum_fsize += f->fd.file_size;
+        }
+      }
+      auto avg_fsize = double(sum_fsize) / inputs[i].files.size();
+      if (avg_fsize * trivial_move_max_file_size_multiplier <
+                               c->target_output_file_size()) {
+        // don't allow trivial move more too many times, this reduces many
+        // small files trivial move to bottom level which makes bottom level
+        // have too many files
+        debug_print("false, avg input file size is too small");
+        return false;
+      }
+    }
   }
   debug_print("true");
   return true;
@@ -886,6 +913,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   ROCKSDB_JSON_SET_PROP(js["options"], allow_trivial_move);
   ROCKSDB_JSON_SET_PROP(js["options"], ignoreInputCompressionMatchesOutput);
   ROCKSDB_JSON_SET_PROP(js["options"], mark_for_compaction_max_wamp);
+  ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_max_file_size_multiplier);
   for (size_t i = 0, n = m_level_writers.size(); i < n; ++i) {
     auto& tf = m_level_writers[i];
     if (auto iter = p2name.find(tf.get()); p2name.end() == iter) {
@@ -998,6 +1026,7 @@ MetricStr(const json& dump_options, const SidePluginRepo& repo) const {
 void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
   ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
+  ROCKSDB_JSON_OPT_PROP(js, trivial_move_max_file_size_multiplier);
   if (auto iter = js.find("level_writers"); js.end() != iter) {
     auto& level_writers_js = iter.value();
     if (!level_writers_js.is_array()) {

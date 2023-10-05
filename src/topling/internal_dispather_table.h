@@ -95,6 +95,7 @@ protected:
   bool allow_trivial_move;
   bool ignoreInputCompressionMatchesOutput;
   double mark_for_compaction_max_wamp = 1e9; // do not limit by default
+  double trivial_move_max_file_size_multiplier = 4.0;
   friend class DispatcherTableBuilder;
 };
 
