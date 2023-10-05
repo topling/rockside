@@ -305,22 +305,16 @@ json ToWebViewJson(const json& dump_options) const {
       {"name", r->table_properties->compression_name},
       {"options",
        SliceStringIntoJson(r->table_properties->compression_options)},
-      {"ratio", (double)(r->table_properties->raw_key_size +
-                         r->table_properties->raw_value_size) /
-                    r->file_size},
+      {"ratio", double(r->table_properties->raw_size()) /r->file_size},
       {"file_size", r->file_size},
   });
 
   djs["kv_info"]["raw"] = json::object({
       {"key_size", r->table_properties->raw_key_size},
       {"value_size", r->table_properties->raw_value_size},
-      {"k/(k+v)", (double)r->table_properties->raw_key_size /
-                  (r->table_properties->raw_key_size +
-                   r->table_properties->raw_value_size)},
-      {"total_size",
-       r->table_properties->raw_key_size + r->table_properties->raw_value_size},
+      {"k/(k+v)", (double)r->table_properties->raw_key_size / r->table_properties->raw_size()},
+      {"total_size", r->table_properties->raw_size()},
   });
-
 
   djs["ApproximateMemoryUsage"] = ApproximateMemoryUsage();
   if (r->fragmented_range_dels)
