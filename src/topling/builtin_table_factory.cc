@@ -23,16 +23,6 @@
 
 namespace ROCKSDB_NAMESPACE {
 
-const char* StrDateTimeNow() {
-  static thread_local char buf[64];
-  time_t rawtime;
-  time(&rawtime);
-  struct tm  timebuf;
-  struct tm* timeinfo = port::LocalTimeR(&rawtime, &timebuf);
-  strftime(buf, sizeof(buf), "%F %T",timeinfo);
-  return buf;
-}
-
 static std::shared_ptr<const FilterPolicy>
 NewBloomFilterPolicyJson(const json& js, const SidePluginRepo&) {
   double bits_per_key = 10;

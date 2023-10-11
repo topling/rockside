@@ -15,6 +15,8 @@
 #include "rocksdb/enum_reflection.h"
 #include "rocksdb/preproc.h"
 
+#include <terark/util/nolocks_localtime.hpp>
+
 namespace ROCKSDB_NAMESPACE {
 
 #define THROW_STATUS(Type, msg) throw rocksdb::Status::Type(std::string(__FILE__) + (":" ROCKSDB_PP_STR(__LINE__) ": ") + ROCKSDB_FUNC, msg)
@@ -33,7 +35,7 @@ template<class T> T* GetRawPtr(T* p){ return p; }
 template<class T> T* GetRawPtr(const std::shared_ptr<T>& p){ return p.get(); }
 inline DB* GetRawPtr(const DB_Ptr& p){ return p.db; }
 
-const char* StrDateTimeNow();
+using terark::StrDateTimeNow;
 std::string demangle(const char* name);
 std::string demangle(const std::type_info&);
 
