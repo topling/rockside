@@ -1603,7 +1603,7 @@ try {
   }
   auto write = [&](const SstFileMetaData& x, const TableProperties* p, int fcnt) {
     if (x.being_compacted)
-      AppendFmt("<tr class='compact%02d'>", unsigned(x.job_id) % 32);
+      AppendFmt("<tr class='highlight%02d'>", unsigned(x.job_id) % 32);
     else
       html.append("<tr>");
     if (x.name.empty() || 'L' == x.name[0]) { // is aggregated
@@ -1684,22 +1684,28 @@ try {
                 SizeToString(p->index_size).c_str(),
                 SizeToString(p->tag_size).c_str(), zip_key_tag/GB);
       AppendFmt("<td>%.6f</td>", p->data_size/GB);
-      AppendFmt("<td title='index: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
+      AppendFmt("<td title='index: %.1f%%, tag: %.1f%%'%s>%.1f%%</td>",
                 100*p->index_size/zip_key_tag,
-                100*p->tag_size/zip_key_tag, 100*zip_key_tag/kv_zip_size);
+                100*p->tag_size/zip_key_tag,
+                x.being_compacted ? "" : " class='bghighlight'",
+                100*zip_key_tag/kv_zip_size);
 
       AppendFmt("<td title='UserKey: %s, tag: %s'>%.6f</td>",
                 SizeToString(p->raw_key_size - 8*rows).c_str(),
                 SizeToString(8*rows).c_str(), p->raw_key_size/GB);
       AppendFmt("<td>%.6f</td>", p->raw_value_size/GB);
-      AppendFmt("<td title='UserKey: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
+      AppendFmt("<td title='UserKey: %.1f%%, tag: %.1f%%'%s>%.1f%%</td>",
                 100.0*(p->raw_key_size - 8*rows)/p->raw_key_size,
-                800.0*rows/p->raw_key_size, 100*p->raw_key_size/kv_raw_size);
+                800.0*rows/p->raw_key_size,
+                x.being_compacted ? "" : " class='bghighlight'",
+                100*p->raw_key_size/kv_raw_size);
 
       AppendFmt("<td title='index: %.1f%%, tag: %.1f%%'>%.1f%%</td>",
                 100*key_zip_ratio, 100*tag_zip_ratio, 100*zip_key_tag/p->raw_key_size);
       AppendFmt("<td>%.1f%%</td>", 100*val_zip_ratio);
-      AppendFmt("<td class='bghighlight'>%.1f%%</td>", 100*kv_zip_ratio);
+      AppendFmt("<td%s>%.1f%%</td>",
+                x.being_compacted ? "" : " class='bghighlight'",
+                100*kv_zip_ratio);
 
       AppendFmt("<td title='UserKey: %.3f, tag: %.3f (%.2f bits)'>%.1f</td>",
                 avg_zip_key, tag_zip_ratio * 8, tag_zip_ratio * 64,
