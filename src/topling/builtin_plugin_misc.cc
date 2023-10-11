@@ -1603,7 +1603,7 @@ try {
   }
   auto write = [&](const SstFileMetaData& x, const TableProperties* p, int fcnt) {
     if (x.being_compacted)
-      html.append("<tr class='bghighlight'>");
+      AppendFmt("<tr class='compact%02d'>", unsigned(x.job_id) % 32);
     else
       html.append("<tr>");
     if (x.name.empty() || 'L' == x.name[0]) { // is aggregated
@@ -1626,6 +1626,10 @@ try {
       html.append("</a>");
       html.append("</th>");
       html.append("<th class='emoji'>");
+      if (x.being_compacted) {
+        html.back() = ' '; // replace '>'
+        AppendFmt("title='job %d'>", x.job_id);
+      }
       //html.append(x.being_compacted ? "true" : "false");
       //html.append(x.being_compacted ? "&#9989;" : "&#10062;"); // yes/no
       //html.append(x.being_compacted ? "&#128308;" : "&#128309;"); // red/blue circle
@@ -1837,6 +1841,111 @@ try {
     .bghighlight {
       background-color: AntiqueWhite;
     }
+
+    .highlight00 {
+      background-color: AntiqueWhite; color: Black;
+    }
+    .highlight01 {
+      background-color: AntiqueWhite; color: Teal;
+    }
+    .highlight02 {
+      background-color: AntiqueWhite; color: Fuchsia;
+    }
+    .highlight03 {
+      background-color: AntiqueWhite; color: Purple;
+    }
+
+    .highlight04 {
+      background-color: Pink; color: Black;
+    }
+    .highlight05 {
+      background-color: Pink; color: Teal;
+    }
+    .highlight06 {
+      background-color: Pink; color: Purple;
+    }
+    .highlight07 {
+      background-color: Pink; color: Navy;
+    }
+
+    .highlight08 {
+      background-color: DarkCyan; color: White;
+    }
+    .highlight09 {
+      background-color: DarkCyan; color: Orange;
+    }
+    .highlight10 {
+      background-color: DarkCyan; color: Pink;
+    }
+    .highlight11 {
+      background-color: DarkCyan; color: Yellow;
+    }
+
+    .highlight12 {
+      background-color: Green; color: White;
+    }
+    .highlight13 {
+      background-color: Green; color: Orange;
+    }
+    .highlight14 {
+      background-color: Green; color: Pink;
+    }
+    .highlight15 {
+      background-color: Green; color: Yellow;
+    }
+
+    .highlight16 {
+      background-color: Indigo; color: White;
+    }
+    .highlight17 {
+      background-color: Indigo; color: Orange;
+    }
+    .highlight18 {
+      background-color: Indigo; color: Pink;
+    }
+    .highlight19 {
+      background-color: Indigo; color: Yellow;
+    }
+
+    .highlight20 {
+      background-color: Navy; color: White;
+    }
+    .highlight21 {
+      background-color: Navy; color: Orange;
+    }
+    .highlight22 {
+      background-color: Navy; color: Pink;
+    }
+    .highlight23 {
+      background-color: Navy; color: Yellow;
+    }
+
+    .highlight24 {
+      background-color: Olive; color: White;
+    }
+    .highlight25 {
+      background-color: Olive; color: Orange;
+    }
+    .highlight26 {
+      background-color: Olive; color: Pink;
+    }
+    .highlight27 {
+      background-color: Olive; color: Yellow;
+    }
+
+    .highlight28 {
+      background-color: YellowGreen; color: Black;
+    }
+    .highlight29 {
+      background-color: YellowGreen; color: Teal;
+    }
+    .highlight30 {
+      background-color: YellowGreen; color: FireBrick;
+    }
+    .highlight31 {
+      background-color: YellowGreen; color: Purple;
+    }
+
     .emoji {
       font-family: "Apple Color Emoji","Segoe UI Emoji",NotoColorEmoji,"Segoe UI Symbol","Android Emoji",EmojiSymbols;
     }
