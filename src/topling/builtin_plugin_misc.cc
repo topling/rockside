@@ -1506,16 +1506,17 @@ ScopeLockVersion::~ScopeLockVersion() {
 }
 
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
-                                     TableProperties* all_agg, bool show_per_level);
+                                     TableProperties* all_agg, int show_per_level);
 
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd) {
-  return Json_DB_CF_SST_HtmlTable(version, cfd, nullptr);
+  return Json_DB_CF_SST_HtmlTable(version, cfd, nullptr, 2);
 }
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd, TableProperties* all_agg) {
-  return Json_DB_CF_SST_HtmlTable(version, cfd, all_agg, true);
+  return Json_DB_CF_SST_HtmlTable(version, cfd, all_agg, 2);
 }
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
-                                     TableProperties* all_agg, bool show_per_level) {
+                                     TableProperties* all_agg, int show_per_level) {
+#define NumCompactingSSTs creation_time // use creation_time as num_compacting
   std::string html;
   const double GB = 1L << 30;
 #if defined(NDEBUG)
@@ -1576,7 +1577,7 @@ try {
       agg.largest_ikey = x.largest_ikey;
     }
     agg.size += x.size;
-    agg.creation_time += num_compacting; // use creation_time as num_compacting
+    agg.NumCompactingSSTs += num_compacting;
     agg.num_reads_sampled += x.num_reads_sampled;
   };
   for (int level = 0; level < (int)meta.levels.size(); level++) {
@@ -1601,16 +1602,20 @@ try {
     }
     agg.compression_name = AggregateNames(algos, "<br>");
   }
+  auto is_aggregation = [](Slice s) { return s.empty() || 'L' == s[0]; };
+  auto is_sst_file = [=](Slice s) { return !is_aggregation(s); };
   auto write = [&](const SstFileMetaData& x, const TableProperties* p, int fcnt) {
     if (x.being_compacted)
       AppendFmt("<tr class='highlight%02d'>", unsigned(x.job_id) % 32);
+    else if (show_per_level == 1 && is_sst_file(x.name))
+      return; // do not show non-compacting files
     else
       html.append("<tr>");
-    if (x.name.empty() || 'L' == x.name[0]) { // is aggregated
+    if (is_aggregation(x.name)) {
       html.append("<th>");
       html.append(x.name.empty() ? "sum" : x.name);
       html.append("</th>");
-      AppendFmt("<th>%" PRIu64 "</th>", p->creation_time); // num_compacting
+      AppendFmt("<th>%" PRIu64 "</th>", p->NumCompactingSSTs);
     } else { // is an sst file
       auto beg = x.name.begin();
       auto dot = std::find(beg, x.name.end(), '.');
@@ -1974,8 +1979,7 @@ try {
     }
     curr_agg.name.assign(buf, snprintf(buf, sizeof buf, "L%d", level));
     write(curr_agg, &curr_agg, (int)meta.levels[level].files.size());
-    // use creation_time as num_compacting
-    agg_sst(all_levels_agg, curr_agg, &curr_agg, curr_agg.creation_time);
+    agg_sst(all_levels_agg, curr_agg, &curr_agg, curr_agg.NumCompactingSSTs);
     num_non_empty_level++;
   }
   all_levels_agg.compression_name = AggregateNames(algos_all, "<br>");
@@ -1990,11 +1994,22 @@ try {
   }
   html.append("</table>\n");
 
-if (show_per_level) {
+//  0: do not show per level detail
+//  1: show compacting files only
+//  2: show all files, include compacting and non-compacting
+if (show_per_level == 1 && 0 == all_levels_agg.NumCompactingSSTs) {
+  html.append("<p>url param <b>per_level</b> and <b>all_sst</b> are "
+                 "<b>true</b> but there is no any sst in compacting"
+             "</p>");
+}
+else if (show_per_level >= 1) {
   int level_prev = 0;
   for (int level = 0; level < (int)meta.levels.size(); level++) {
     auto& curr_level = meta.levels[level];
     if (curr_level.files.empty()) {
+      continue;
+    }
+    if (1 == show_per_level && 0 == levels_agg[level].NumCompactingSSTs) {
       continue;
     }
     html.append("<hr><p>");
@@ -2172,7 +2187,7 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
     case 2: // show as html table
     {
       auto cfd = cfh->cfd();
-      bool show_per_level = JsonSmartBool(dump_options, "per_level", true);
+      auto show_per_level = JsonSmartInt(dump_options, "per_level", 1);
       ScopeLockVersion slv(cfd, Get_DB_mutex(&db));
       stjs[HTML_WRAP(DB::Properties::kSSTables)] =
         Json_DB_CF_SST_HtmlTable(slv.version, cfd, nullptr, show_per_level);
