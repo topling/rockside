@@ -15,19 +15,19 @@ table table {
 }
 
 table tr:hover {
-  background-color: rgb(250, 250, 250);
+  background-color: rgb(250, 250, 250); color:black
 }
 
 table table tr:hover {
-  background-color: rgb(240, 240, 240);
+  background-color: rgb(240, 240, 240); color:black
 }
 
 table table table tr:hover {
-  background-color: rgb(230, 230, 230);
+  background-color: rgb(230, 230, 230); color:black
 }
 
 table table table table tr:hover {
-  background-color: rgb(220, 220, 220);
+  background-color: rgb(220, 220, 220); color:black
 }
 
 a {
