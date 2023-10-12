@@ -1868,9 +1868,7 @@ try {
 //  1: show compacting files only
 //  2: show all files, include compacting and non-compacting
 if (show_per_level == 1 && 0 == all_levels_agg.NumCompactingSSTs) {
-  html.append("<p>url param <b>per_level</b> and <b>all_sst</b> are "
-                 "<b>true</b> but there is no any sst in compacting"
-             "</p>");
+  html.append("<p>url param <b>per_level</b> is 1 but there is no any compacting sst</p>");
 }
 else if (show_per_level >= 1) {
   int level_prev = 0;
