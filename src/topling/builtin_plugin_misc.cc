@@ -1618,6 +1618,8 @@ try {
       html.append("<th>");
       html.append(x.name.empty() ? "sum" : x.name);
       html.append("</th>");
+      if (fcnt >= 0)
+        AppendFmt("<td>%d</td>", fcnt);
       AppendFmt("<th>%" PRIu64 "</th>", p->NumCompactingSSTs);
     } else { // is an sst file
       auto beg = x.name.begin();
@@ -1737,7 +1739,6 @@ try {
     Html_AppendTime(html, buf, file_creation_time);
     //AppendFmt("<td>%" PRIu64"</td>", x.num_reads_sampled);
     if (fcnt >= 0) {
-      AppendFmt("<td>%d</td>", fcnt);
       if (fcnt && p) {
         auto kv_zip_size = p->index_size + p->data_size;
         auto kv_raw_size = p->raw_key_size + p->raw_value_size;
@@ -1757,7 +1758,11 @@ try {
     //html.append("<th rowspan=2>&#127959;</th>"); // compacting: 施工中
     //html.append("<th rowspan=2>&#127540;</th>"); // compacting: character: "合"
     //compacting: emoji: recycling
-    html.append("<th rowspan=2 class='emoji' style='font-size: xx-large' title='being compacted ?'>&#9851;</th>");
+    if (with_fcnt)
+      html.append("<th rowspan=2 colspan=2"
+                               " class='emoji' style='font-size: xx-large' title='being compacted ?'>&#9851;</th>");
+    else
+      html.append("<th rowspan=2 class='emoji' style='font-size: xx-large' title='being compacted ?'>&#9851;</th>");
     html.append("<th colspan=2>FileSize(GB)</th>");
     html.append("<th colspan=4>Entries</th>");
     html.append("<th rowspan=2 title='Data Blocks'>B</th>");
@@ -1775,7 +1780,6 @@ try {
     html.append("<th rowspan=2>FileTime</th>");
     //html.append("<th rowspan=2 title='num_reads_sampled'>nReads<br>Sample</th>");
     if (with_fcnt) {
-      html.append("<th rowspan=2>File<br>CNT</th>");
       html.append("<th rowspan=2>Avg File<br>Zip Size</th>");
       html.append("<th rowspan=2>Avg File<br>Raw Size</th>");
     }
@@ -2010,7 +2014,7 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
     &DB::Properties::kCFStatsNoFileHistogram,
     //&DB::Properties::kCFFileHistogram,
     &DB::Properties::kDBStats,
-    &DB::Properties::kLevelStats,
+    //&DB::Properties::kLevelStats,
     //&DB::Properties::kAggregatedTableProperties,
     //&DB::Properties::kAggregatedTablePropertiesAtLevel,
   };
