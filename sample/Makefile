@@ -12,6 +12,17 @@ else
   LIBROCKSDB := rocksdb_debug
 endif
 
+LIB_MODE ?= shared
+ifeq ($(LIB_MODE), static)
+  BEG_WHOLE_ARCHIVE := -Wl,--whole-archive
+  END_WHOLE_ARCHIVE := -Wl,--no-whole-archive
+  INDIRECT_LIB_FOR_STATIC_LD := -lgomp -lcurl -laio -lrt -luring -ldl
+  INDIRECT_LIB_FOR_STATIC_LD += -lbz2 -llz4 -lz -lsnappy
+else ifneq ($(LIB_MODE), shared)
+  $(error LIB_MODE must be static or shared)
+endif
+LIB_STD_CXX_FS := -lstdc++fs # old g++(8.x,9.x) needs this
+
 # topling-core is topling private
 ifneq (,$(wildcard ../../topling-core))
   TOPLING_CORE_DIR := ../../topling-core
@@ -47,16 +58,21 @@ ROCKSIDE_HOME := ..
 
 INCS := -I${TOPLINGDB_HOME}/include -I${TOPLINGDB_HOME} \
         -I${ROCKSIDE_HOME}/src \
-		-I${TOPLING_CORE_DIR}/src \
-		-I${TOPLING_CORE_DIR}/boost-include
+        -I${TOPLING_CORE_DIR}/src \
+        -I${TOPLING_CORE_DIR}/boost-include
 
 CXXFLAGS += -std=gnu++17
 CXXFLAGS += ${INCS}
 LDFLAGS += -L${TOPLINGDB_HOME} \
+      ${BEG_WHOLE_ARCHIVE} \
            -l${LIBROCKSDB} \
-           -L${TOPLING_CORE_DIR}/${BUILD_ROOT}/lib_shared \
-           -lpthread \
-           -lterark-{zbs,fsa,core}-${COMPILER}-${BUILD_TYPE_SIG}
+           -L${TOPLING_CORE_DIR}/${BUILD_ROOT}/lib_${LIB_MODE} \
+           -lterark-{zbs,fsa,core}-${COMPILER}-${BUILD_TYPE_SIG} \
+      ${END_WHOLE_ARCHIVE} \
+           ${LIB_STD_CXX_FS} \
+           ${INDIRECT_LIB_FOR_STATIC_LD} \
+           -lpthread
+
 
 BINARY_EXE := $(patsubst %.cc, $(OBJ_DIR)/%, $(wildcard *.cc))
 DEPFILES_CC := $(patsubst %.cc, $(OBJ_DIR)/%.cc.d, $(wildcard *.cc))
@@ -65,7 +81,7 @@ all: ${BINARY_EXE}
 
 # link
 %: %.o
-	$(CXX) $(LDFLAGS) -o $@ $<
+	$(CXX) $< -o $@ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: %.cc
 	@mkdir -p $(dir $@)
