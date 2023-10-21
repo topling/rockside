@@ -297,7 +297,7 @@ RegTableFactoryMagicNumber(uint64_t magic, const char* name) {
 ////////////////////////////////////////////////////////////////////////////
 struct SstPartitionerFixedPrefixEx : public SstPartitioner {
   const char* Name() const override { return "SstPartitionerFixedPrefixEx"; }
-  PartitionerResult ShouldPartition(const PartitionerRequest& req) final {
+  PartitionerResult ShouldPartition(const PartitionerRequest& req) override {
     if (output_level < min_level || output_level > max_level
         || req.current_output_file_size < min_file_size) {
       return kNotRequired;
@@ -315,6 +315,27 @@ struct SstPartitionerFixedPrefixEx : public SstPartitioner {
   unsigned short prefix_len;
   size_t min_file_size;
 };
+namespace {
+template<size_t> struct sizeof_ToUint;
+template<> struct sizeof_ToUint<4> { typedef unsigned int       type; };
+template<> struct sizeof_ToUint<8> { typedef unsigned long long type; };
+}
+template<unsigned SafePrefixLen>
+struct SstPartitionerFixedPrefixExSafe : SstPartitionerFixedPrefixEx {
+  PartitionerResult ShouldPartition(const PartitionerRequest& req) final {
+    if (output_level < min_level || output_level > max_level
+        || req.current_output_file_size < min_file_size) {
+      return kNotRequired;
+    }
+    using Uint = typename sizeof_ToUint<SafePrefixLen>::type;
+    static_assert(sizeof(Uint) == SafePrefixLen);
+    auto prev = req.prev_user_key->data();
+    auto curr = req.current_user_key->data();
+    auto prev_prefix = unaligned_load<Uint>(prev);
+    auto curr_prefix = unaligned_load<Uint>(curr);
+    return prev_prefix == curr_prefix ? kNotRequired : kRequired;
+  }
+};
 struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
   SstPartitionerFixedPrefixExFactory(const json& js, const SidePluginRepo& repo) {
     Update(json{}, js, repo);
@@ -324,6 +345,7 @@ struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
     ROCKSDB_JSON_OPT_SIZE(js, min_file_size);
     ROCKSDB_JSON_OPT_PROP(js, min_level);
     ROCKSDB_JSON_OPT_PROP(js, max_level);
+    ROCKSDB_JSON_OPT_PROP(js, user_key_at_least_prefix_len);
   }
   std::string ToString(const json& dump_options, const SidePluginRepo&) const {
     json js;
@@ -331,12 +353,24 @@ struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
     ROCKSDB_JSON_SET_SIZE(js, min_file_size);
     ROCKSDB_JSON_SET_PROP(js, min_level);
     ROCKSDB_JSON_SET_PROP(js, max_level);
+    ROCKSDB_JSON_SET_PROP(js, user_key_at_least_prefix_len);
     return JsonToString(js, dump_options);
   }
   const char* Name() const final { return "SstPartitionerFixedPrefixEx"; }
   std::unique_ptr<SstPartitioner>
   CreatePartitioner(const SstPartitioner::Context& context) const override {
-    auto p = new SstPartitionerFixedPrefixEx();
+    if (user_key_at_least_prefix_len) {
+      if (prefix_len == 4)
+        return CreateTmpl<SstPartitionerFixedPrefixExSafe<4> >(context);
+      if (prefix_len == 8)
+        return CreateTmpl<SstPartitionerFixedPrefixExSafe<8> >(context);
+    }
+    return CreateTmpl<SstPartitionerFixedPrefixEx>(context);
+  }
+  template<class Concret>
+  std::unique_ptr<SstPartitioner>
+  CreateTmpl(const SstPartitioner::Context& context) const {
+    auto p = new Concret();
     p->min_level = this->min_level;
     p->max_level = this->max_level;
     p->output_level = short(context.output_level);
@@ -347,6 +381,7 @@ struct SstPartitionerFixedPrefixExFactory : public SstPartitionerFactory {
   short min_level = 1; // partition by prefix if output_level >= min_level
   short max_level = SHRT_MAX; // partition by prefix if output_level <= max_level
   unsigned short prefix_len = 0;
+  bool   user_key_at_least_prefix_len = false; // can omit len check
   size_t min_file_size = 0;
 };
 static std::shared_ptr<SstPartitionerFactory>
