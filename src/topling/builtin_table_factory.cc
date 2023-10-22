@@ -302,7 +302,7 @@ struct SstPartitionerFixedPrefixEx : public SstPartitioner {
         || req.current_output_file_size < min_file_size) {
       return kNotRequired;
     }
-    Slice prev = *req.prev_user_key, curr = *req.current_user_key;
+    Slice prev = req.prev_user_key, curr = req.current_user_key;
     size_t len = std::min({prev.size_, curr.size_, size_t(prefix_len)});
     return memcmp(prev.data_, curr.data_, len) == 0 ? kNotRequired : kRequired;
   }
@@ -329,8 +329,8 @@ struct SstPartitionerFixedPrefixExSafe : SstPartitionerFixedPrefixEx {
     }
     using Uint = typename sizeof_ToUint<SafePrefixLen>::type;
     static_assert(sizeof(Uint) == SafePrefixLen);
-    auto prev = req.prev_user_key->data();
-    auto curr = req.current_user_key->data();
+    auto prev = req.prev_user_key.data();
+    auto curr = req.current_user_key.data();
     auto prev_prefix = unaligned_load<Uint>(prev);
     auto curr_prefix = unaligned_load<Uint>(curr);
     return prev_prefix == curr_prefix ? kNotRequired : kRequired;
