@@ -652,6 +652,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70050
     ROCKSDB_JSON_OPT_PROP(js, blob_file_starting_level);
     ROCKSDB_JSON_OPT_FACT(js, blob_cache);
+    ROCKSDB_JSON_OPT_PROP(js, min_filter_level);
     ROCKSDB_JSON_OPT_PROP(js, experimental_mempurge_threshold);
     ROCKSDB_JSON_OPT_PROP(js, prepopulate_blob_cache);
     ROCKSDB_JSON_OPT_PROP(js, preclude_last_level_data_seconds);
@@ -776,6 +777,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70050
     ROCKSDB_JSON_SET_PROP(js, blob_file_starting_level);
     ROCKSDB_JSON_SET_FACX(js, blob_cache, cache);
+    ROCKSDB_JSON_SET_PROP(js, min_filter_level);
     ROCKSDB_JSON_SET_PROP(js, experimental_mempurge_threshold);
     ROCKSDB_JSON_SET_PROP(js, prepopulate_blob_cache);
     ROCKSDB_JSON_SET_PROP(js, preclude_last_level_data_seconds);
