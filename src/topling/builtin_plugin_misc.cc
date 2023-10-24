@@ -1937,14 +1937,24 @@ Slice SliceSlice(Slice big, Slice sub) {
   return Slice(pos, sub.size_);
 }
 
+static uint64_t
+GetIntProp(const DB& db, ColumnFamilyHandle* cfh, const std::string& prop) {
+  uint64_t value = 0;
+  const_cast<DB&>(db).GetIntProperty(cfh, prop, &value);
+  return value;
+}
 static std::string
 Json_DB_NoFileHistogram_Add_convenient_links(
-        const std::string& db,
-        const std::string& cf,
+        const DB& dbr,
+        ColumnFamilyHandle* cfh,
         const std::string& str) {
+  const std::string  db = basename(dbr.GetName().c_str());
+  const std::string& cf = cfh->GetName();
   Slice big = str;
   Slice pos = SliceSlice(big, "\nUptime(secs):");
   if (pos.data_) {
+    char buf[256];
+    #define oss_printf(...) oss.write(buf, snprintf(buf, sizeof(buf), __VA_ARGS__))
     std::ostringstream oss;
     oss << "<pre>";
     //auto first_line_end = (const char*)memchr(big.data_, '\n', big.size_);
@@ -1955,6 +1965,11 @@ Json_DB_NoFileHistogram_Add_convenient_links(
       }
       oss.write(big.data_, first_line_end - big.data_);
       big.remove_prefix(first_line_end - big.data_);
+      oss_printf(" Run %3zd , Wait %3zd , MemTable %12s **",
+        GetIntProp(dbr, cfh, DB::Properties::kNumRunningCompactions),
+        GetIntProp(dbr, cfh, DB::Properties::kCompactionPending),
+        SizeToString(GetIntProp(dbr, cfh, DB::Properties::kCurSizeActiveMemTable)).c_str()
+      );
       oss|"    ";
       oss|"<a href='/db/"|db|"?html=1&compact="|cf|"' title='compact this column family'>compact</a>   ";
       oss|"<a href='/db/"|db|"?html=1&flush="|cf|"' title='flush this column family'>flush</a>   ";
@@ -2027,9 +2042,7 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
     if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
       if (html) {
         if (name == DB::Properties::kCFStatsNoFileHistogram) {
-          const std::string dbname = basename(db.GetName().c_str());
-          const std::string cfname = cfh->GetName();
-          stjs[HTML_WRAP(name)] = Json_DB_NoFileHistogram_Add_convenient_links(dbname, cfname, value);
+          stjs[HTML_WRAP(name)] = Json_DB_NoFileHistogram_Add_convenient_links(db, cfh, value);
         }
         else {
           stjs[HTML_WRAP(name)] = html_pre(value);
