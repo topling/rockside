@@ -29,6 +29,8 @@
 # include <cxxabi.h>
 #endif
 
+#include <terark/num_to_str.hpp>
+
 namespace ROCKSDB_NAMESPACE {
 
 using std::shared_ptr;
@@ -1677,6 +1679,29 @@ void JsonRepoSet(json& js, const void* prop,
   else {
     js = "$(BuiltinDefault)";
   }
+}
+
+std::string SidePluginHyperLink(const void* obj,
+                 const std::map<const void*, SidePluginRepo::Impl::ObjInfo>& p2name,
+                 const char* mapname, const char* link_text, bool html) {
+  terark::string_appender<> oss; oss.reserve(512);
+  if (auto iter = p2name.find(obj); p2name.end() != iter) {
+    ROCKSDB_VERIFY(nullptr != obj);
+    const std::string& varname = iter->second.name;
+    if (varname.empty())
+      oss|"<span title='"|mapname|" spec: "|iter->second.spec.dump()|"'>"|link_text|"</span>";
+    else if (html)
+      oss|"<a href='/"|mapname|"/"|varname|"?html=1'>"|link_text|"</a>";
+    else
+      oss|"<span title='"|mapname|"/"|varname|"'>"|link_text|"</span>";
+  }
+  else if (nullptr == obj) {
+    oss|"<span title='"|mapname|"/(nullptr)'>"|link_text|"</span>";
+  }
+  else {
+    oss|"<span title='"|mapname|"/${BuiltinDefault}'>"|link_text|"</span>";
+  }
+  return std::move(oss.str());
 }
 
 std::string demangle(const char* name) {

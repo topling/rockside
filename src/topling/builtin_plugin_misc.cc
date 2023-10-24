@@ -1937,7 +1937,7 @@ Slice SliceSlice(Slice big, Slice sub) {
   return Slice(pos, sub.size_);
 }
 
-static uint64_t
+static size_t
 GetIntProp(const DB& db, ColumnFamilyHandle* cfh, const std::string& prop) {
   uint64_t value = 0;
   const_cast<DB&>(db).GetIntProperty(cfh, prop, &value);
@@ -1945,6 +1945,7 @@ GetIntProp(const DB& db, ColumnFamilyHandle* cfh, const std::string& prop) {
 }
 static std::string
 Json_DB_NoFileHistogram_Add_convenient_links(
+        const SidePluginRepo& repo,
         const DB& dbr,
         ColumnFamilyHandle* cfh,
         const std::string& str) {
@@ -1965,11 +1966,13 @@ Json_DB_NoFileHistogram_Add_convenient_links(
       }
       oss.write(big.data_, first_line_end - big.data_);
       big.remove_prefix(first_line_end - big.data_);
-      oss_printf(" Run %3zd , Wait %3zd , MemTable %12s **",
+      oss_printf(" Run %3zd , Wait %3zd , ",
         GetIntProp(dbr, cfh, DB::Properties::kNumRunningCompactions),
-        GetIntProp(dbr, cfh, DB::Properties::kCompactionPending),
-        SizeToString(GetIntProp(dbr, cfh, DB::Properties::kCurSizeActiveMemTable)).c_str()
+        GetIntProp(dbr, cfh, DB::Properties::kCompactionPending)
       );
+      oss|SidePluginHyperLink(cfh->cfd()->ioptions()->memtable_factory.get(),
+            repo.m_impl->memtable_factory.p2name, "memtable_factory", "MemTable", true);
+      oss_printf(" %12s **", SizeToString(GetIntProp(dbr, cfh, DB::Properties::kCurSizeActiveMemTable)).c_str());
       oss|"    ";
       oss|"<a href='/db/"|db|"?html=1&compact="|cf|"' title='compact this column family'>compact</a>   ";
       oss|"<a href='/db/"|db|"?html=1&flush="|cf|"' title='flush this column family'>flush</a>   ";
@@ -2042,7 +2045,8 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
     if (const_cast<DB&>(db).GetProperty(cfh, name, &value)) {
       if (html) {
         if (name == DB::Properties::kCFStatsNoFileHistogram) {
-          stjs[HTML_WRAP(name)] = Json_DB_NoFileHistogram_Add_convenient_links(db, cfh, value);
+          stjs[HTML_WRAP(name)] = Json_DB_NoFileHistogram_Add_convenient_links
+                                  (repo, db, cfh, value);
         }
         else {
           stjs[HTML_WRAP(name)] = html_pre(value);

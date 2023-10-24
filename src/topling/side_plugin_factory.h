@@ -491,6 +491,10 @@ void JsonRepoSet(json& js, const void* prop,
                  const std::map<const void*, SidePluginRepo::Impl::ObjInfo>&,
                  const char* mapname, bool html);
 
+std::string SidePluginHyperLink(const void* obj,
+                 const std::map<const void*, SidePluginRepo::Impl::ObjInfo>&,
+                 const char* mapname, const char* link_text, bool html);
+
 std::string Json_DB_CF_SST_HtmlTable(class Version*, class ColumnFamilyData*);
 std::string Json_DB_CF_SST_HtmlTable(class Version*, class ColumnFamilyData*,
                                      struct TableProperties* all_agg);
