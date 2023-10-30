@@ -681,7 +681,7 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
   if (c->mutable_cf_options()->target_file_size_multiplier > 1) {
     const auto& inputs = *c->inputs();
     for (size_t i = 0, n = inputs.size(); i < n; i++) {
-      if (inputs[i].files.empty()) {
+      if (inputs[i].files.size() <= 1) {
         continue;
       }
       uint64_t sum_fsize = 0;
