@@ -61,6 +61,9 @@ MemTableRepFactory:
     class: cspp
     params:
       mem_cap: 3G  # just reserve virtual address space
+      cspp_debug_level: 1
+      # vm_explicit_commit: true # default false
+      # vm_background_commit: false # default false
       chunk_size: 256K # default 2M
       use_vm: true # default is true
       # use_hugepage: false # equivalent to kNone, default
@@ -132,7 +135,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
-      level_writers: [fast, zip, zip, zip, zip, zip, zip]
+      level_writers: [fast, fast, zip, zip, zip, zip, zip, zip]
   dispatch_all_fast:
     class: DispatcherTable
     params:
@@ -161,6 +164,8 @@ WriteBufferManager:
 CFOptions:
   default:
     max_write_buffer_number: 3
+    #disable_auto_compactions: true
+    #memtable_factory: "${skiplist}"
     memtable_factory: "${cspp}"
     write_buffer_size: 2G
     target_file_size_base: 32M
@@ -193,6 +198,8 @@ DBOptions:
     create_if_missing: true
     create_missing_column_families: true
     enable_pipelined_write: true
+    unordered_write: true
+    #info_log_level: DEBUG_LEVEL
     max_background_flushes: 2 # default is -1
     max_background_compactions: 13 # default is -1
     max_subcompactions: 1 # default is 1
