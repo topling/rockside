@@ -1,0 +1,248 @@
+http:
+  # normally parent path of db path
+  document_root: /dev/shm/db_bench_enterprise
+  listening_ports: '2011'
+setenv:
+  DictZipBlobStore_zipThreads: 32
+  StrSimpleEnvNameNotOverwrite: StringValue
+  IntSimpleEnvNameNotOverwrite: 16384
+  OverwriteThisEnv:
+    #comment: overwrite is default to false
+    overwrite: true
+    value: force overwrite this env by overwrite true
+Cache:
+  lru_cache:
+    class: LRUCache
+    params:
+      capacity: 16G
+      #num_shard_bits: -1 # max is 6, mostly is 6
+      #strict_capacity_limit: false
+      #high_pri_pool_ratio: 0.5 # default is 0
+      #use_adaptive_mutex: false
+      #metadata_charge_policy: kFullChargeCacheMetadata
+Statistics:
+  stat:
+    class: default
+    params:
+      discard_tickers:
+      #comment: 可以仅指定前缀，必须是以 . 为边界的前缀，例如下面两个必须分别指定
+      - rocksdb.block.cache
+      - rocksdb.block.cachecompressed
+      # comment: 上面两个也可以用下面这一个概括
+      - rocksdb.block
+      # 精确指定
+      - rocksdb.memtable.payload.bytes.at.flush
+      - rocksdb.memtable.garbage.bytes.at.flush
+      # pika 未使用 txn
+      - rocksdb.txn
+      - rocksdb.blobdb
+      - rocksdb.row.cache
+      - rocksdb.number.block
+      - rocksdb.bloom.filter
+      - rocksdb.persistent
+      - rocksdb.sim.block.cache
+      discard_histograms:
+      # comment: ....
+      - rocksdb.blobdb
+      - rocksdb.bytes.compressed
+      - rocksdb.bytes.decompressed
+      - rocksdb.num.index.and.filter.blocks.read.per.level
+      - rocksdb.num.data.blocks.read.per.level
+      - rocksdb.compression.times.nanos
+      - rocksdb.decompression.times.nanos
+      - rocksdb.read.block.get.micros
+      - rocksdb.write.raw.block.micros
+      # comment end of array
+      #stats_level: kAll
+      stats_level: kDisableAll
+MemTableRepFactory:
+  cspp:
+    #class: CSPPMemTab # canonical class name, "cspp" is simplified class name
+    class: cspp
+    params:
+      mem_cap: 5G  # just reserve virtual address space
+      chunk_size: 256K # default 2M
+      use_vm: true # default is true
+      # use_hugepage: false # equivalent to kNone, default
+      # use_hugepage: true  # equivalent to kMmap
+      # use_hugepage: kNone # default, dont use hugepage
+      # use_hugepage: kMmap # mmap(MAP_HUGETLB)
+      # use_hugepage: kTransparent # mmap(normal) + madvise(MADV_HUGEPAGE)
+      token_use_idle: true
+      read_by_writer_token: true
+      # convert_to_sst: kDontConvert
+      # convert_to_sst: kDumpMem
+      convert_to_sst: kFileMmap
+      sync_sst_file: false
+  skiplist:
+    class: SkipList
+    params:
+      lookahead: 0
+FilterPolicy:
+  bloom:
+    class: BloomFilter
+    params:
+      bits_per_key: 10
+      use_block_based_builder: false
+TableFactory:
+  fast:
+    class: SingleFastTable
+    params:
+      indexType: MainPatricia
+      keyPrefixLen: 0
+  zip:
+    class: ToplingZipTable
+    params:
+      localTempDir: /tmp
+      indexNestLevel: 1
+      enableStatistics: false
+      warmupLevel: kIndex
+      acceptCompressionRatio: 0.8
+      offsetArrayBlockUnits: 128
+      sampleRatio: 0.01
+      checksumLevel: 0
+      debugLevel: 0
+      minDictZipValueSize: 30
+      minPreadLen: -1
+  bb:
+    class: BlockBasedTable
+    params:
+      #checksum: kCRC32c
+      #checksum: kXXH3 # default
+      block_size: 4K
+      block_restart_interval: 16
+      #block_size: 512  # small, makes block_cache nearly a row cache
+      #block_restart_interval: 1  # fit for small block_size
+      index_block_restart_interval: 1
+      metadata_block_size: 4K
+      #enable_index_compression: true
+      block_cache: "${lru_cache}"
+      block_cache_compressed:
+      persistent_cache:
+      filter_policy: bloom # use ~20% of raw ukey size in db_bench key_size=8
+  cspp_memtab_sst:
+    class: CSPPMemTabTable
+    params: # empty params
+  dispatch:
+    class: DispatcherTable
+    params:
+      default: fast
+      readers:
+        SingleFastTable: fast
+        ToplingZipTable: zip
+        BlockBasedTable: bb
+        CSPPMemTabTable: cspp_memtab_sst
+      level_writers: [fast, fast, zip, zip, zip, zip, zip, zip]
+  dispatch_all_fast:
+    class: DispatcherTable
+    params:
+      default: fast
+      readers:
+        SingleFastTable: fast
+        ToplingZipTable: zip
+        BlockBasedTable: bb
+        CSPPMemTabTable: cspp_memtab_sst
+      level_writers: [fast, fast, fast, fast, fast, fast, fast]
+  dispatch_fast_bb:
+    class: DispatcherTable
+    params:
+      default: fast
+      readers:
+        SingleFastTable: fast
+        ToplingZipTable: zip
+        BlockBasedTable: bb
+        CSPPMemTabTable: cspp_memtab_sst
+      level_writers: [fast, fast, bb, bb, bb, bb, bb]
+WriteBufferManager:
+  wbm:
+    class: WriteBufferManager
+    params:
+      buffer_size: 4G
+CFOptions:
+  default:
+    #disable_auto_compactions: true
+    max_write_buffer_number: 3
+    memtable_factory: "${cspp}"
+    write_buffer_size: 4G
+    target_file_size_base: 128M
+    target_file_size_multiplier: 2
+    table_factory: dispatch
+    #table_factory: dispatch_all_fast
+    #table_factory: dispatch_fast_bb
+    #max_bytes_for_level_base: 512M # default = max(256M, write_buffer_size)
+    max_bytes_for_level_multiplier: 10
+    ########
+    # For ToplingDB distributed compaction, this should set to false
+    level_compaction_dynamic_level_bytes: false # rocksdb-8.04 default true
+    #level_compaction_dynamic_level_bytes: true # rocksdb-8.04 default true
+    level0_slowdown_writes_trigger: 20
+    level0_stop_writes_trigger: 36
+    level0_file_num_compaction_trigger: 4
+    compression: kSnappyCompression
+    compression_per_level:
+    - kNoCompression
+    - kSnappyCompression
+    - kSnappyCompression
+    - kSnappyCompression
+    - kSnappyCompression
+    - kSnappyCompression
+    - kZSTD
+    compaction_executor_factory: dcompact
+DBOptions:
+  dbo:
+    allow_fallocate: false # default true
+    allow_fdatasync: false # default true
+    create_if_missing: true
+    create_missing_column_families: true
+    #enable_pipelined_write: true
+    unordered_write: true
+    max_background_flushes: 2 # default is -1
+    max_background_compactions: 61 # default is -1
+    max_subcompactions: 1 # default is 1
+    max_level1_subcompactions: 24 # default 0 to use max_subcompactions
+    inplace_update_support: false # default is false
+    write_buffer_manager: "${wbm}"
+    WAL_size_limit_MB: 0
+    statistics: "${stat}"
+databases:
+  db_bench_enterprise:
+    method: DB::Open
+    params:
+      db_options: "$dbo"
+      cf_options: "$default" # for single cf db
+      column_families:       # for multi  cf db
+        default: "$default"
+      dyna_cf_opt: "$default"
+      #path is optional, if not defined, use name as path
+      #last part of path must be same as name(here is 'db_bench_enterprise')
+      path: /dev/shm/db_bench_enterprise
+  db_test:
+    method: DB::Open
+    params:
+      db_options: "$dbo"
+open: db_bench_enterprise
+CompactionExecutorFactory:
+  dcompact:
+    class: DcompactEtcd
+    params:
+      allow_fallback_to_local: true
+      #info_log_level: DEBUG_LEVEL
+      estimate_speed: 10M
+      timeout_multiplier: 5.0
+      hoster_root: /ram-shared/db_bench_enterprise
+      instance_name: db_bench_enterprise
+      nfs_mnt_src: static-mounted
+      #nfs_mnt_opt: ""
+      alert_email: 20409170@qq.com
+      #alert_http: https://dcompact.alert.com/dcompact-alert
+      web_domain: topling.in
+      overall_timeout: 30
+      http_max_retry: 3
+      http_timeout: 1
+      http_workers:
+      - { url: http://192.168.31.100:8080, weight: 100 }
+      - { url: http://192.168.31.2:8080  , weight:  50 }
+      - { url: http://192.168.31.3:8080  , weight:  90 }
+      #load_balance: kRoundRobin
+      load_balance: kWeight
+      dcompact_min_level: 20
