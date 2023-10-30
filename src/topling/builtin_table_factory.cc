@@ -460,6 +460,9 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   m_is_delete_range_supported = false;
   allow_trivial_move = true;
   ignoreInputCompressionMatchesOutput = false;
+  UpdateMutableConf(js, repo);
+}
+void DispatcherTableFactory::UpdateMutableConf(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, allow_trivial_move);
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
   ROCKSDB_JSON_OPT_PROP(js, measure_builder_stats);
@@ -1054,10 +1057,7 @@ MetricStr(const json& dump_options, const SidePluginRepo& repo) const {
 }
 
 void DispatcherTableFactory::UpdateOptions(const json& js, const SidePluginRepo& repo) {
-  ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
-  ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
-  ROCKSDB_JSON_OPT_PROP(js, trivial_move_max_file_size_multiplier);
-  ROCKSDB_JSON_OPT_PROP(js, measure_builder_stats);
+  UpdateMutableConf(js, repo);
 
   if (auto iter = js.find("level_writers"); js.end() != iter) {
     auto& level_writers_js = iter.value();

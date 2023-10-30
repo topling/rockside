@@ -78,6 +78,7 @@ public:
   friend Cache* GetBlockCacheFromAnyTableFactory(TableFactory* self);
 
 protected:
+  void UpdateMutableConf(const json& js, const SidePluginRepo& repo);
   mutable std::mutex m_mtx;
   std::vector<std::shared_ptr<TableFactory> > m_level_writers;
   std::shared_ptr<TableFactory> m_default_writer;
