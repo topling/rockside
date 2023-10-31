@@ -1842,6 +1842,10 @@ try {
   if (meta.file_count > 1) {
     AppendFmt("avg size = %.3f GB", meta.size/GB/meta.file_count);
   }
+  html.append(R"(&nbsp;&nbsp;&nbsp;)");
+  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "0")'>per_level=0</a>)");
+  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "1")'>per_level=1</a>)");
+  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "2")'>per_level=2</a>)");
   html.append("</p>\n");
   html.append("<table border=1>\n");
   writeHeader(true);
