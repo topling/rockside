@@ -721,6 +721,11 @@ bool DispatcherTableFactory::ShouldCompactMarkForCompaction
                                 f->fd.file_size, f->compensated_file_size});
     }
   }
+  for (size_t i = 1; i < num; i++) {
+    if (vec_bytes[i-1] > vec_bytes[i]) {
+      return true; // upper level is larger, should compact
+    }
+  }
   auto max_bytes = *std::max_element(vec_bytes.begin(), vec_bytes.end());
   auto sum_bytes = std::accumulate(vec_bytes.begin(), vec_bytes.end(), uint64_t(0));
   if (max_bytes == sum_bytes) {
