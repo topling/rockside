@@ -65,7 +65,7 @@ send_compressed_data(struct mg_connection *conn, struct mg_file *filep)
 
 	/* Read until end of file */
 	do {
-		zstream.avail_in = fread(in_buf, 1, MG_BUF_LEN, in_file);
+		zstream.avail_in = (unsigned)fread(in_buf, 1, MG_BUF_LEN, in_file);
 		if (ferror(in_file)) {
 			mg_cry_internal(conn, "fread failed: %s", strerror(ERRNO));
 			(void)deflateEnd(&zstream);

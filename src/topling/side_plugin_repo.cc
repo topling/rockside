@@ -1475,7 +1475,6 @@ static void JsonToHtml_ArrayCol(const json& arr, std::string& html) {
     html.append("</th>");
   }
   html.append("</tr>\n");
-  size_t row = 0;
   for (auto& item : arr.items()) {
     html.append("<tr>");
     const auto& row_js = item.value();
@@ -1495,7 +1494,6 @@ static void JsonToHtml_ArrayCol(const json& arr, std::string& html) {
         html.append(val.dump());
       html.append("</td>");
     }
-    row++;
     html.append("</tr>\n");
   }
   html.append("</tbody></table>\n");
