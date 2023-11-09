@@ -14,6 +14,7 @@
 #include "rocksdb/db.h"
 #include "db/dbformat.h"
 #include "db/column_family.h"
+#include "db/compaction/compaction_executor.h"
 #include "db/table_cache.h"
 #include "db/version_set.h"
 #include "rocksdb/options.h"
@@ -1508,15 +1509,17 @@ ScopeLockVersion::~ScopeLockVersion() {
 }
 
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
+                                     const std::string& dbname,
                                      TableProperties* all_agg, int show_per_level);
 
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd) {
-  return Json_DB_CF_SST_HtmlTable(version, cfd, nullptr, 2);
+  return Json_DB_CF_SST_HtmlTable(version, cfd, "", nullptr, 2);
 }
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd, TableProperties* all_agg) {
-  return Json_DB_CF_SST_HtmlTable(version, cfd, all_agg, 2);
+  return Json_DB_CF_SST_HtmlTable(version, cfd, "", all_agg, 2);
 }
 std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
+                                     const std::string& dbname,
                                      TableProperties* all_agg, int show_per_level) {
 #define NumCompactingSSTs creation_time // use creation_time as num_compacting
   extern const std::string_view g_sst_list_html_style_css;
@@ -1542,6 +1545,7 @@ try {
   if (coder_sp) coder = dynamic_cast<const UserKeyCoder*>(coder_sp.get());
 
   auto comp = &cfd->internal_comparator();
+  auto compact_exec_fac = cfd->ioptions()->compaction_executor_factory.get();
   struct SstProp : SstFileMetaData, TableProperties {
     SstProp() { smallest_seqno = UINT64_MAX; }
   };
@@ -1640,12 +1644,25 @@ try {
       html.append("<th class='emoji'>");
       if (x.being_compacted) {
         html.back() = ' '; // replace '>'
-        AppendFmt("title='job %d'>", x.job_id);
+        if (compact_exec_fac && !dbname.empty()) {
+          auto job_url = compact_exec_fac->JobUrl(dbname, x.job_id, x.job_attempt);
+          if (!job_url.empty()) {
+            html.back() = '>'; // close tag <th>
+            html.append("<a href='");
+            html.append(job_url);
+            html.append("'>");
+            html.append("&#128994;"); // green circle
+            html.append("</a>");
+          } else
+            goto AddCompactionJobTitle;
+        } else { AddCompactionJobTitle:
+          AppendFmt("title='job %d'>", x.job_id);
+          html.append("&#128994;"); // green circle
+        }
       }
-      //html.append(x.being_compacted ? "true" : "false");
-      //html.append(x.being_compacted ? "&#9989;" : "&#10062;"); // yes/no
-      //html.append(x.being_compacted ? "&#128308;" : "&#128309;"); // red/blue circle
-      html.append(x.being_compacted ? "&#128994;" : "&#128309;"); // green/blue circle
+      else {
+        html.append("&#128309;"); // blue circle
+      }
       html.append("</th>");
     }
     AppendFmt("<td>%.6f</td>", x.size/GB);
@@ -2083,9 +2100,10 @@ Json_DB_Level_Stats(const DB& db, ColumnFamilyHandle* cfh, json& djs,
     {
       auto cfd = cfh->cfd();
       auto show_per_level = JsonSmartInt(dump_options, "per_level", 1);
+      auto dbname = Json_dbname(&db, repo);
       ScopeLockVersion slv(cfd, Get_DB_mutex(&db));
       stjs[HTML_WRAP(DB::Properties::kSSTables)] =
-        Json_DB_CF_SST_HtmlTable(slv.version, cfd, nullptr, show_per_level);
+        Json_DB_CF_SST_HtmlTable(slv.version, cfd, dbname, nullptr, show_per_level);
       break;
     }
   }
