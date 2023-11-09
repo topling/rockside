@@ -1541,7 +1541,7 @@ try {
   const UserKeyCoder* coder = nullptr;
   if (coder_sp) coder = dynamic_cast<const UserKeyCoder*>(coder_sp.get());
 
-  auto comp = cfd->user_comparator();
+  auto comp = &cfd->internal_comparator();
   struct SstProp : SstFileMetaData, TableProperties {
     SstProp() { smallest_seqno = UINT64_MAX; }
   };
