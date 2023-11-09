@@ -593,7 +593,8 @@ const {
     m_writer_files[0]++;
   }
   ROCKSDB_VERIFY(nullptr != builder);
-  if (measure_builder_stats)
+  if (measure_builder_stats || IsCompactionWorker())
+    // always measure at dcompact worker
     return new DispatcherTableBuilder(builder, this, level);
   else
     return builder;
