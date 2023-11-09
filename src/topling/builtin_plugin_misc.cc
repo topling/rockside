@@ -1537,7 +1537,7 @@ try {
       return html;
     }
   }
-  auto coder_sp = cfd->GetLatestCFOptions().html_user_key_coder;
+  auto coder_sp = cfd->ioptions()->html_user_key_coder;
   const UserKeyCoder* coder = nullptr;
   if (coder_sp) coder = dynamic_cast<const UserKeyCoder*>(coder_sp.get());
 
