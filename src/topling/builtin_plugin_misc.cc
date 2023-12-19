@@ -665,6 +665,9 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_PROP(js, preserve_internal_time_seconds);
     ROCKSDB_JSON_OPT_PROP(js, memtable_protection_bytes_per_key);
    #endif
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 80042
+    ROCKSDB_JSON_OPT_PROP(js, memtable_max_range_deletions);
+   #endif
   }
 
   void SaveToJson(json& js, const SidePluginRepo& repo, bool html) const {
@@ -789,6 +792,9 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_ENUM(js, last_level_temperature);
     ROCKSDB_JSON_SET_PROP(js, preserve_internal_time_seconds);
     ROCKSDB_JSON_SET_PROP(js, memtable_protection_bytes_per_key);
+   #endif
+   #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 80042
+    ROCKSDB_JSON_SET_PROP(js, memtable_max_range_deletions);
    #endif
   }
 };
