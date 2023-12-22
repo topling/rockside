@@ -523,6 +523,8 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     // rocksdb init this option to true, but true yields many small sst file,
     // even only several KB, thus makes too many files, so we set it to false.
     level_compaction_dynamic_file_size = false;
+
+    allow_merge_memtables = false; // ToplingDB default to false
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
@@ -535,6 +537,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_PROP(js, inplace_update_num_locks);
  // ROCKSDB_JSON_OPT_PROP(js, inplace_callback); // not need update
     ROCKSDB_JSON_OPT_PROP(js, memtable_prefix_bloom_size_ratio);
+    ROCKSDB_JSON_OPT_PROP(js, allow_merge_memtables);
     ROCKSDB_JSON_OPT_PROP(js, memtable_whole_key_filtering);
     ROCKSDB_JSON_OPT_PROP(js, memtable_huge_page_size);
     ROCKSDB_JSON_OPT_FACT(js, memtable_insert_with_hint_prefix_extractor);
@@ -680,6 +683,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_PROP(js, inplace_update_num_locks);
  // ROCKSDB_JSON_SET_PROP(js, inplace_callback); // not need update
     ROCKSDB_JSON_SET_PROP(js, memtable_prefix_bloom_size_ratio);
+    ROCKSDB_JSON_SET_PROP(js, allow_merge_memtables);
     ROCKSDB_JSON_SET_PROP(js, memtable_whole_key_filtering);
     ROCKSDB_JSON_SET_PROP(js, memtable_huge_page_size);
     ROCKSDB_JSON_SET_FACX(js, memtable_insert_with_hint_prefix_extractor,
