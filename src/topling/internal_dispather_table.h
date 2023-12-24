@@ -34,6 +34,8 @@ public:
   bool IsDeleteRangeSupported() const override;
   bool InputCompressionMatchesOutput(const class Compaction*) const override;
   bool ShouldCompactMarkForCompaction(const CompactionInputFiles**, size_t) const override;
+  bool ShouldCompactAutoCompaction(const CompactionInputFiles**, size_t) const override;
+  bool ShouldCompact(const CompactionInputFiles**, size_t, double, const char*) const;
 
 // non TableFactory methods:
   void BackPatch(const SidePluginRepo& repo);
@@ -96,6 +98,7 @@ protected:
   bool allow_trivial_move;
   bool ignoreInputCompressionMatchesOutput;
   bool measure_builder_stats = false;
+  double auto_compaction_max_wamp = 1e9; // do not limit by default
   double mark_for_compaction_max_wamp = 1e9; // do not limit by default
   double trivial_move_max_file_size_multiplier = 4.0;
   friend class DispatcherTableBuilder;
