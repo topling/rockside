@@ -1660,6 +1660,7 @@ try {
             html.back() = '>'; // close tag <th>
             html.append("<a href='");
             html.append(job_url);
+            AppendFmt("' title='job %d", x.job_id);
             html.append("'>");
             html.append("&#128994;"); // green circle
             html.append("</a>");
