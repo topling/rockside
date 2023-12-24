@@ -459,12 +459,15 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
   m_is_back_patched = false;
   m_is_delete_range_supported = false;
   allow_trivial_move = true;
-  ignoreInputCompressionMatchesOutput = false;
   UpdateMutableConf(js, repo);
 }
 void DispatcherTableFactory::UpdateMutableConf(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, allow_trivial_move);
+  bool ignoreInputCompressionMatchesOutput = false;
   ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
+  if (!ignoreInputCompressionMatchesOutput) {
+    ROCKSDB_JSON_OPT_PROP(js, trivial_move_always_max_output_level);
+  }
   ROCKSDB_JSON_OPT_PROP(js, measure_builder_stats);
   ROCKSDB_JSON_OPT_PROP(js, auto_compaction_max_wamp);
   ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
@@ -650,7 +653,11 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
   if (!allow_trivial_move) {
     return false;
   }
-  if (ignoreInputCompressionMatchesOutput) {
+  if (c->output_level() <= trivial_move_always_max_output_level) {
+    ROCKS_LOG_DEBUG(c->immutable_options()->info_log.get(),
+      "DispatcherTableFactory::InputCompressionMatchesOutput: trivial_move_always_max_output_level %d, {%s}->%d : true",
+      trivial_move_always_max_output_level, str_input_levels(c).c_str(), c->output_level()
+    );
     return true;
   }
   auto get_fac = [&](int level) {
@@ -964,7 +971,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   };
   json js;
   ROCKSDB_JSON_SET_PROP(js["options"], allow_trivial_move);
-  ROCKSDB_JSON_SET_PROP(js["options"], ignoreInputCompressionMatchesOutput);
+  ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_always_max_output_level);
   ROCKSDB_JSON_SET_PROP(js["options"], measure_builder_stats);
   ROCKSDB_JSON_SET_PROP(js["options"], auto_compaction_max_wamp);
   ROCKSDB_JSON_SET_PROP(js["options"], mark_for_compaction_max_wamp);

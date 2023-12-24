@@ -96,8 +96,8 @@ protected:
   bool m_is_back_patched;
   bool m_is_delete_range_supported;
   bool allow_trivial_move;
-  bool ignoreInputCompressionMatchesOutput;
   bool measure_builder_stats = false;
+  int trivial_move_always_max_output_level = 0;
   double auto_compaction_max_wamp = 1e9; // do not limit by default
   double mark_for_compaction_max_wamp = 1e9; // do not limit by default
   double trivial_move_max_file_size_multiplier = 4.0;
