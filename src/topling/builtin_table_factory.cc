@@ -710,11 +710,8 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
       }
     }
   }
-  if (strcmp(output_factory->Name(), kBlockBasedTableName()) == 0) {
-    return output_factory->InputCompressionMatchesOutput(c);
-  }
-  debug_print("true");
-  return true;
+  debug_print("output_factory->InputCompressionMatchesOutput(c)");
+  return output_factory->InputCompressionMatchesOutput(c);
 }
 
 bool DispatcherTableFactory::ShouldCompactMarkForCompaction
