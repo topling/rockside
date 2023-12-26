@@ -562,7 +562,22 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_PROP(js, level0_slowdown_writes_trigger);
     ROCKSDB_JSON_OPT_PROP(js, level0_stop_writes_trigger);
     ROCKSDB_JSON_OPT_SIZE(js, target_file_size_base);
-    ROCKSDB_JSON_OPT_PROP(js, target_file_size_multiplier);
+    if (auto iter = js.find("target_file_size_multiplier"); js.end() != iter) {
+      // target_file_size_multiplier is int, in ToplingDB if it >= 100, the
+      // effective float value = int_value / 100.0
+      const json& value = iter.value();
+      if (value.is_number_float()) {
+        double q = std::max(1.0, value.get<double>());
+        double i, f = modf(q, &i);
+        target_file_size_multiplier = int(round(f < 0.01 || q >= 100 ? q : q * 100));
+      }
+      else if (value.is_number()) {
+        target_file_size_multiplier = value.get<int>();
+      }
+      else {
+        THROW_InvalidArgument("target_file_size_multiplier must be a number");
+      }
+    }
     ROCKSDB_JSON_OPT_PROP(js, level_compaction_dynamic_level_bytes);
     ROCKSDB_JSON_OPT_PROP(js, max_bytes_for_level_multiplier);
     if (auto iter  = js.find("max_bytes_for_level_multiplier_additional");
@@ -698,7 +713,11 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_SET_PROP(js, level0_slowdown_writes_trigger);
     ROCKSDB_JSON_SET_PROP(js, level0_stop_writes_trigger);
     ROCKSDB_JSON_SET_SIZE(js, target_file_size_base);
-    ROCKSDB_JSON_SET_PROP(js, target_file_size_multiplier);
+    if (target_file_size_multiplier < 100) {
+      ROCKSDB_JSON_SET_PROP(js, target_file_size_multiplier);
+    } else {
+      js["target_file_size_multiplier"] = target_file_size_multiplier / 100.0;
+    }
     ROCKSDB_JSON_SET_PROP(js, level_compaction_dynamic_level_bytes);
     ROCKSDB_JSON_SET_PROP(js, max_bytes_for_level_multiplier);
     if (html) {
