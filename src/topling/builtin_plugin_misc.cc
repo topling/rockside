@@ -1639,6 +1639,8 @@ try {
     }
     agg.compression_name = AggregateNames(algos, "<br>");
   }
+  static const bool MULTI_PROCESS = terark::getEnvBool("MULTI_PROCESS", false);
+  bool add_log_link = IsCompactionWorker() && MULTI_PROCESS;
   auto is_aggregation = [](Slice s) { return s.empty() || 'L' == s[0]; };
   auto is_sst_file = [=](Slice s) { return !is_aggregation(s); };
   auto write = [&](const SstFileMetaData& x, const TableProperties* p, int fcnt) {
@@ -1672,11 +1674,9 @@ try {
       html.append("</th>");
       html.append("<th class='emoji'>");
       if (x.being_compacted) {
-        html.back() = ' '; // replace '>'
         if (compact_exec_fac && !dbname.empty()) {
           auto job_url = compact_exec_fac->JobUrl(dbname, x.job_id, x.job_attempt);
           if (!job_url.empty()) {
-            html.back() = '>'; // close tag <th>
             html.append("<a href='");
             html.append(job_url);
             AppendFmt("' title='job %d", x.job_id);
@@ -1686,9 +1686,15 @@ try {
           } else
             goto AddCompactionJobTitle;
         } else { AddCompactionJobTitle:
+          html.back() = ' '; // replace '>'
           AppendFmt("title='job %d'>", x.job_id);
           html.append("&#128994;"); // green circle
         }
+      }
+      else if (add_log_link) {
+        AppendFmt("<a href='LOG.%06" PRIu64 ".txt'>", x.file_number);
+        html.append("&#128309;"); // blue circle
+        html.append("</a>");
       }
       else {
         html.append("&#128309;"); // blue circle
