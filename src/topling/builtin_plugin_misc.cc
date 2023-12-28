@@ -81,13 +81,15 @@ static json DbPathToJson(const DbPath& x, bool simplify_zero) {
     };
 }
 
-static json DbPathVecToJson(const std::vector<DbPath>& vec, bool html) {
+json DbPathVecToJson(const std::vector<DbPath>& vec, bool html) {
   json js;
   if (vec.size() == 1) {
     js = DbPathToJson(vec[0], true);
   }
   else if (!vec.empty()) {
-    auto is_non_zero = [](const DbPath& p) {return 0 != p.target_size; };
+    auto is_non_zero = [](const DbPath& p) {
+      return !(0 == p.target_size || UINT64_MAX == p.target_size);
+    };
     bool has_non_zero = std::any_of(vec.begin(), vec.end(), is_non_zero);
     for (auto& x : vec) {
       js.push_back(DbPathToJson(x, !has_non_zero));
