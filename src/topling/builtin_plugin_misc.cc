@@ -1777,15 +1777,14 @@ try {
       AppendFmt("<td title='UserKey: %.1f, tag: 8'>%.1f</td>", avg_raw_key - 8, avg_raw_key);
       AppendFmt("<td>%.1f</td>", avg_zip_val);
       AppendFmt("<td>%.1f</td>", avg_raw_val);
-      html.append("<td class='left'>");
       if (p->compression_options.empty()) {
+        html.append("<td class='left'>");
         html.append(p->compression_name);
       } else {
-        html.append("<span title='");
+        html.append("<td class='left' title='");
         replace_append(html, p->compression_options, ';', "&#x0A;");
         html.append("'>");
         html.append(p->compression_name);
-        html.append("</span>");
       }
       html.append("</td>");
       //AppendFmt("<td>%" PRIu64 "</td>", p->oldest_key_time);
