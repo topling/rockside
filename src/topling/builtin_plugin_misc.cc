@@ -1640,7 +1640,8 @@ try {
     agg.compression_name = AggregateNames(algos, "<br>");
   }
   static const bool MULTI_PROCESS = terark::getEnvBool("MULTI_PROCESS", false);
-  bool add_log_link = IsCompactionWorker() && MULTI_PROCESS;
+  bool is_compact_worker = IsCompactionWorker();
+  bool add_log_link = is_compact_worker && MULTI_PROCESS;
   auto is_aggregation = [](Slice s) { return s.empty() || 'L' == s[0]; };
   auto is_sst_file = [=](Slice s) { return !is_aggregation(s); };
   auto write = [&](const SstFileMetaData& x, const TableProperties* p, int fcnt) {
@@ -1662,15 +1663,19 @@ try {
       auto beg = x.name.begin();
       auto dot = std::find(beg, x.name.end(), '.');
       html.append("<th>");
-      html.append("<a href='javascript:sst_file_href(");
-      AppendFmt("%" PRIu64, x.file_number);
-      AppendFmt(",%d", path_idm[x.db_path]);
-      AppendFmt(",%zd", x.size);
-      AppendFmt(",%" PRIu64, x.smallest_seqno);
-      AppendFmt(",%" PRIu64, x.largest_seqno);
-      html.append(")'>");
+      if (!is_compact_worker) {
+        html.append("<a href='javascript:sst_file_href(");
+        AppendFmt("%" PRIu64, x.file_number);
+        AppendFmt(",%d", path_idm[x.db_path]);
+        AppendFmt(",%zd", x.size);
+        AppendFmt(",%" PRIu64, x.smallest_seqno);
+        AppendFmt(",%" PRIu64, x.largest_seqno);
+        html.append(")'>");
+      }
       html.append(beg + ('/' == beg[0]), dot);
-      html.append("</a>");
+      if (!is_compact_worker) {
+        html.append("</a>");
+      }
       html.append("</th>");
       html.append("<th class='emoji'>");
       if (x.being_compacted) {
