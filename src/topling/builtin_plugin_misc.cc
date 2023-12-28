@@ -1902,9 +1902,15 @@ try {
     AppendFmt("avg size = %.3f GB", meta.size/GB/meta.file_count);
   }
   html.append(R"(&nbsp;&nbsp;&nbsp;)");
-  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "0")'>per_level=0</a>)");
-  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "1")'>per_level=1</a>)");
-  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "2")'>per_level=2</a>)");
+  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "0")')"
+    " title='Do not show per level sst files list'"
+    ">per_level=0</a>");
+  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "1")')"
+    " title='Only show per level compacting sst files list, this is the default'"
+    ">per_level=1</a>");
+  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "2")')"
+    " title='Show per level all sst files list'"
+    ">per_level=2</a>");
   html.append("</p>\n");
   html.append("<table border=1>\n");
   writeHeader(true);
