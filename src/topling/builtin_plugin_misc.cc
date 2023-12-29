@@ -1678,7 +1678,7 @@ try {
       html.append("</th>");
       html.append("<th class='emoji'>");
       if (x.being_compacted) {
-        if (compact_exec_fac && !dbname.empty()) {
+        if (compact_exec_fac && !dbname.empty() && x.job_attempt >= 0) {
           auto job_url = compact_exec_fac->JobUrl(dbname, x.job_id, x.job_attempt);
           if (!job_url.empty()) {
             html.append("<a href='");
