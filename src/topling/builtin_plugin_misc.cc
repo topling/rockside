@@ -1645,13 +1645,10 @@ try {
   bool is_compact_worker = IsCompactionWorker();
   bool add_log_link = is_compact_worker && MULTI_PROCESS;
   auto is_aggregation = [](Slice s) { return s.empty() || 'L' == s[0]; };
-  auto is_sst_file = [=](Slice s) { return !is_aggregation(s); };
   auto write = [&](const SstFileMetaData& x, const TableProperties* p, int fcnt) {
     if (x.being_compacted)
       AppendFmt("<tr class='highlight%02d'>",
                 unsigned(x.job_id) % g_sst_list_html_highlight_classes);
-    else if (show_per_level == 1 && is_sst_file(x.name))
-      return; // do not show non-compacting files
     else
       html.append("<tr>");
     if (is_aggregation(x.name)) {
@@ -1902,16 +1899,16 @@ try {
     AppendFmt("avg size = %.3f GB", meta.size/GB/meta.file_count);
   }
   if (!is_compact_worker) {
-  html.append(R"(&nbsp;&nbsp;&nbsp;)");
-  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "0")')"
-    " title='Do not show per level sst files list'"
-    ">per_level=0</a>");
-  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "1")')"
-    " title='Only show per level compacting sst files list, this is the default'"
-    ">per_level=1</a>");
-  html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "2")')"
-    " title='Show per level all sst files list'"
-    ">per_level=2</a>");
+    html.append(R"(&nbsp;&nbsp;&nbsp;)");
+    html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "0")')"
+      " title='Do not show per level sst files list'"
+      ">per_level=0</a>");
+    html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "1")')"
+      " title='Only show per level compacting sst files list, this is the default'"
+      ">per_level=1</a>");
+    html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "2")')"
+      " title='Show per level all sst files list'"
+      ">per_level=2</a>");
   }
   html.append("</p>\n");
   html.append("<table border=1>\n");
@@ -1970,18 +1967,20 @@ else if (show_per_level >= 1) {
     html.append("</p>\n");
     html.append("<table border=1>\n");
     writeHeader(false);
-    for (size_t i = 0, n_files = curr_level.files.size(); i < n_files; ) {
-      html.append("<tbody>\n");
-      for (size_t j = 0; j < 10 && i < n_files; j++, i++) {
-        const auto& x = curr_level.files[i];
+    size_t idx = 0;
+    for (const auto& x : curr_level.files) {
+      if (show_per_level >= 2 || x.being_compacted) {
+        if (idx % 8 == 0)
+          html.append("<tbody>\n");
         std::string fullname = x.db_path + x.name;
         if (auto iter = props.find(fullname); props.end() == iter) {
           write(x, nullptr, -1);
         } else {
           write(x, iter->second.get(), -1);
         }
+        if (++idx % 8 == 0)
+          html.append("</tbody>\n");
       }
-      html.append("</tbody>\n");
     }
     if (curr_level.files.size() > 1) {
       html.append("<tfoot>\n");
