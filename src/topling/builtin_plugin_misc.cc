@@ -1982,6 +1982,8 @@ else if (show_per_level >= 1) {
           html.append("</tbody>\n");
       }
     }
+    if (idx % 8 != 0)
+      html.append("</tbody>\n");
     if (curr_level.files.size() > 1) {
       html.append("<tfoot>\n");
       levels_agg[level].name = ""; // sum
