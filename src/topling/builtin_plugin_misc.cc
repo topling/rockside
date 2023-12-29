@@ -1624,8 +1624,8 @@ try {
     auto& agg = levels_agg[level];
     std::map<std::string, int> algos;
     const auto num_files = curr_level.files.size();
-    for (const auto & x : curr_level.files) {
-      std::string fullname = x.db_path + x.name;
+    for (const auto & f : curr_level.files) {
+      std::string fullname = f.db_path + f.name;
       const TableProperties* p = nullptr;
       if (auto iter = props.find(fullname); props.end() != iter) {
         p = iter->second.get();
@@ -1634,7 +1634,7 @@ try {
           agg.compression_options = p->compression_options;
         }
       }
-      agg_sst(agg, x, p, x.being_compacted?1:0);
+      agg_sst(agg, f, p, f.being_compacted?1:0);
     }
     for (auto& kv : algos) {
       algos_all[kv.first] += kv.second;
@@ -1969,7 +1969,7 @@ else if (show_per_level >= 1) {
     writeHeader(false);
     size_t idx = 0;
     for (const auto& x : curr_level.files) {
-      if (show_per_level >= 2 || x.being_compacted) {
+      if (show_per_level >= 2 || (x.being_compacted && x.job_id >= 0)) {
         if (idx % 8 == 0)
           html.append("<tbody>\n");
         std::string fullname = x.db_path + x.name;
