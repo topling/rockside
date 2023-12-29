@@ -1901,6 +1901,7 @@ try {
   if (meta.file_count > 1) {
     AppendFmt("avg size = %.3f GB", meta.size/GB/meta.file_count);
   }
+  if (!is_compact_worker) {
   html.append(R"(&nbsp;&nbsp;&nbsp;)");
   html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "0")')"
     " title='Do not show per level sst files list'"
@@ -1911,6 +1912,7 @@ try {
   html.append(R"(&nbsp;&nbsp;&nbsp;<a href='javascript:SetParam("per_level", "2")')"
     " title='Show per level all sst files list'"
     ">per_level=2</a>");
+  }
   html.append("</p>\n");
   html.append("<table border=1>\n");
   writeHeader(true);
