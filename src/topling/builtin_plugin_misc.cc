@@ -1634,7 +1634,7 @@ try {
           agg.compression_options = p->compression_options;
         }
       }
-      agg_sst(agg, f, p, f.being_compacted?1:0);
+      agg_sst(agg, f, p, f.job_id >= 0 ? 1 : 0);
     }
     for (auto& kv : algos) {
       algos_all[kv.first] += kv.second;
@@ -1646,7 +1646,7 @@ try {
   bool add_log_link = is_compact_worker && MULTI_PROCESS;
   auto is_aggregation = [](Slice s) { return s.empty() || 'L' == s[0]; };
   auto write = [&](const SstFileMetaData& x, const TableProperties* p, int fcnt) {
-    if (x.being_compacted)
+    if (x.job_id >= 0)
       AppendFmt("<tr class='highlight%02d'>",
                 unsigned(x.job_id) % g_sst_list_html_highlight_classes);
     else
@@ -1677,7 +1677,7 @@ try {
       }
       html.append("</th>");
       html.append("<th class='emoji'>");
-      if (x.being_compacted) {
+      if (x.job_id >= 0) {
         if (compact_exec_fac && !dbname.empty() && x.job_attempt >= 0) {
           auto job_url = compact_exec_fac->JobUrl(dbname, x.job_id, x.job_attempt);
           if (!job_url.empty()) {
@@ -1969,7 +1969,7 @@ else if (show_per_level >= 1) {
     writeHeader(false);
     size_t idx = 0;
     for (const auto& x : curr_level.files) {
-      if (show_per_level >= 2 || (x.being_compacted && x.job_id >= 0)) {
+      if (show_per_level >= 2 || x.job_id >= 0) {
         if (idx % 8 == 0)
           html.append("<tbody>\n");
         std::string fullname = x.db_path + x.name;
