@@ -387,6 +387,15 @@ class SidePluginRepo {
 ///@param obj json object to be dumped
 ///@param options options for dump(pretty,indent)
 std::string JsonToString(const json& obj, const json& options);
+std::string SizeToString(unsigned long long val);
+
+bool JsonSmartBool(const json& js);
+bool JsonSmartBool(const json& js, const char* subname, bool Default = false);
+void JsonSmartBool(bool* result, const json& js, const char* subname);
+int  JsonSmartInt(const json& js, const char* subname, int Default);
+void JsonSmartInt(int* result, const json& js, const char* subname);
+int64_t JsonSmartInt64(const json& js, const char* subname, int64_t Default);
+void JsonSmartInt64(int64_t* result, const json& js, const char* subname);
 
 void HtmlAppendEscapeMin(std::string* d, const char* s, size_t n);
 inline void HtmlAppendEscapeMin(std::string* d, Slice s)
