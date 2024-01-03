@@ -1564,6 +1564,12 @@ try {
   ColumnFamilyMetaData meta;
   TablePropertiesCollection props;
   version->GetColumnFamilyMetaData(&meta);
+  if (!version->props_of_all_tables_.empty()) {
+    // avoid compact worker open cold sst files to get TableProperties
+    ROCKSDB_VERIFY(IsCompactionWorker());
+    props = version->props_of_all_tables_;
+  }
+  else
   {
     Status s = version->GetPropertiesOfAllTables(ROCKSDB_8_X_COMMA(ReadOptions())&props);
     if (!s.ok()) {
