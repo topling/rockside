@@ -1164,23 +1164,37 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
 static void replace_substr(std::string& s, const std::string& f,
                            const std::string& t) {
     assert(not f.empty());
-    for (auto pos = s.find(f);                // find first occurrence of f
-            pos != std::string::npos;         // make sure f was found
-            s.replace(pos, f.size(), t),      // replace with t, and
-            pos = s.find(f, pos + t.size()))  // find next occurrence of f
-    {}
+    // old code may be time O(n*n)
+    terark::string_appender<> tmp;
+    tmp|terark::ReplaceSubStr<>{s, f, t};
+    tmp.swap(s);
 }
 
+struct TransformMetricName {
+  terark::string_appender<>&
+  operator()(terark::string_appender<>& os) const {
+    auto name2 = name;
+    if (name.starts_with("rocksdb")) {
+      name2 = name.substr(strlen("rocksdb"));
+      os|"engine";
+    }
+		size_t oldsize = os.size();
+		os.resize(oldsize + name2.size());
+		auto src = name2.data();
+		auto dst = os.data() + oldsize;
+		for (size_t i = 0; i < name2.size(); i++) {
+			const auto ch = src[i];
+			dst[i] = ch == '.' ? ':' : ch;
+		}
+		return os;
+  }
+  const terark::fstring name;
+};
+
 static string metrics_DB_Staticstics(const Statistics* st) {
-  std::ostringstream oss;
-  string res;
+  terark::string_appender<> oss;
   auto replace=[](const string &name) {
-    string res = name;
-    const string str_rocksdb {"rocksdb"};
-    const string str_engine {"engine"};
-    for (auto &c:res) { if (c == '.') c = ':'; }
-    replace_substr(res, str_rocksdb, str_engine);
-    return res;
+    return TransformMetricName{name};
   };
 
   auto sth = dynamic_cast<const StatisticsWithDiscards*>(st);
@@ -1228,8 +1242,7 @@ static string metrics_DB_Staticstics(const Statistics* st) {
     append_result(suffix_count, empty, rsd->histograms[h.first].num());
   }
 
-  res.append(oss.str());
-  return res;
+  return std::move(oss.str());
 }
 
 struct Statistics_Manip : PluginManipFunc<Statistics> {
@@ -1318,14 +1331,14 @@ GetAggregatedTableProperties(const DB& db, ColumnFamilyHandle* cfh,
   }
   std::string value;
   if (const_cast<DB&>(db).GetProperty(cfh, propName, &value)) {
-    replace_substr(value, "; ", "\r\n");
-    chomp(value);
+    terark::string_appender<> oss;
+    if (html) oss|"<pre>";
+    oss|terark::ReplaceSubStr<>{value, "; ", "\r\n"};
+    chomp(oss);
     if (html) {
-      value.reserve(value.size() + 11);
-      value.insert(0, "<pre>");
-      value.append("</pre>");
+      oss|"</pre>";
     }
-    djs[HTML_WRAP(propName)] = std::move(value);
+    djs[HTML_WRAP(propName)] = std::move(oss.str());
   }
   else {
     djs[HTML_WRAP(propName)] = "GetProperty Fail";
@@ -2034,7 +2047,7 @@ Json_DB_NoFileHistogram_Add_convenient_links(
   if (pos.data_) {
     char buf[256];
     #define oss_printf(...) oss.write(buf, snprintf(buf, sizeof(buf), __VA_ARGS__))
-    std::ostringstream oss;
+    terark::string_appender<> oss;
     oss << "<pre>";
     //auto first_line_end = (const char*)memchr(big.data_, '\n', big.size_);
     auto first_line_end = SliceSlice(big, "\nLevel").data_;
@@ -2659,7 +2672,7 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
     &DB::Properties::kAggregatedTableProperties,
   };
 
-  std::ostringstream oss;
+  terark::string_appender oss;
 
   const string str_rocksdb{"rocksdb"}, str_engine{"engine"};
   auto replace_char=[&str_rocksdb,&str_engine](string &name) { //adapter prmehtues key name
@@ -2717,7 +2730,7 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
   };
   add_prefix_map_properties(&DB::Properties::kAggregatedTablePropertiesAtLevel);
 
-  return oss.str();
+  return std::move(oss.str());
 }
 
 struct CFPropertiesWebView_Manip : PluginManipFunc<CFPropertiesWebView> {
