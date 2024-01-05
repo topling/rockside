@@ -463,14 +463,10 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
 }
 void DispatcherTableFactory::UpdateMutableConf(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, allow_trivial_move);
-  bool ignoreInputCompressionMatchesOutput = false;
-  ROCKSDB_JSON_OPT_PROP(js, ignoreInputCompressionMatchesOutput);
-  if (!ignoreInputCompressionMatchesOutput) {
-    ROCKSDB_JSON_OPT_PROP(js, trivial_move_always_max_output_level);
-  }
   ROCKSDB_JSON_OPT_PROP(js, measure_builder_stats);
   ROCKSDB_JSON_OPT_PROP(js, auto_compaction_max_wamp);
   ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
+  ROCKSDB_JSON_OPT_PROP(js, trivial_move_always_max_output_level);
   ROCKSDB_JSON_OPT_PROP(js, trivial_move_max_file_size_multiplier);
 }
 
@@ -969,10 +965,10 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   json js;
   ROCKSDB_JSON_SET_PROP(js["options"], allow_trivial_move);
   ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_always_max_output_level);
+  ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_max_file_size_multiplier);
   ROCKSDB_JSON_SET_PROP(js["options"], measure_builder_stats);
   ROCKSDB_JSON_SET_PROP(js["options"], auto_compaction_max_wamp);
   ROCKSDB_JSON_SET_PROP(js["options"], mark_for_compaction_max_wamp);
-  ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_max_file_size_multiplier);
   for (size_t i = 0, n = m_level_writers.size(); i < n; ++i) {
     auto& tf = m_level_writers[i];
     if (auto iter = p2name.find(tf.get()); p2name.end() == iter) {
