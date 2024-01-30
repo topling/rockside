@@ -2831,8 +2831,8 @@ void JS_ToplingDB_AddVersion(json& parent, bool html) {
     terark::string_appender<> sha, tag;
     sha|"<a href='"|GITHUB_ROCKSDB|"/commit/"|p_sha|"'>"|p_sha|"</a>";
     tag|"<a href='"|GITHUB_ROCKSDB|"/tree/"  |p_tag|"'>"|p_tag|"</a>";
-    djs["git_sha"] = sha.str();
-    djs["git_tag"] = tag.str();
+    djs["git_sha"] = std::move(sha.str());
+    djs["git_tag"] = std::move(tag.str());
   } else {
     djs["git_sha"] = p_sha;
     djs["git_tag"] = p_tag;
