@@ -499,7 +499,7 @@ void JS_ToplingDB_AddVersion(json& djs, bool html);
 void JS_TopTable_AddVersion(json& djs, bool html); // in repo topling-sst
 void JS_ModuleGitInfo_Add(json& djs, bool html);
 
-json DbPathVecToJson(const std::vector<class DbPath>&, bool html);
+json DbPathVecToJson(const std::vector<struct DbPath>&, bool html);
 json TableUserPropsToJson(const std::map<std::string, std::string>&, const json& dump_options);
 
 } // ROCKSDB_NAMESPACE

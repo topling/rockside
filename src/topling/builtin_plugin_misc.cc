@@ -5,8 +5,6 @@
 #include <memory>
 #include <cinttypes>
 #include <chrono>
-#include <sstream>
-#include <array>
 #include <algorithm>
 #include <bitset>
 
@@ -47,11 +45,6 @@ using std::string;
 
 __attribute__((weak)) void TopTableSetSeqScan(bool val);
 
-template<class T>
-static std::ostringstream& operator|(std::ostringstream& oss, const T& x) {
-  oss << x;
-  return oss;
-}
 // bucketMapper is defined in histogram.cc
 extern const HistogramBucketMapper bucketMapper;
 
@@ -2835,7 +2828,7 @@ void JS_ToplingDB_AddVersion(json& parent, bool html) {
   p_tag += 1;
   p_date += 1;
   if (html) {
-    std::ostringstream sha, tag;
+    terark::string_appender<> sha, tag;
     sha|"<a href='"|GITHUB_ROCKSDB|"/commit/"|p_sha|"'>"|p_sha|"</a>";
     tag|"<a href='"|GITHUB_ROCKSDB|"/tree/"  |p_tag|"'>"|p_tag|"</a>";
     djs["git_sha"] = sha.str();
