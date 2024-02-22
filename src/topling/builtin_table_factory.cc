@@ -711,20 +711,20 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
 }
 
 bool DispatcherTableFactory::ShouldCompactMarkForCompaction
-(const CompactionInputFiles** level_inputs, size_t num) const
+(const CompactionInputFiles** level_inputs, size_t num, const ImmutableOptions& iopt) const
 {
   return ShouldCompact(level_inputs, num, mark_for_compaction_max_wamp,
-                       "ShouldCompactMarkForCompaction");
+                       "ShouldCompactMarkForCompaction", iopt);
 }
 bool DispatcherTableFactory::ShouldCompactAutoCompaction
-(const CompactionInputFiles** level_inputs, size_t num) const
+(const CompactionInputFiles** level_inputs, size_t num, const ImmutableOptions& iopt) const
 {
   return ShouldCompact(level_inputs, num, auto_compaction_max_wamp,
-                       "ShouldCompactAutoCompaction");
+                       "ShouldCompactAutoCompaction", iopt);
 }
 bool DispatcherTableFactory::ShouldCompact
 (const CompactionInputFiles** level_inputs, size_t num, double max_wamp,
- const char* caller) const
+ const char* caller, const ImmutableOptions& iopt) const
 {
   if (num < 2) {
     return true;
@@ -749,7 +749,8 @@ bool DispatcherTableFactory::ShouldCompact
   }
   auto wamp = (sum_bytes + 1.0) /
               (sum_bytes + 1.0 - max_bytes);
-  DEBG("%s: sorted_runs_bytes: max = %11s, others = %11s, sum = %11s, max_wamp = %.3f, wamp = %11.1f"
+  ROCKS_LOG_DEBUG(iopt.info_log
+       , "%s: sorted_runs_bytes: max = %11s, others = %11s, sum = %11s, max_wamp = %.3f, wamp = %11.1f"
        , caller
        , SizeToString(max_bytes).c_str()
        , SizeToString(sum_bytes - max_bytes).c_str()

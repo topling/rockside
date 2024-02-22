@@ -33,9 +33,9 @@ public:
   std::string GetPrintableOptions() const override;
   bool IsDeleteRangeSupported() const override;
   bool InputCompressionMatchesOutput(const class Compaction*) const override;
-  bool ShouldCompactMarkForCompaction(const CompactionInputFiles**, size_t) const override;
-  bool ShouldCompactAutoCompaction(const CompactionInputFiles**, size_t) const override;
-  bool ShouldCompact(const CompactionInputFiles**, size_t, double, const char*) const;
+  bool ShouldCompactMarkForCompaction(const CompactionInputFiles**, size_t, const ImmutableOptions&) const override;
+  bool ShouldCompactAutoCompaction(const CompactionInputFiles**, size_t, const ImmutableOptions&) const override;
+  bool ShouldCompact(const CompactionInputFiles**, size_t, double, const char*, const ImmutableOptions&) const;
 
 // non TableFactory methods:
   void BackPatch(const SidePluginRepo& repo);
