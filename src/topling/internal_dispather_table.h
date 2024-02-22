@@ -98,6 +98,7 @@ protected:
   bool allow_trivial_move;
   bool measure_builder_stats = false;
   int trivial_move_always_max_output_level = 0;
+  size_t always_compact_max_bytes = 64 << 20; // 64 MiB
   double auto_compaction_max_wamp = 1e9; // do not limit by default
   double mark_for_compaction_max_wamp = 1e9; // do not limit by default
   double trivial_move_max_file_size_multiplier = 4.0;

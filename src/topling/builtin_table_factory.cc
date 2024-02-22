@@ -10,6 +10,7 @@
 #include "side_plugin_factory.h"
 #include "builtin_table_factory.h"
 #include "internal_dispather_table.h"
+#include <terark/num_to_str.hpp>
 
 // when we can not get a rocksdb Logger object, use this simple log
 #define PrintLog(level, fmt, ...) \
@@ -464,6 +465,7 @@ DispatcherTableFactory(const json& js, const SidePluginRepo& repo) {
 void DispatcherTableFactory::UpdateMutableConf(const json& js, const SidePluginRepo& repo) {
   ROCKSDB_JSON_OPT_PROP(js, allow_trivial_move);
   ROCKSDB_JSON_OPT_PROP(js, measure_builder_stats);
+  ROCKSDB_JSON_OPT_SIZE(js, always_compact_max_bytes);
   ROCKSDB_JSON_OPT_PROP(js, auto_compaction_max_wamp);
   ROCKSDB_JSON_OPT_PROP(js, mark_for_compaction_max_wamp);
   ROCKSDB_JSON_OPT_PROP(js, trivial_move_always_max_output_level);
@@ -749,15 +751,23 @@ bool DispatcherTableFactory::ShouldCompact
   }
   auto wamp = (sum_bytes + 1.0) /
               (sum_bytes + 1.0 - max_bytes);
-  ROCKS_LOG_DEBUG(iopt.info_log
-       , "%s: sorted_runs_bytes: max = %11s, others = %11s, sum = %11s, max_wamp = %.3f, wamp = %11.1f"
-       , caller
+  bool compact = wamp <= max_wamp || sum_bytes <= always_compact_max_bytes;
+  if (!compact) {
+    terark::string_appender<> levels;
+    for (size_t i = 0; i < num; i++) {
+      levels << level_inputs[i]->level << ",";
+    }
+    levels.pop_back();
+    ROCKS_LOG_DEBUG(iopt.info_log
+       , "%s: sorted_runs_bytes: levels [%s], max %11s, others %11s, sum %11s, max_wamp %.3f, wamp %11.1f"
+       , caller, levels.c_str()
        , SizeToString(max_bytes).c_str()
        , SizeToString(sum_bytes - max_bytes).c_str()
        , SizeToString(sum_bytes).c_str()
        , max_wamp, wamp
        );
-  return wamp <= max_wamp;
+  }
+  return compact;
 }
 
 void DispatcherTableBackPatch(TableFactory* f, const SidePluginRepo& repo) {
@@ -968,6 +978,7 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
   ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_always_max_output_level);
   ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_max_file_size_multiplier);
   ROCKSDB_JSON_SET_PROP(js["options"], measure_builder_stats);
+  ROCKSDB_JSON_SET_SIZE(js["options"], always_compact_max_bytes);
   ROCKSDB_JSON_SET_PROP(js["options"], auto_compaction_max_wamp);
   ROCKSDB_JSON_SET_PROP(js["options"], mark_for_compaction_max_wamp);
   for (size_t i = 0, n = m_level_writers.size(); i < n; ++i) {
