@@ -1693,6 +1693,16 @@ try {
         const char* emoj = "&#128994;" ; // green circle;
         switch (x.compaction_reason) {
         default: break;
+        case CompactionReason::kUniversalSizeAmplification:
+        case CompactionReason::kUniversalSizeRatio:
+        case CompactionReason::kUniversalSortedRunNum:
+          emoj = "&#127757;"; // earth globe europe-africa
+          break;
+        case CompactionReason::kFIFOMaxSize:
+        case CompactionReason::kFIFOReduceNumFiles:
+        case CompactionReason::kFIFOTtl:
+          emoj = "&#128644;"; // high-speed train
+          break;
         case CompactionReason::kManualCompaction:
         //emoj = "&#128075;"; // waving hand
           emoj = "&#128400;"; // raised hand with fingers splayed
@@ -1709,6 +1719,15 @@ try {
           break;
         case CompactionReason::kPeriodicCompaction:
           emoj = "&#9202;"; // timer clock
+          break;
+        case CompactionReason::kChangeTemperature:
+          emoj = "&#128293;"; // fire
+          break;
+        case CompactionReason::kForcedBlobGC:
+          emoj = "&#128686;"; // put litter in its place symbol
+          break;
+        case CompactionReason::kRoundRobinTtl:
+          emoj = "&#128257;"; // clockwise rightwards and leftwards open circle arrows
           break;
         }
         auto write_emoj = [&]() {
