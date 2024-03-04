@@ -1690,6 +1690,26 @@ try {
       html.append("</th>");
       html.append("<th class='emoji'>");
       if (x.job_id >= 0) {
+        const char* emoj = "&#128994;" ; // green circle;
+        switch (x.compaction_reason) {
+        default: break;
+        case CompactionReason::kManualCompaction:
+        //emoj = "&#128075;"; // waving hand
+          emoj = "&#128400;"; // raised hand with fingers splayed
+          break;
+        case CompactionReason::kFilesMarkedForCompaction:
+          emoj = "&#11088;"; // WHITE MEDIUM STAR, five angle star
+          break;
+        case CompactionReason::kBottommostFiles:
+          emoj = "&#127947;"; // person weight lifting
+          break;
+        case CompactionReason::kTtl:
+          emoj = "&#9201;"; // stopwatch
+          break;
+        case CompactionReason::kPeriodicCompaction:
+          emoj = "&#9202;"; // timer clock
+          break;
+        }
         if (compact_exec_fac && !dbname.empty() && x.job_attempt >= 0) {
           auto job_url = compact_exec_fac->JobUrl(dbname, x.job_id, x.job_attempt);
           if (!job_url.empty()) {
@@ -1697,14 +1717,14 @@ try {
             html.append(job_url);
             AppendFmt("' title='job %d", x.job_id);
             html.append("'>");
-            html.append("&#128994;"); // green circle
+            html.append(emoj);
             html.append("</a>");
           } else
             goto AddCompactionJobTitle;
         } else { AddCompactionJobTitle:
           html.back() = ' '; // replace '>'
           AppendFmt("title='job %d'>", x.job_id);
-          html.append("&#128994;"); // green circle
+          html.append(emoj);
         }
       }
       else if (add_log_link) {
