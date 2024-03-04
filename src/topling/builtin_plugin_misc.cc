@@ -1710,6 +1710,12 @@ try {
           emoj = "&#9202;"; // timer clock
           break;
         }
+        auto write_emoj = [&]() {
+            html.append(emoj);
+            if (x.is_bottom_most_compaction) {
+              html.append("&#127947;"); // person weight lifting
+            }
+        };
         if (compact_exec_fac && !dbname.empty() && x.job_attempt >= 0) {
           auto job_url = compact_exec_fac->JobUrl(dbname, x.job_id, x.job_attempt);
           if (!job_url.empty()) {
@@ -1717,14 +1723,14 @@ try {
             html.append(job_url);
             AppendFmt("' title='job %d", x.job_id);
             html.append("'>");
-            html.append(emoj);
+            write_emoj();
             html.append("</a>");
           } else
             goto AddCompactionJobTitle;
         } else { AddCompactionJobTitle:
           html.back() = ' '; // replace '>'
           AppendFmt("title='job %d'>", x.job_id);
-          html.append(emoj);
+          write_emoj();
         }
       }
       else if (add_log_link) {
