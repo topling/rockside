@@ -672,7 +672,8 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
         str_input_levels(c).c_str(), c->output_level(), strbool);
   };
   const TableFactory* output_factory = get_fac(c->output_level());
-  for (auto& each_input : *c->inputs()) {
+  const auto& inputs = *c->inputs();
+  for (auto& each_input : inputs) {
     const TableFactory* input_factory = get_fac(each_input.level);
     if (input_factory != output_factory) {
       debug_print("false");
@@ -682,8 +683,10 @@ bool DispatcherTableFactory::InputCompressionMatchesOutput(const Compaction* c) 
       return false;
     }
   }
-  if (c->mutable_cf_options()->target_file_size_multiplier > 1) {
-    const auto& inputs = *c->inputs();
+  if (inputs.size() == 1 && inputs[0].files.size() == 1) {
+    // do nothing, fallthrough
+  }
+  else if (c->mutable_cf_options()->target_file_size_multiplier > 1) {
     for (size_t i = 0, n = inputs.size(); i < n; i++) {
       if (inputs[i].files.size() <= 1) {
         continue;
