@@ -1689,6 +1689,9 @@ try {
       }
       html.append("</th>");
       html.append("<th class='emoji'>");
+      auto non_compact = x.marked_for_compaction ?
+                         "&#128161;" : // electric light bulb
+                         "&#128309;" ; // blue circle
       if (x.job_id >= 0) {
         const char* emoj = "&#128994;" ; // green circle;
         switch (x.compaction_reason) {
@@ -1756,11 +1759,11 @@ try {
       }
       else if (add_log_link) {
         AppendFmt("<a href='LOG.%06" PRIu64 ".txt'>", x.file_number);
-        html.append("&#128309;"); // blue circle
+        html.append(non_compact);
         html.append("</a>");
       }
       else {
-        html.append("&#128309;"); // blue circle
+        html.append(non_compact);
       }
       html.append("</th>");
     }
