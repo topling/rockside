@@ -1701,7 +1701,8 @@ try {
           emoj = "&#11088;"; // WHITE MEDIUM STAR, five angle star
           break;
         case CompactionReason::kBottommostFiles:
-          emoj = "&#127947;"; // person weight lifting
+          //emoj = "&#127947;"; // person weight lifting
+          emoj = "&#128314;"; // red triangle pointed up
           break;
         case CompactionReason::kTtl:
           emoj = "&#9201;"; // stopwatch
@@ -1713,7 +1714,8 @@ try {
         auto write_emoj = [&]() {
             html.append(emoj);
             if (x.is_bottom_most_compaction) {
-              html.append("&#127947;"); // person weight lifting
+              //html.append("&#127947;"); // person weight lifting
+              html.append("&#128314;"); // red triangle pointed up
             }
         };
         if (compact_exec_fac && !dbname.empty() && x.job_attempt >= 0) {
