@@ -1711,7 +1711,11 @@ try {
           emoj = "&#128400;"; // raised hand with fingers splayed
           break;
         case CompactionReason::kFilesMarkedForCompaction:
-          emoj = "&#11088;"; // WHITE MEDIUM STAR, five angle star
+          if (x.marked_for_compaction)
+            emoj = "&#128161;"; // electric light bulb
+          else
+            // is involved by other marked_for_compaction files
+            emoj = "&#11088;"; // WHITE MEDIUM STAR, five angle star
           break;
         case CompactionReason::kBottommostFiles:
           //emoj = "&#127947;"; // person weight lifting
