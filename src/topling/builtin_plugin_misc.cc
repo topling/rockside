@@ -645,7 +645,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     ROCKSDB_JSON_OPT_FACT(js, prefix_extractor);
     if (js.contains("max_bytes_for_level_base")) {
       ROCKSDB_JSON_OPT_SIZE(js, max_bytes_for_level_base);
-    } else {
+    } else if (js.contains("write_buffer_size")) {
       max_bytes_for_level_base = write_buffer_size;
     }
     ROCKSDB_JSON_OPT_PROP(js, snap_refresh_nanos);
