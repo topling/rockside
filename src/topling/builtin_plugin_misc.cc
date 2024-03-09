@@ -1158,7 +1158,7 @@ static void replace_substr(std::string& s, const std::string& f,
                            const std::string& t) {
     assert(not f.empty());
     // old code may be time O(n*n)
-    terark::string_appender<> tmp;
+    terark::string_appender<> tmp(terark::valvec_reserve(), t.size());
     tmp|terark::ReplaceSubStr<>{s, f, t};
     tmp.swap(s);
 }
@@ -1185,7 +1185,7 @@ struct TransformMetricName {
 };
 
 static string metrics_DB_Staticstics(const Statistics* st) {
-  terark::string_appender<> oss;
+  terark::string_appender<> oss(terark::valvec_reserve(), 4<<20); // 4M
   auto replace=[](const string &name) {
     return TransformMetricName{name};
   };
@@ -1324,7 +1324,7 @@ GetAggregatedTableProperties(const DB& db, ColumnFamilyHandle* cfh,
   }
   std::string value;
   if (const_cast<DB&>(db).GetProperty(cfh, propName, &value)) {
-    terark::string_appender<> oss;
+    terark::string_appender<> oss(terark::valvec_reserve(), 512*1024);
     if (html) oss|"<pre>";
     oss|terark::ReplaceSubStr<>{value, "; ", "\r\n"};
     chomp(oss);
@@ -2094,7 +2094,7 @@ Json_DB_NoFileHistogram_Add_convenient_links(
   if (pos.data_) {
     char buf[256];
     #define oss_printf(...) oss.write(buf, snprintf(buf, sizeof(buf), __VA_ARGS__))
-    terark::string_appender<> oss;
+    terark::string_appender<> oss(terark::valvec_reserve(), 64*1024);
     oss << "<pre>";
     //auto first_line_end = (const char*)memchr(big.data_, '\n', big.size_);
     auto first_line_end = SliceSlice(big, "\nLevel").data_;
@@ -2346,7 +2346,7 @@ BenchScan(TableReader* tr, int repeat, const json& dump_options) {
   auto t2 = steady_clock::now();
   auto us = duration<double, std::micro>(t1 - t0).count();
   auto sec = us / 1e6;
-  terark::string_appender<> buf; buf.reserve(8192);
+  terark::string_appender<> buf(terark::valvec_reserve(), 8192);
   if (html) {
     buf|"<pre>";
   }
@@ -2527,7 +2527,7 @@ BenchSeek(TableReader* tr, int repeat, const json& dump_options) {
     }
     #undef fmt
     if (html) {
-      terark::string_appender<> buf; buf.reserve(8192);
+      terark::string_appender<> buf(terark::valvec_reserve(), 8192);
       buf|"entries = "|entries|", total key len = "|SizeToString(keys.strpool.size());
       if (fetch_value) {
          buf|", total value len = "|SizeToString(vlen/repeat)|"\n";
@@ -2719,7 +2719,7 @@ static string CFPropertiesMetric(const DB& db, ColumnFamilyHandle* cfh) {
     &DB::Properties::kAggregatedTableProperties,
   };
 
-  terark::string_appender oss;
+  terark::string_appender<> oss(terark::valvec_reserve(), 8<<20); // 8M
 
   const string str_rocksdb{"rocksdb"}, str_engine{"engine"};
   auto replace_char=[&str_rocksdb,&str_engine](string &name) { //adapter prmehtues key name
@@ -2882,7 +2882,8 @@ void JS_ToplingDB_AddVersion(json& parent, bool html) {
   p_tag += 1;
   p_date += 1;
   if (html) {
-    terark::string_appender<> sha, tag;
+    terark::string_appender<> sha(terark::valvec_reserve(), 512);
+    terark::string_appender<> tag(terark::valvec_reserve(), 512);
     sha|"<a href='"|GITHUB_ROCKSDB|"/commit/"|p_sha|"'>"|p_sha|"</a>";
     tag|"<a href='"|GITHUB_ROCKSDB|"/tree/"  |p_tag|"'>"|p_tag|"</a>";
     djs["git_sha"] = std::move(sha.str());
