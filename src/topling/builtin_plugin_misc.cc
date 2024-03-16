@@ -2011,7 +2011,6 @@ if (show_per_level == 1 && 0 == all_levels_agg.NumCompactingSSTs) {
   html.append("<p>url param <b>per_level</b> is 1 but there is no any compacting sst</p>");
 }
 else if (show_per_level >= 1) {
-  int level_prev = 0;
   for (int level = 0; level < (int)meta.levels.size(); level++) {
     auto& curr_level = meta.levels[level];
     if (curr_level.files.empty()) {
@@ -2025,10 +2024,10 @@ else if (show_per_level >= 1) {
     AppendFmt("file count = %zd, ", curr_level.files.size());
     AppendFmt("total zip = %.3f GB", curr_level.size/GB);
     AppendFmt(", raw = %.3f GB", levels_agg[level].raw_size()/GB);
-    if (level && meta.levels[level_prev].size) {
+    if (level && meta.levels[level-1].size) {
       AppendFmt(", over prev level: zip = %.6f, raw = %.6f",
-        double(curr_level.size)/meta.levels[level_prev].size,
-        double(levels_agg[level].raw_size())/levels_agg[level_prev].raw_size());
+        double(curr_level.size)/meta.levels[level-1].size,
+        double(levels_agg[level].raw_size())/levels_agg[level-1].raw_size());
     }
     html.append("</p>\n");
     html.append("<table border=1>\n");
@@ -2057,7 +2056,6 @@ else if (show_per_level >= 1) {
       html.append("</tfoot>\n");
     }
     html.append("</table>\n");
-    level_prev = level;
   }
 } // if (show_per_level)
   html.append("</div>");
