@@ -1217,13 +1217,13 @@ static long long DoParseSizeXiB(const char* s) {
   }
 }
 
-ParseSizeXiB::ParseSizeXiB(const char* s) {
+JsParseSizeXiB::JsParseSizeXiB(const char* s) {
   m_val = DoParseSizeXiB(s);
 }
-ParseSizeXiB::ParseSizeXiB(const std::string& s) {
+JsParseSizeXiB::JsParseSizeXiB(const std::string& s) {
   m_val = DoParseSizeXiB(s.c_str());
 }
-ParseSizeXiB::ParseSizeXiB(const json& js) {
+JsParseSizeXiB::JsParseSizeXiB(const json& js) {
   if (js.is_number_integer())
     m_val = js.get<long long>();
   else if (js.is_number_unsigned())
@@ -1231,11 +1231,11 @@ ParseSizeXiB::ParseSizeXiB(const json& js) {
   else if (js.is_number_float())
     m_val = (long long)js.get<double>();
   else if (js.is_string())
-    *this = ParseSizeXiB(js.get_ref<const std::string&>());
+    *this = JsParseSizeXiB(js.get_ref<const std::string&>());
   else
     throw std::invalid_argument("bad json = " + js.dump());
 }
-ParseSizeXiB::ParseSizeXiB(const json& js, const char* key) {
+JsParseSizeXiB::JsParseSizeXiB(const json& js, const char* key) {
     if (!js.is_object()) {
       throw std::invalid_argument(
           std::string(ROCKSDB_FUNC) + ": js is not an object, key = " + key);
@@ -1249,43 +1249,43 @@ ParseSizeXiB::ParseSizeXiB(const json& js, const char* key) {
       else if (sub_js.is_number_float())
         m_val = (long long)sub_js.get<double>();
       else if (sub_js.is_string())
-        *this = ParseSizeXiB(sub_js.get_ref<const std::string&>());
+        *this = JsParseSizeXiB(sub_js.get_ref<const std::string&>());
       else
         throw std::invalid_argument(
                 "bad sub_js = " + sub_js.dump() + ", key = \"" + key + "\"");
     }
     else {
       throw std::invalid_argument(
-          std::string("ParseSizeXiB : not found key: \"") +
+          std::string("JsParseSizeXiB : not found key: \"") +
             key + "\" in js = " + js.dump());
     }
 }
 
-ParseSizeXiB::operator int() const {
+JsParseSizeXiB::operator int() const {
   if (m_val < INT_MIN || m_val > INT_MAX)
     throw std::domain_error(std::string(ROCKSDB_FUNC) + ": out of range<int>");
   return (int)m_val;
 }
 
-ParseSizeXiB::operator long() const {
+JsParseSizeXiB::operator long() const {
   if (sizeof(long) != sizeof(long long) && (m_val < LONG_MIN || m_val > LONG_MAX))
     throw std::domain_error(std::string(ROCKSDB_FUNC) + ": out of range<long>");
   return (long)m_val;
 }
-ParseSizeXiB::operator long long() const {
+JsParseSizeXiB::operator long long() const {
   return m_val;
 }
-ParseSizeXiB::operator unsigned int() const {
+JsParseSizeXiB::operator unsigned int() const {
   if (m_val > UINT_MAX)
     throw std::domain_error(std::string(ROCKSDB_FUNC) + ": out of range<uint>");
   return (unsigned int)m_val;
 }
-ParseSizeXiB::operator unsigned long() const {
+JsParseSizeXiB::operator unsigned long() const {
   if (sizeof(long) != sizeof(long long) && (unsigned long long)m_val > ULONG_MAX)
     throw std::domain_error(std::string(ROCKSDB_FUNC) + ": out of range<ulong>");
   return (unsigned long)m_val;
 }
-ParseSizeXiB::operator unsigned long long() const {
+JsParseSizeXiB::operator unsigned long long() const {
   return (unsigned long long)m_val;
 }
 

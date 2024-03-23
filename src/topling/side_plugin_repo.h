@@ -409,13 +409,13 @@ inline void HtmlAppendEscape(std::string* d, Slice s)
 inline std::string HtmlEscape(Slice s)
        { std::string res; HtmlAppendEscape(&res, s); return res; }
 
-class ParseSizeXiB {
+class JsParseSizeXiB {
   long long m_val;
 public:
-  explicit ParseSizeXiB(const char* s);
-  explicit ParseSizeXiB(const std::string& s);
-  explicit ParseSizeXiB(const json&);
-  explicit ParseSizeXiB(const json&, const char* key);
+  explicit JsParseSizeXiB(const char* s);
+  explicit JsParseSizeXiB(const std::string& s);
+  explicit JsParseSizeXiB(const json&);
+  explicit JsParseSizeXiB(const json&, const char* key);
   operator int() const;
   operator long() const;
   operator long long() const;

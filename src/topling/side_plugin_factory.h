@@ -375,9 +375,9 @@ JS_NewJsonRepoConsObject(const json& js, const SidePluginRepo& repo) {
 #define ROCKSDB_JSON_OPT_PROP_3(js, prop, pname) do { \
     ROCKSDB_JSON_XXX_PROP(js, prop, pname)            \
   } while (0)
-#define ROCKSDB_JSON_REQ_SIZE(js, prop) prop = ParseSizeXiB(js, #prop)
+#define ROCKSDB_JSON_REQ_SIZE(js, prop) prop = JsParseSizeXiB(js, #prop)
 #define ROCKSDB_JSON_OPT_SIZE(js, prop) do try { \
-      prop = ParseSizeXiB(js, #prop); \
+      prop = JsParseSizeXiB(js, #prop); \
     } catch (const std::exception&) {} while (0)
 #define ROCKSDB_JSON_OPT_ENUM(js, prop) do { \
     if (auto __iter = js.find(#prop); js.end() != __iter) { \

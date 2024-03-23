@@ -99,7 +99,7 @@ static DbPath DbPathFromJson(const json& js) {
     x.path = js.get<string>();
   } else {
     x.path = js.at("path").get<string>();
-    x.target_size = ParseSizeXiB(js, "target_size");
+    x.target_size = JsParseSizeXiB(js, "target_size");
   }
   return x;
 }
