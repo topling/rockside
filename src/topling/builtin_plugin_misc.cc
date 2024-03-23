@@ -2899,7 +2899,7 @@ void JS_ToplingDB_AddVersion(json& parent, bool html) {
 }
 
 struct ManCompactStatus {
-  time_t start_time_us;
+  time_t start_time;
   DB*    db;
 };
 static std::mutex g_running_manual_compact_mtx;
@@ -2931,7 +2931,7 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
     json js;
     js["status"] = "running";
     js["next_job_id"] = Get_DB_next_job_id(db);
-    js["time"] = cur_time_stat(mcs.start_time_us, "Elapsed");
+    js["time"] = cur_time_stat(mcs.start_time, "Elapsed");
     return JsonToString(js, dump_options);
   }
   if (refresh) {
