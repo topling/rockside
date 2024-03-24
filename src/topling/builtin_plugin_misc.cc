@@ -1562,7 +1562,7 @@ std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
   extern const std::string_view g_sst_list_html_style_css;
   extern const unsigned int     g_sst_list_html_highlight_classes;
   std::string html;
-  const double GB = 1L << 30;
+  const double GiB = 1L << 30;
 #if defined(NDEBUG)
 try {
 #endif
@@ -1771,7 +1771,7 @@ try {
       }
       html.append("</th>");
     }
-    AppendFmt("<td>%.6f</td>", x.size/GB);
+    AppendFmt("<td>%.6f</td>", x.size/GiB);
     uint64_t file_creation_time;
     if (!p) {
       html.append("<td>unkown</td>"); // raw size (key + value)
@@ -1808,7 +1808,7 @@ try {
       auto tag_zip_ratio = double(p->tag_size)/(rows * 8);
       auto val_zip_ratio = double(p->data_size)/p->raw_value_size;
       auto kv_zip_ratio = kv_zip_size/kv_raw_size;
-      AppendFmt("<td>%.6f</td>", kv_raw_size/GB);
+      AppendFmt("<td>%.6f</td>", kv_raw_size/GiB);
       AppendFmt("<td>%" PRIu64"</td>", rows);
       AppendFmt("<td>%" PRIu64"</td>", p->num_deletions);
       AppendFmt("<td>%" PRIu64"</td>", p->num_merge_operands);
@@ -1817,16 +1817,16 @@ try {
 
       AppendFmt("<td title='index: %s, tag: %s'>%.6f</td>",
                 SizeToString(p->index_size).c_str(),
-                SizeToString(p->tag_size).c_str(), zip_key_tag/GB);
-      AppendFmt("<td>%.6f</td>", p->data_size/GB);
+                SizeToString(p->tag_size).c_str(), zip_key_tag/GiB);
+      AppendFmt("<td>%.6f</td>", p->data_size/GiB);
       AppendFmt("<td title='index: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
                 100*p->index_size/zip_key_tag,
                 100*p->tag_size/zip_key_tag, 100*zip_key_tag/kv_zip_size);
 
       AppendFmt("<td title='UserKey: %s, tag: %s'>%.6f</td>",
                 SizeToString(p->raw_key_size - 8*rows).c_str(),
-                SizeToString(8*rows).c_str(), p->raw_key_size/GB);
-      AppendFmt("<td>%.6f</td>", p->raw_value_size/GB);
+                SizeToString(8*rows).c_str(), p->raw_key_size/GiB);
+      AppendFmt("<td>%.6f</td>", p->raw_value_size/GiB);
       AppendFmt("<td title='UserKey: %.1f%%, tag: %.1f%%' class='bghighlight'>%.1f%%</td>",
                 100.0*(p->raw_key_size - 8*rows)/p->raw_key_size,
                 800.0*rows/p->raw_key_size, 100*p->raw_key_size/kv_raw_size);
@@ -1887,11 +1887,11 @@ try {
                                " class='emoji' style='font-size: xx-large' title='being compacted ?'>&#9851;</th>");
     else
       html.append("<th rowspan=2 class='emoji' style='font-size: xx-large' title='being compacted ?'>&#9851;</th>");
-    html.append("<th colspan=2>FileSize(GB)</th>");
+    html.append("<th colspan=2>FileSize(GiB)</th>");
     html.append("<th colspan=4>Entries</th>");
     html.append("<th rowspan=2 title='Data Blocks'>B</th>");
-    html.append("<th colspan=3>ZipSize(GB)</th>");
-    html.append("<th colspan=3>RawSize(GB)</th>");
+    html.append("<th colspan=3>ZipSize(GiB)</th>");
+    html.append("<th colspan=3>RawSize(GiB)</th>");
     html.append("<th colspan=3>ZipRatio(Zip/Raw)</th>");
     html.append("<th colspan=2>AvgKey</th>");
     html.append("<th colspan=2>AvgValue</th>");
@@ -1960,9 +1960,9 @@ try {
   html.append("<p>");
   AppendFmt("all levels summary: version# %lld, file count = %zd, ",
              (long long)version->GetVersionNumber(), meta.file_count);
-  AppendFmt("total size = %.3f GB, ", meta.size/GB);
+  AppendFmt("total size = %.3f GiB, ", meta.size/GiB);
   if (meta.file_count > 1) {
-    AppendFmt("avg size = %.3f GB", meta.size/GB/meta.file_count);
+    AppendFmt("avg size = %.3f GiB", meta.size/GiB/meta.file_count);
   }
   if (!is_compact_worker) {
     html.append(R"(&nbsp;&nbsp;&nbsp;)");
@@ -2022,8 +2022,8 @@ else if (show_per_level >= 1) {
     html.append("<hr><p>");
     AppendFmt("level = %d, ", curr_level.level);
     AppendFmt("file count = %zd, ", curr_level.files.size());
-    AppendFmt("total zip = %.3f GB", curr_level.size/GB);
-    AppendFmt(", raw = %.3f GB", levels_agg[level].raw_size()/GB);
+    AppendFmt("total zip = %.3f GiB", curr_level.size/GiB);
+    AppendFmt(", raw = %.3f GiB", levels_agg[level].raw_size()/GiB);
     if (level && meta.levels[level-1].size) {
       AppendFmt(", over prev level: zip = %.6f, raw = %.6f",
         double(curr_level.size)/meta.levels[level-1].size,
