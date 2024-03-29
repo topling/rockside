@@ -21,6 +21,9 @@ class JsonStrMap : public JsonStrMap_Base {
 public:
     typedef IgnoreAlloc allocator_type;
     using JsonStrMap_Base::gold_hash_map;
+    using iterator = typename JsonStrMap_Base::iterator;
+    iterator erase(iterator iter) { return this->std_erase(iter); }
+    size_t   erase(const Key& key) { return JsonStrMap_Base::erase(key); }
 };
 } // namespace terark
 
