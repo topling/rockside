@@ -673,7 +673,6 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
    #endif
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70080
     ROCKSDB_JSON_OPT_PROP(js, level_compaction_dynamic_file_size);
-    ROCKSDB_JSON_OPT_PROP(js, ignore_max_compaction_bytes_for_input);
     ROCKSDB_JSON_OPT_ENUM(js, last_level_temperature);
     ROCKSDB_JSON_OPT_PROP(js, preserve_internal_time_seconds);
     ROCKSDB_JSON_OPT_PROP(js, memtable_protection_bytes_per_key);
@@ -806,7 +805,6 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
    #endif
    #if (ROCKSDB_MAJOR * 10000 + ROCKSDB_MINOR * 10 + ROCKSDB_PATCH) >= 70080
     ROCKSDB_JSON_SET_PROP(js, level_compaction_dynamic_file_size);
-    ROCKSDB_JSON_SET_PROP(js, ignore_max_compaction_bytes_for_input);
     ROCKSDB_JSON_SET_ENUM(js, last_level_temperature);
     ROCKSDB_JSON_SET_PROP(js, preserve_internal_time_seconds);
     ROCKSDB_JSON_SET_PROP(js, memtable_protection_bytes_per_key);
