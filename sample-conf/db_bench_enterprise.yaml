@@ -105,7 +105,7 @@ TableFactory:
       sampleRatio: 0.01
       checksumLevel: 0
       debugLevel: 0
-      minDictZipValueSize: 30
+      minDictZipValueSize: 3000
       minPreadLen: -1
   bb:
     class: BlockBasedTable
@@ -167,7 +167,7 @@ CFOptions:
     #disable_auto_compactions: true
     #memtable_factory: "${skiplist}"
     memtable_factory: "${cspp}"
-    write_buffer_size: 2G
+    write_buffer_size: 2G  # 64m, rocksdb recommend small, toplingdb recommend large
     target_file_size_base: 32M
     target_file_size_multiplier: 2
     table_factory: dispatch
@@ -197,7 +197,7 @@ DBOptions:
     allow_fdatasync: false # default true
     create_if_missing: true
     create_missing_column_families: true
-    enable_pipelined_write: true
+    #enable_pipelined_write: true # must be false if unordered_write is true
     unordered_write: true
     #info_log_level: DEBUG_LEVEL
     max_background_flushes: 2 # default is -1
@@ -207,7 +207,7 @@ DBOptions:
     inplace_update_support: false # default is false
     write_buffer_manager: "${wbm}"
     WAL_size_limit_MB: 0
-    statistics: "${stat}"
+    #statistics: "${stat}" # if defined, it incurs some overhead
 databases:
   db_bench_enterprise:
     method: DB::Open
