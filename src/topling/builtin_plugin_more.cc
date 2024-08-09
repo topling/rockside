@@ -45,13 +45,10 @@ ROCKSDB_FACTORY_REG("ChrootEnv", JS_NewChrootEnv);
 
 static std::shared_ptr<FileSystem>
 JS_NewChrootFileSystem(const json& js, const SidePluginRepo& repo) {
-  std::shared_ptr<FileSystem> base_fs;
+  std::shared_ptr<FileSystem> base_fs = Env::Default()->GetFileSystem();
   std::string chroot_dir;
   ROCKSDB_JSON_REQ_PROP(js, chroot_dir);
   ROCKSDB_JSON_OPT_FACT(js, base_fs);
-  if (!base_fs) {
-    THROW_InvalidArgument("param 'base' is required");
-  }
   return NewChrootFileSystem(base_fs, chroot_dir);
 }
 ROCKSDB_FACTORY_REG("ChrootFileSystem", JS_NewChrootFileSystem);
