@@ -13,6 +13,10 @@
 #include <rocksdb/db.h>
 #include <rocksdb/sst_file_manager.h>
 #include <port/likely.h>
+#include <env/composite_env_wrapper.h>
+#include <env/env_chroot.h>
+#include <env/fs_cat.h>
+
 #include <logging/auto_roll_logger.h>
 #include <utilities/merge_operators/bytesxor.h>
 #include <utilities/merge_operators/sortlist.h>
@@ -26,6 +30,60 @@ namespace ROCKSDB_NAMESPACE {
 using std::shared_ptr;
 using std::vector;
 using std::string;
+
+static Env* JS_NewChrootEnv(const json& js, const SidePluginRepo& repo) {
+  Env* base_env = nullptr;
+  std::string chroot_dir;
+  ROCKSDB_JSON_REQ_PROP(js, chroot_dir);
+  ROCKSDB_JSON_OPT_FACT(js, base_env);
+  if (!base_env) {
+    THROW_InvalidArgument("param 'base_env' is required");
+  }
+  return NewChrootEnv(base_env, chroot_dir);
+}
+ROCKSDB_FACTORY_REG("ChrootEnv", JS_NewChrootEnv);
+
+static std::shared_ptr<FileSystem>
+JS_NewChrootFileSystem(const json& js, const SidePluginRepo& repo) {
+  std::shared_ptr<FileSystem> base_fs;
+  std::string chroot_dir;
+  ROCKSDB_JSON_REQ_PROP(js, chroot_dir);
+  ROCKSDB_JSON_OPT_FACT(js, base_fs);
+  if (!base_fs) {
+    THROW_InvalidArgument("param 'base' is required");
+  }
+  return NewChrootFileSystem(base_fs, chroot_dir);
+}
+ROCKSDB_FACTORY_REG("ChrootFileSystem", JS_NewChrootFileSystem);
+
+// never free the returned env
+static Env* JS_NewCompositeEnv(const json& js, const SidePluginRepo& repo) {
+  Env* base_env = Env::Default();
+  std::shared_ptr<FileSystem> file_system = base_env->GetFileSystem();
+  std::shared_ptr<SystemClock> system_clock = base_env->GetSystemClock();
+  ROCKSDB_JSON_OPT_FACT(js, base_env);
+  ROCKSDB_JSON_OPT_FACT(js, file_system);
+  // ROCKSDB_JSON_OPT_FACT(js, system_clock); // always default system_clock
+  return new CompositeEnvWrapper(base_env, file_system, system_clock);
+}
+ROCKSDB_FACTORY_REG("CompositeEnv", JS_NewCompositeEnv);
+
+static std::shared_ptr<FileSystem>
+JS_NewCatFileSystem(const json& js, const SidePluginRepo& repo) {
+  bool use_mmap_read = false;
+  std::shared_ptr<FileSystem> local, remote;
+  ROCKSDB_JSON_OPT_PROP(js, use_mmap_read);
+  ROCKSDB_JSON_OPT_FACT(js, local);
+  ROCKSDB_JSON_OPT_FACT(js, remote);
+  if (!local) {
+    THROW_InvalidArgument("param 'local' is required");
+  }
+  if (!remote) {
+    THROW_InvalidArgument("param 'remote' is required");
+  }
+  return std::make_shared<CatFileSystem>(local, remote, use_mmap_read);
+}
+ROCKSDB_FACTORY_REG("CatFileSystem", JS_NewCatFileSystem);
 
 // lazy create logger to kill dependency from logger to DBOptions,
 // this is not needed on most all cases, just for some corner use case.
