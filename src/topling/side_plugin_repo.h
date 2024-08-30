@@ -111,6 +111,7 @@ class SidePluginRepo {
 
   Status ImportAutoFile(const Slice& fname);
   Status ImportJsonFile(const Slice& fname);
+  Status ImportTomlFile(const Slice& fname);
   Status ImportYamlFile(const Slice& fname);
 
   Status Import(const std::string& json_str);

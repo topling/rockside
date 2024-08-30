@@ -187,6 +187,9 @@ Status SidePluginRepo::ImportAutoFile(const Slice& fname) {
   if (fname.ends_with(".json") || fname.ends_with(".js")) {
     return ImportJsonFile(fname);
   }
+  if (fname.ends_with(".toml") || fname.ends_with(".tml")) {
+    return ImportTomlFile(fname);
+  }
   if (fname.ends_with(".yaml") || fname.ends_with(".yml")) {
     return ImportYamlFile(fname);
   }
@@ -210,6 +213,28 @@ try
 #endif
 {
   std::string json_str = ReadWholeFile(fname);
+  return Import(json_str);
+}
+#if defined(NDEBUG)
+catch (const std::exception& ex) {
+  return Status::InvalidArgument(std::string(__FILE__)
+                       + ":" ROCKSDB_PP_STR(__LINE__) ": "
+                       + ROCKSDB_FUNC + ": file = " + fname, ex.what());
+}
+#endif
+
+std::string TomlToJson(std::string_view doc, std::string_view source_file);
+Status SidePluginRepo::ImportTomlFile(const Slice& fname)
+#if defined(NDEBUG)
+try
+#endif
+{
+  std::string json_str;
+  {
+    std::string doc = ReadWholeFile(fname);
+    std::string_view source_file{fname.data_, fname.size_};
+    json_str = TomlToJson(doc, source_file);
+  }
   return Import(json_str);
 }
 #if defined(NDEBUG)
