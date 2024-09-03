@@ -2819,6 +2819,9 @@ static void SetCFPropertiesWebView(DB* db, ColumnFamilyHandle* cfh,
 static void SetCFPropertiesWebView(DB* db, const std::string& dbname,
                                    const SidePluginRepo& crepo) {
   auto cfh = db->DefaultColumnFamily();
+  // When calling CloseAllDB(false), db may have been closed, thus
+  // can not call db->DefaultColumnFamily(), we save it in map
+  crepo.m_impl->keep_default_cf[db] = cfh;
   SetCFPropertiesWebView(db, cfh, dbname, "default", crepo);
 }
 static void SetCFPropertiesWebView(DB_MultiCF* mcf, const std::string& dbname,
@@ -4193,10 +4196,12 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
     }
     else {
       DB* db = kv.second.db;
-      del_view(db->DefaultColumnFamily());
+      auto cfh = m_impl->keep_default_cf.at(db);
+      del_view(cfh);
       del_rocks(db);
     }
   }
+  m_impl->keep_default_cf.clear();
   m_impl->db.name2p->clear();
   m_impl->db.p2name.clear();
 }

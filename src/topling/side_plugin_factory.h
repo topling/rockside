@@ -100,6 +100,7 @@ struct SidePluginRepo::Impl {
 
   ObjRepo<CFPropertiesWebView> props;
   ObjMap<DB_Ptr> db;
+  std::map<DB*, ColumnFamilyHandle*> keep_default_cf;
   std::mutex db_mtx;
   std::shared_mutex props_mtx;
 
