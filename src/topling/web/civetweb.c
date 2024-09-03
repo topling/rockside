@@ -1214,7 +1214,7 @@ mg_atomic_compare_and_swap(volatile ptrdiff_t *addr,
 static void
 mg_atomic_max(volatile ptrdiff_t *addr, ptrdiff_t value)
 {
-	register ptrdiff_t tmp = *addr;
+	ptrdiff_t tmp = *addr;
 
 #if defined(_WIN64) && !defined(NO_ATOMICS)
 	while (tmp < value) {
