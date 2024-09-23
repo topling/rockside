@@ -1026,6 +1026,15 @@ try
   else {
     THROW_InvalidArgument("bad js = " + js.dump());
   }
+  if (JsonSmartBool(repo.m_impl->http_js, "auto_start_http")) {
+    Status s = repo.StartHttpServer();
+    if (!s.ok()) {
+      // This fail will be ignored, just print a warning
+      std::string msg = s.ToString();
+      fprintf(stderr, "%s: WARN: config.http.auto_start_http is true, "
+              "StartHttpServer fail: %s\n", StrDateTimeNow(), msg.c_str());
+    }
+  }
   return Status::OK();
 }
 #if defined(NDEBUG)
@@ -1121,6 +1130,9 @@ Status SidePluginRepo::StartHttpServer()
 try
 #endif
 {
+  if (m_impl->http.Started()) {
+    return Status::OK();
+  }
   const auto& http_js = m_impl->http_js;
   if (SidePluginRepo::DebugLevel() >= 2) {
     fprintf(stderr, "%s: INFO: http_js = %s\n", StrDateTimeNow(), http_js.dump().c_str());

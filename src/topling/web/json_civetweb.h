@@ -17,6 +17,7 @@ public:
   JsonCivetServer();
   void Init(const json& conf, SidePluginRepo*);
   void Close();
+  bool Started() const { return nullptr != m_impl; }
   JsonCivetServer(const JsonCivetServer&) = delete;
   JsonCivetServer& operator=(const JsonCivetServer&) = delete;
 private:
