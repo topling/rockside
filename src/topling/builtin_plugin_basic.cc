@@ -278,6 +278,7 @@ ROCKSDB_REG_Plugin(DbBenchUserKeyCoder, AnyPlugin);
 ROCKSDB_REG_AnyPluginManip("DbBenchUserKeyCoder");
 
 __attribute__((weak)) void JS_ZipTable_AddVersion(json& djs, bool html);
+__attribute__((weak)) void JS_ToplingDB_FS_AddVersion(json& djs, bool html);
 
 void JS_CSPPMemTab_AddVersion(json& djs, bool html);
 void JS_CSPP_WBWI_AddVersion(json& djs, bool html);
@@ -287,6 +288,8 @@ void JS_ModuleGitInfo_Add(json& js, bool html) {
   JS_ToplingDB_AddVersion(js, html);
   JS_CSPPMemTab_AddVersion(js, html);
   JS_CSPP_WBWI_AddVersion(js, html);
+  if (JS_ToplingDB_FS_AddVersion)
+    JS_ToplingDB_FS_AddVersion(js, html);
   if (JS_ZipTable_AddVersion)
     JS_ZipTable_AddVersion(js, html);
   JS_TopTable_AddVersion(js, html);
