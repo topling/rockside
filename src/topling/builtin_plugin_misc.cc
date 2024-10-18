@@ -1122,8 +1122,9 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
   for (const auto& t : TickersNameMap) {
     assert(t.first < TICKER_ENUM_MAX);
     uint64_t value = st->getTickerCount(t.first);
+    assert(Slice(t.second).starts_with("rocksdb."));
     if (!nozero || value)
-      tickers[t.second] = value;
+      tickers[t.second.substr(strlen("rocksdb."))] = value;
   }
   for (const auto& h : HistogramsNameMap) {
     assert(h.first < HISTOGRAM_ENUM_MAX);
@@ -1133,7 +1134,8 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
       continue;
     }
     json cur;
-    cur[name] = h.second;
+    assert(Slice(h.second).starts_with("rocksdb."));
+    cur[name] = h.second.substr(strlen("rocksdb."));
     cur["P50"] = hData.median;
     cur["P95"] = hData.percentile95;
     cur["P99"] = hData.percentile99;
@@ -1149,6 +1151,8 @@ static void Json_DB_Statistics(const Statistics* st, json& djs,
     histograms[0]["<htmltab:col>"] = json::array({
       name, "P50", "P95", "P99", "AVG", "MIN", "MAX", "CNT", "STD", "SUM"
     });
+    tickers["<__columns__>"] = "<div style='column-count: 3; column-rule-style: double; column-rule-width: thick'>";
+    tickers["</__columns__>"] = "</div>";
   }
 }
 
@@ -2279,13 +2283,23 @@ static void Json_DB_IntProps(const DB& db, ColumnFamilyHandle* cfh,
   auto& ipjs = djs["IntProps"];
   for (auto pName : aIntProps) {
     uint64_t value = 0;
+    ROCKSDB_ASSERT_F(Slice(*pName).starts_with("rocksdb."), "%s", pName->c_str());
+    auto stem = pName->c_str() + strlen("rocksdb.");
     if (const_cast<DB&>(db).GetIntProperty(cfh, *pName, &value)) {
-      if (!nozero || value)
-        ipjs[*pName] = value;
+      if (!nozero || value) {
+        if (strstr(stem, "size") ||
+            Slice(stem) == "block-cache-capacity" ||
+            Slice(stem) == "estimate-table-readers-mem")
+          ipjs[stem] = SizeToString(value);
+        else
+          ipjs[stem] = int64_t(value);
+      }
     } else if (showbad) {
-      ipjs[*pName] = "GetProperty Fail";
+      ipjs[stem] = "GetProperty Fail";
     }
   }
+  ipjs["<__columns__>"] = "<div style='column-count: 4; column-rule-style: double; column-rule-width: thick'>";
+  ipjs["</__columns__>"] = "</div>";
 }
 
 static std::string

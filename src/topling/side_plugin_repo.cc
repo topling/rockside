@@ -1512,13 +1512,17 @@ static void JsonToHtml_ArrayCol(const json& arr, std::string& html) {
 }
 
 static void JsonToHtml_Object(const json& obj, std::string& html, bool nested) {
-  if (nested && false) // dont 100% width
-    html.append("<table border=1 width=\"100%\"><tbody>\n");
-  else
-    html.append("<table border=1><tbody>\n");
+  auto iter = obj.find("<__columns__>");
+  if (obj.end() != iter) {
+    html.append(iter.value().get_ref<const std::string&>());
+  }
+  html.append("<table border=1><tbody>\n");
   //html.append("<tr><th>name</th><th>value</th></tr>\n");
   for (const auto& kv : obj.items()) {
     const std::string& key = kv.key();
+    if (key == "<__columns__>" || key == "</__columns__>") {
+      continue;
+    }
     const auto& val = kv.value();
     if (val.is_object()) {
       html.append("<tr><th>");
@@ -1565,6 +1569,11 @@ static void JsonToHtml_Object(const json& obj, std::string& html, bool nested) {
     }
   }
   html.append("</tbody></table>\n");
+
+  iter = obj.find("</__columns__>");
+  if (obj.end() != iter) {
+    html.append(iter.value().get_ref<const std::string&>());
+  }
 }
 
 std::string JsonToHtml(const json& obj) {
