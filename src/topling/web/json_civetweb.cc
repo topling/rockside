@@ -8,6 +8,10 @@
 #include <topling/side_plugin_factory.h>
 #include <chrono>
 
+#if defined(_MSC_VER)
+#define strncasecmp strnicmp
+#endif
+
 namespace ROCKSDB_NAMESPACE {
 
 
@@ -41,7 +45,7 @@ json from_query_string(const Slice qry_slice) {
   return js;
 }
 json from_query_string(const char* qry) {
-  return from_query_string(Slice(qry?:""));
+  return from_query_string(Slice(qry?qry:""));
 }
 
 int mg_write(mg_connection* conn, Slice s) {

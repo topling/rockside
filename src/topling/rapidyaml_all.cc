@@ -29,6 +29,8 @@ std::string YamlToJson(std::string& yaml_str) {
 
 #else // SIDE_PLUGIN_WITH_YAML
 
+#include <stdexcept>
+
 namespace ROCKSDB_NAMESPACE {
 std::string YamlToJson(std::string& yaml_str) {
     throw std::invalid_argument(rocksdb::Slice(ROCKSDB_FUNC) +

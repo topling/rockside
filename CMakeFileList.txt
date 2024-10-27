@@ -1,6 +1,6 @@
 
 file(GLOB rockside_src RELATIVE ${PROJECT_SOURCE_DIR}
-     sideplugin/rockside/sample/*.cc
+     #sideplugin/rockside/sample/*.cc
      sideplugin/rockside/src/topling/web/*.h
      sideplugin/rockside/src/topling/web/*.inl
      sideplugin/rockside/src/topling/web/*.c
@@ -8,13 +8,13 @@ file(GLOB rockside_src RELATIVE ${PROJECT_SOURCE_DIR}
      sideplugin/rockside/src/topling/*.h
      sideplugin/rockside/src/topling/*.cc)
 
-add_definitions(-DUSE_SERVER_STATS)
-
-if (EXISTS ${PROJECT_SOURCE_DIR}/../rapidyaml/CMakeLists.txt)
-  get_filename_component(rapidyaml_abs_dir ${PROJECT_SOURCE_DIR}/../rapidyaml ABSOLUTE)
-  message(STATUS "found ${rapidyaml_abs_dir}/CMakeLists.txt")
-  #add_subdirectory(${rapidyaml_abs_dir} ${CMAKE_BINARY_DIR}/rapidyaml)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIDE_PLUGIN_WITH_YAML -I${rapidyaml_abs_dir}/src")
-else()
-  message(STATUS "not found ${PROJECT_SOURCE_DIR}/../rapidyaml/CMakeLists.txt")
+if(MSVC)
+  list(REMOVE_ITEM rockside_src sideplugin/rockside/src/topling/show_sys_info.cc)
+  add_compile_definitions(NO_SSL) # for civetweb
 endif()
+
+add_compile_definitions(USE_SERVER_STATS)
+add_compile_definitions(SIDE_PLUGIN_WITH_YAML)
+include_directories(sideplugin/rockside/3rdparty/rapidyaml)
+include_directories(sideplugin/rockside/3rdparty/rapidyaml/src)
+include_directories(sideplugin/rockside/3rdparty/rapidyaml/ext/c4core/src)

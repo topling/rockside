@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
   SidePluginRepo repo;
   Status s = repo.ImportAutoFile(argv[1]);
   if (!s.ok()) {
-    fprintf(stderr, "ERROR: repo.ImportAutoFile(%s) = %s\n", s.ToString().c_str());
+    fprintf(stderr, "ERROR: repo.ImportAutoFile(%s) = %s\n", s.ToString().c_str(), strerror(errno));
     return 2;
   }
   DB_MultiCF* mcf = nullptr;

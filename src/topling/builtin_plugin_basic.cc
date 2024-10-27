@@ -134,10 +134,7 @@ struct HexUserKeyCoder : public UserKeyCoder {
     } c;
     c.value = 0;  // this is fix for gcc-4.8 union init bug
     memcpy(c.bytes + (8 - len), beg, len);
-    if (port::kLittleEndian)
-      return __bswap_64(c.value);
-    else
-      return c.value;
+    return NativeOfBigEndian64(c.value);
   }
   void Decode(Slice coded, std::string* de) const override {
     if (prefix_len) {
@@ -173,7 +170,7 @@ struct PrettyHexUserKeyCoder : public HexUserKeyCoder {
     de->append("</em>");
   }
   void DecodeSuffix(Slice coded, std::string* de) const override {
-    size_t start = -1, len = 0;
+    size_t start = SIZE_MAX, len = 0;
     for (int i = 0; i < (int)coded.size(); i++) {
       const unsigned char ch = coded[i];
       if (ch <= 126) {
@@ -590,6 +587,9 @@ struct DynaMemTableFactory : public MemTableRepFactory {
     orig_name = iter.value().get<std::string>();
   }
   void Update(const json&, const json& js, const SidePluginRepo& repo) {
+    #if defined(_MSC_VER)
+      #pragma warning(disable: 4458) // deactived_mem_sum hide class member(intentional)
+    #endif
     auto iter = Get_real_fac_iter(js, repo);
     auto& inner = iter.value();
     shared_ptr<MemTableRepFactory> real_fac; // intentional same name

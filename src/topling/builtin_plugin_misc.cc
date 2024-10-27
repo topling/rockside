@@ -31,6 +31,9 @@
 
 #include <terark/num_to_str.hpp>
 #include <terark/util/fstrvec.hpp>
+#if defined(_MSC_VER)
+#include <filesystem>
+#endif
 
 extern const char* rocksdb_build_git_tag;
 extern const char* rocksdb_build_git_sha;
@@ -42,6 +45,7 @@ namespace ROCKSDB_NAMESPACE {
 using std::shared_ptr;
 using std::vector;
 using std::string;
+using terark::fstring;
 
 __attribute__((weak)) void TopTableSetSeqScan(bool val);
 
@@ -1212,7 +1216,7 @@ static string metrics_DB_Staticstics(const Statistics* st) {
     if (sth->m_discard_histograms[h.first]) continue;
 
     auto const &buckets = rsd->histograms[h.first].buckets_;
-    u_int64_t last = 0;
+    uint64_t last = 0;
     size_t limit = 0;
     for (size_t i = bucketMapper.BucketCount() - 1; i > 0; i--) {
       if (buckets[i] > 0) { limit = i + 1; break; }
@@ -1349,7 +1353,11 @@ void split(Slice rope, Slice delim, std::vector<std::pair<Slice, Slice> >& F) {
     if (!eq) {
       break;
     }
+   #if defined(_MSC_VER)
+    auto next = fstring(eq+1, End-eq-1).strstr(delim);
+   #else
     auto next = (const char*)memmem(eq+1, End-eq-1, delim.data(), dlen);
+   #endif
     if (next) {
       F.emplace_back(Slice(col, eq-col), Slice(eq+1, next-eq-1));
     } else {
@@ -2071,7 +2079,11 @@ catch (const std::exception& ex) {
 }
 
 Slice SliceSlice(Slice big, Slice sub) {
+ #if defined(_MSC_VER)
+  auto pos = fstring(big).strstr(sub);
+ #else
   auto pos = (const char*)memmem(big.data_, big.size_, sub.data_, sub.size_);
+ #endif
   return Slice(pos, sub.size_);
 }
 
@@ -2087,7 +2099,11 @@ Json_DB_NoFileHistogram_Add_convenient_links(
         const DB& dbr,
         ColumnFamilyHandle* cfh,
         const std::string& str) {
+#if defined(_MSC_VER)
+  const auto db = std::filesystem::path(dbr.GetName()).filename().string();
+#else
   const std::string  db = basename(dbr.GetName().c_str());
+#endif
   const std::string& cf = cfh->GetName();
   Slice big = str;
   Slice pos = SliceSlice(big, "\nUptime(secs):");

@@ -29,6 +29,17 @@
 # include <cxxabi.h>
 #endif
 
+#if defined(_MSC_VER)
+  #define strcasecmp stricmp
+  static void setenv(const char* name, const char* value, int overwrite) {
+      if (!overwrite) {
+          if (getenv(name))
+              return;
+      }
+      _putenv_s(name, value);
+  }
+#endif
+
 #include <terark/num_to_str.hpp>
 
 namespace ROCKSDB_NAMESPACE {
@@ -342,6 +353,9 @@ struct SideRepoImpl : SidePluginRepo::Impl {
   }
 };
 
+extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
+extern void DynaMemTableBackPatch(MemTableRepFactory*, const SidePluginRepo&);
+
 Status SidePluginRepo::Import(const json& main_js)
 #if defined(NDEBUG)
 try
@@ -385,7 +399,6 @@ try
   JSON_IMPORT_REPO(WBWIFactory              , wbwi_factory);
 
   if (main_js.contains("TableFactory")) {
-    extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
     for (auto& kv : *m_impl->table_factory.name2p) {
       if (Slice(kv.second->Name()) == "DispatcherTable") {
         auto tf = kv.second.get();
@@ -395,7 +408,6 @@ try
   }
 
   if (main_js.contains("MemTableRepFactory")) {
-    extern void DynaMemTableBackPatch(MemTableRepFactory*, const SidePluginRepo&);
     for (auto& kv : *m_impl->memtable_factory.name2p) {
       if (Slice(kv.second->Name()) == "Dyna") {
         auto tf = kv.second.get();
@@ -518,12 +530,13 @@ Impl_Put(const std::string& name, json&& spec, Map& map, const Ptr& p,
   Impl_PutTpl(name, std::move(spec), map, p);
 }
 
+json DBOptionsToJson(const DBOptions&, const SidePluginRepo&);
+json CFOptionsToJson(const ColumnFamilyOptions&, const SidePluginRepo&);
+
 template<class Map>
 static void
 Impl_Put(const std::string& name, json&& spec, Map& map, DB_Ptr p,
          const SidePluginRepo& repo) {
-  json DBOptionsToJson(const DBOptions&, const SidePluginRepo&);
-  json CFOptionsToJson(const ColumnFamilyOptions&, const SidePluginRepo&);
   ROCKSDB_VERIFY(nullptr != p.db);
   if (!spec.contains("class") && !spec.contains("method")) {
     spec["class"] = "DB::Open"; // default

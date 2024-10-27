@@ -31,6 +31,7 @@ using std::shared_ptr;
 using std::vector;
 using std::string;
 
+#if !defined(OS_WIN)
 static Env* JS_NewChrootEnv(const json& js, const SidePluginRepo& repo) {
   Env* base_env = nullptr;
   std::string chroot_dir;
@@ -52,6 +53,7 @@ JS_NewChrootFileSystem(const json& js, const SidePluginRepo& repo) {
   return NewChrootFileSystem(base_fs, chroot_dir);
 }
 ROCKSDB_FACTORY_REG("ChrootFileSystem", JS_NewChrootFileSystem);
+#endif // !OS_WIN
 
 // never free the returned env
 static Env* JS_NewCompositeEnv(const json& js, const SidePluginRepo& repo) {

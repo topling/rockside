@@ -40,6 +40,11 @@ ColumnFamilyHandle* DB_MultiCF_Impl::Get(const std::string& cfname) const {
   return nullptr;
 }
 
+extern // defined in builtin_pluin_misc.cc
+void AddCFPropertiesWebView(DB_MultiCF*, ColumnFamilyHandle*,
+                            const std::string& cfname,
+                            const SidePluginRepo& repo);
+
 json JsonFromText(const std::string& text) {
   const char* beg = text.data();
   const char* end = text.data() + text.size();
@@ -83,10 +88,6 @@ try {
     AddOneCF_ToMap(cfname, cfh1, js);
     cf_handles.push_back(cfh1);
   }
-  extern // defined in builtin_pluin_misc.cc
-  void AddCFPropertiesWebView(DB_MultiCF*, ColumnFamilyHandle*,
-                              const std::string& cfname,
-                              const SidePluginRepo& repo);
   AddCFPropertiesWebView(this, cfh1, cfname, *m_repo);
   return Status::OK();
 }
