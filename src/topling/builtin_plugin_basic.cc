@@ -8,7 +8,7 @@
 #include <db/compaction/compaction_executor.h>
 
 #include <cache/lru_cache.h>
-
+#include <logging/logging.h>
 #include <util/coding_lean.h>
 
 #if ROCKSDB_VERSION >= 80040
@@ -22,6 +22,30 @@
 #if defined(MEMKIND)
   #include "memory/memkind_kmem_allocator.h"
 #endif
+
+#include <terark/num_to_str.hpp>
+
+#if defined(_MSC_VER)
+#else
+  #include <sys/prctl.h>
+  #include <sys/wait.h>
+  #include <signal.h>
+  #include <unistd.h>
+#endif
+
+static const long g_LOG_LEVEL = terark::getEnvLong("LOG_LEVEL", 2);
+#define PrintLog(level, strLevel, fmt, ...) \
+  do { \
+    if (g_LOG_LEVEL >= level) \
+      fprintf(stderr, "%s " strLevel " %s:%d: " fmt "\n", StrDateTimeNow(), \
+              RocksLogShorterFileName(__FILE__), \
+              TERARK_PP_SmartForPrintf(__LINE__, ##__VA_ARGS__)); \
+  } while (0)
+#define TRAC(...) PrintLog(4, "TRAC", __VA_ARGS__)
+#define DEBG(...) PrintLog(3, "DEBG", __VA_ARGS__)
+#define INFO(...) PrintLog(2, "INFO", __VA_ARGS__)
+#define WARN(...) PrintLog(1, "WARN", __VA_ARGS__)
+#define ERROR(...) PrintLog(0, "ERROR", __VA_ARGS__)
 
 const char* git_version_hash_info_cspp_memtable();
 const char* git_version_hash_info_cspp_wbwi();
@@ -273,6 +297,104 @@ struct DbBenchUserKeyCoder : public UserKeyCoder {
 };
 ROCKSDB_REG_Plugin(DbBenchUserKeyCoder, AnyPlugin);
 ROCKSDB_REG_AnyPluginManip("DbBenchUserKeyCoder");
+
+#if defined(_MSC_VER)
+#else
+struct SpawnChildProcess : AnyPlugin {
+  std::string cmd;
+  std::string fullcmd;
+  std::vector<std::string> args;
+  pid_t childpid;
+  bool daemon = false;
+  bool has_meta_arg = false; // computed
+
+  SpawnChildProcess(const json& js, const SidePluginRepo&) {
+    ROCKSDB_JSON_OPT_PROP(js, cmd);
+    ROCKSDB_JSON_OPT_PROP(js, args);
+    ROCKSDB_JSON_OPT_PROP(js, daemon);
+    StartChildProcess();
+    if (daemon)
+      WaitChild();
+  }
+  void StartChildProcess() {
+    childpid = fork();
+    if (0 == childpid) { // child process
+      prctl(PR_SET_PDEATHSIG, SIGKILL);
+      auto& builder = static_cast<terark::string_appender<>&>(fullcmd);
+      builder|cmd;
+      for (const auto& arg : args) {
+        builder|" "|arg;
+        if (arg.size() == 1 && strchr("|<>", arg[0])) {
+          has_meta_arg = true;
+        }
+      }
+      if (has_meta_arg) {
+        execlp("sh", "sh", "-c", fullcmd.c_str(), nullptr);
+      } else {
+        std::vector<char*> argv(args.size() + 2);
+        argv[0] = cmd.data(); // argv[0] is cmd
+        for (size_t i = 0; i < args.size(); i++) {
+          argv.push_back(args[i].data());
+        }
+        argv.push_back(nullptr);
+        execvp(cmd.data(), argv.data());
+      }
+      // will not return here
+    }
+    else if (childpid > 0) { // parent process
+      // do nothing
+    }
+    else { // error
+      ROCKSDB_DIE("fork failed: %m");
+    }
+  }
+  void WaitChild() {
+    pid_t pid = childpid;
+    ROCKSDB_VERIFY_GT(pid, 0);
+    kill(pid, SIGTERM);
+    int status = 0;
+    pid_t wpid = waitpid(pid, &status, 0);
+    if (wpid < 0) {
+      ERROR("%s: waitpid(pid=%d) = {status = %d, err = %m}", fullcmd, pid, status);
+    } else if (WIFEXITED(status)) {
+      ERROR("%s: waitpid(pid=%d) exit with status = %d", fullcmd, pid, WEXITSTATUS(status));
+    } else if (WIFSIGNALED(status)) {
+      if (WCOREDUMP(status))
+        ERROR("%s: waitpid(pid=%d) coredump by signal %d", fullcmd, pid, WTERMSIG(status));
+      else
+        ERROR("%s: waitpid(pid=%d) killed by signal %d", fullcmd, pid, WTERMSIG(status));
+    } else if (WIFSTOPPED(status)) {
+      ERROR("%s: waitpid(pid=%d) stop signal = %d", fullcmd, pid, WSTOPSIG(status));
+    } else if (WIFCONTINUED(status)) {
+      ERROR("%s: waitpid(pid=%d) continue status = %d(%#X)", fullcmd, pid, status, status);
+    } else {
+      ERROR("%s: waitpid(pid=%d) other status = %d(%#X)", fullcmd, pid, status, status);
+    }
+  }
+  ~SpawnChildProcess() {
+    if (!daemon) {
+      kill(childpid, SIGTERM);
+      WaitChild();
+    }
+  }
+  const char* Name() const override { return "SpawnChildProcess"; }
+  std::string ToString(const json& dump_options, const SidePluginRepo&) const override {
+    //bool html = JsonSmartBool(dump_options, "html");
+    json djs;
+    ROCKSDB_JSON_SET_PROP(djs, cmd);
+    ROCKSDB_JSON_SET_PROP(djs, args);
+    ROCKSDB_JSON_SET_PROP(djs, has_meta_arg);
+    ROCKSDB_JSON_SET_PROP(djs, fullcmd);
+    ROCKSDB_JSON_SET_PROP(djs, childpid);
+    return JsonToString(djs, dump_options);
+  }
+  void Update(const json&, const json&, const SidePluginRepo&) override {
+    ROCKSDB_DIE("This function should not be called");
+  }
+};
+ROCKSDB_REG_Plugin(SpawnChildProcess, AnyPlugin);
+ROCKSDB_REG_AnyPluginManip("SpawnChildProcess");
+#endif
 
 __attribute__((weak)) void JS_ZipTable_AddVersion(json& djs, bool html);
 __attribute__((weak)) void JS_ToplingDB_FS_AddVersion(json& djs, bool html);
