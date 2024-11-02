@@ -118,6 +118,8 @@ class SidePluginRepo {
   Status Export(json*) const;
   Status Export(std::string*, bool pretty = false) const;
 
+  Status ListCFs(const std::string& dbstem, std::vector<std::string>* cf_names) const;
+
   Status OpenDB(const std::string& js, DB**);
   Status OpenDB(const std::string& js, DB_MultiCF**);
   Status OpenDB(const json&, DB**);

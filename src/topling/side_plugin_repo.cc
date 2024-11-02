@@ -497,6 +497,31 @@ Status SidePluginRepo::Export(string* json_str, bool pretty) const {
   return s;
 }
 
+Status SidePluginRepo::ListCFs(const std::string& dbstem,
+                               std::vector<std::string>* cf_names) const {
+  auto iter1 = m_impl->db_js.find(".rocksdb");
+  if (m_impl->db_js.end() == iter1) {
+     return Status::InvalidArgument("Missing json databases", dbstem);
+  }
+  auto iter2 = iter1.value().find("params");
+  if (iter1.value().end() == iter2) {
+    return Status::InvalidArgument("Missing json params of databases", dbstem);
+  }
+  auto iter3 = iter2.value().find("column_families");
+  if (iter2.value().end() == iter3) {
+    return Status::InvalidArgument("Missing json params.column_families of databases", dbstem);
+  }
+  if (iter3.value().size() == 0) {
+    return Status::InvalidArgument("json params.column_families is empty, databases", dbstem);
+  }
+  const json& cfs_js = iter3.value();
+  for (auto& kv : cfs_js.items()) {
+    auto& cfname = kv.key();
+    cf_names->push_back(cfname);
+  }
+  return Status::OK();
+}
+
 template<class Map, class Ptr>
 static void
 Impl_PutTpl(const std::string& name, json&& spec, Map& map, const Ptr& p) {
