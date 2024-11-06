@@ -57,8 +57,8 @@ Statistics:
       stats_level: kDisableAll
 MemTableRepFactory:
   cspp:
-    #class: CSPPMemTab # canonical class name, "cspp" is simplified class name
-    class: cspp
+    #class: CSPPMemTab # canonical class name
+    class: cspp # "cspp" is simplified class name
     params:
       mem_cap: 3G  # just reserve virtual address space
       cspp_debug_level: 1
