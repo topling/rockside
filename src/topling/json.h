@@ -24317,6 +24317,44 @@ class basic_json
     }
 
     /// @}
+
+    template<class MyType>
+    static MyType* s_simple_find_path(MyType* self, const StringType& path, typename StringType::value_type delim = '/') {
+        StringType componet;
+        size_type pos = 0, len = path.size();
+        auto*  obj = self;
+        while (pos < len) {
+            while (pos < len && path[pos] == delim) {
+                pos++; // skip leading '/' and dup '///'
+            }
+            if (pos >= len) { // 'path///to/leaf///' returns leaf
+                break;
+            }
+            size_type endp = path.find(pos, delim);
+            if (endp == path.npos) {
+                endp = path.size();
+            }
+            componet.assign(path, pos, endp);
+            auto iter = obj->find(componet);
+            if (obj->end() == iter) {
+                return nullptr;
+            }
+            obj = &iter.value();
+            pos = endp + 1;
+        }
+        return obj;
+    }
+
+    basic_json*
+    simple_find_path(const StringType& path, typename StringType::value_type delim = '/')
+    {
+        return s_simple_find_path(this, path, delim);
+    }
+    const basic_json*
+    simple_find_path(const StringType& path, typename StringType::value_type delim = '/')
+    const {
+        return s_simple_find_path(this, path, delim);
+    }
 };
 
 /*!
