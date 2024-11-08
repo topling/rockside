@@ -977,6 +977,11 @@ json DispatcherTableFactory::ToJsonObj(const json& dump_options, const SidePlugi
     lwjs.push_back(std::move(wjs));
   };
   json js;
+  js["document"] =
+     "<a href='https://github.com/topling/sideplugin-wiki-en/wiki#25-dispatchertable'>Document(English)</a>"
+     " | "
+     "<a href='https://github.com/topling/rockside/wiki#25-dispatchertable'>文档（中文）</a>"
+  ;
   ROCKSDB_JSON_SET_PROP(js["options"], allow_trivial_move);
   ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_always_max_output_level);
   ROCKSDB_JSON_SET_PROP(js["options"], trivial_move_max_file_size_multiplier);
