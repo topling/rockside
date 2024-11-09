@@ -35,6 +35,11 @@
 #include <filesystem>
 #endif
 
+extern const char* rocksdb_build_cxxflags;
+extern const char* rocksdb_build_cxxdefs;
+extern const char* rocksdb_build_cxxincs;
+extern const char* rocksdb_build_ldflags;
+extern const char* rocksdb_build_cpu_arch;
 extern const char* rocksdb_build_git_tag;
 extern const char* rocksdb_build_git_sha;
 extern const char* rocksdb_build_git_date;
@@ -2901,6 +2906,11 @@ JS_Add_CFPropertiesWebView_Link(json& djs, bool html,
 void JS_ToplingDB_AddVersion(json& parent, bool html) {
   json& djs = parent["ToplingDB"];
   djs["build_type"] = ROCKSDB_IF_DEBUG("debug", "release");
+  djs["CPU_ARCH"] = rocksdb_build_cpu_arch;
+  djs["CXXFLAGS"] = rocksdb_build_cxxflags;
+  djs["CXXDEFS"] = rocksdb_build_cxxdefs;
+  djs["CXXINCS"] = rocksdb_build_cxxincs;
+  djs["LDFLAGS"] = rocksdb_build_ldflags;
   auto p_sha = strchr(rocksdb_build_git_sha, ':');
   auto p_tag = strchr(rocksdb_build_git_tag, ':');
   auto p_date = strchr(rocksdb_build_date, ':');
