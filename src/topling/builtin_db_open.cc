@@ -176,6 +176,7 @@ void DB_MultiCF_Impl::InitAddCF_ToMap(const json& js_cf_desc) {
 
 Status MergeTables(const std::vector<std::string>& files, const std::string& dbname,
                    const DBOptions& dbo, std::vector<ColumnFamilyDescriptor> cfo,
+                   uint32_t override_cf_id,
                    std::vector<std::string>* output) {
   // compact all files once?
   cfo[0].options.compaction_style = kCompactionStyleUniversal;
@@ -192,6 +193,7 @@ Status MergeTables(const std::vector<std::string>& files, const std::string& dbn
   args[0].options.allow_blocking_flush = false;
   args[0].options.allow_global_seqno = true;
   args[0].options.write_global_seqno = false;
+  args[0].options.override_cf_id = override_cf_id;
   args[0].column_family = cfh[0];
   args[0].external_files = files;
   s = db->IngestExternalFiles(args);
