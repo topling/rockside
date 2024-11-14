@@ -112,8 +112,11 @@ static void Impl_Import(SidePluginRepo::Impl::ObjMap<Ptr>& field,
       #if defined(NDEBUG)
         try {
       #endif
-          PluginUpdate(existing, field, json(), value, repo);
-          oi_iter->second.spec.merge_patch(value);
+          if (auto i_params = value.find("params"); value.end() != i_params) {
+            const json& params = i_params.value();
+            PluginUpdate(existing, field, json(), params, repo);
+            oi_iter->second.spec.merge_patch(value);
+          }
           continue; // done for current item
       #if defined(NDEBUG)
         }
