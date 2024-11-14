@@ -781,6 +781,9 @@ void DispatcherTableBackPatch(TableFactory* f, const SidePluginRepo& repo) {
 
 extern bool IsCompactionWorker();
 void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
+  if (m_is_back_patched) {
+    return;
+  }
   ROCKSDB_VERIFY_F(!m_is_back_patched, "BackPatch() was already called");
   ROCKSDB_VERIFY(m_all.get() == nullptr);
   m_all = repo.m_impl->table_factory.name2p;
