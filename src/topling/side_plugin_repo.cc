@@ -986,11 +986,15 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
   // this may be time consuming, some applications open many db concurrently,
   // so it should be out of mutex lock, to allow open db concurrently
   DBT* db = nullptr;
+#if defined(NDEBUG)
   try {
+#endif
     db = PluginFactory<DBT*>::AcquirePlugin(method, params_js, repo);
+#if defined(NDEBUG)
   } catch (...) {
     throw;
   }
+#endif
   assert(nullptr != db);
   // now insert db ptr into repo, need lock
   std::lock_guard<std::mutex> lock(repo.m_impl->db_mtx);
