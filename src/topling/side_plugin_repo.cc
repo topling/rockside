@@ -532,6 +532,9 @@ Impl_PutTpl(const std::string& name, json&& spec, Map& map, const Ptr& p) {
   if (p) { // put
     auto ib = name2p.emplace(name, p);
     if (!ib.second) {
+      if (spec.is_null()) {
+        spec = std::move(map.p2name[GetRawPtr(ib.first->second)].spec);
+      }
       map.p2name.erase(GetRawPtr(ib.first->second));
       ib.first->second = p; // overwrite
     }
