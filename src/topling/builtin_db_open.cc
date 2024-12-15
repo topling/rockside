@@ -174,33 +174,43 @@ void DB_MultiCF_Impl::InitAddCF_ToMap(const json& js_cf_desc) {
   }
 }
 
+void DB_UpdateMaxColumnFamily(DB* db, uint32_t max_cf_id);
 Status MergeTables(const std::vector<std::string>& files, const std::string& dbname,
                    const DBOptions& dbo, std::vector<ColumnFamilyDescriptor> cfo,
-                   uint32_t override_cf_id,
+                   uint32_t cf_id,
                    std::vector<std::string>* output) {
   // compact all files once?
   cfo[0].options.compaction_style = kCompactionStyleUniversal;
   cfo[0].options.compaction_options_universal = CompactionOptionsUniversal();
   cfo[0].options.compaction_options_universal.max_merge_width = 30;
   cfo[0].options.disable_auto_compactions = true;
+  std::string target_cfname = cfo[0].name;
+  cfo[0].name = "default";
   DB* db = nullptr;
   std::vector<ColumnFamilyHandle*> cfh;
   Status s = DB::Open(dbo, dbname, cfo, &cfh, &db);
   if (!s.ok()) return s;
+  ColumnFamilyHandle* target_cfh = cfh[0];
+  if (target_cfname != "default") {
+    ROCKSDB_VERIFY_GE(cf_id, 1);
+    DB_UpdateMaxColumnFamily(db, cf_id - 1);
+    s = db->CreateColumnFamily(cfo[0].options, target_cfname, &target_cfh);
+    TERARK_VERIFY_S(s.ok(), "CreateColumnFamily: %s", s.ToString());
+    TERARK_VERIFY_EQ(target_cfh->GetID(), cf_id);
+  }
   std::vector<rocksdb::IngestExternalFileArg> args(1);
   args[0].options.move_files = true;
   args[0].options.snapshot_consistency = false;
   args[0].options.allow_blocking_flush = false;
   args[0].options.allow_global_seqno = true;
   args[0].options.write_global_seqno = false;
-  args[0].options.override_cf_id = override_cf_id;
-  args[0].column_family = cfh[0];
+  args[0].column_family = target_cfh;
   args[0].external_files = files;
   s = db->IngestExternalFiles(args);
   if (!s.ok()) return s;
   CompactRangeOptions cro;
   cro.target_level = cfo[0].options.num_levels - 1;
-  s = db->CompactRange(cro, cfh[0], nullptr, nullptr);
+  s = db->CompactRange(cro, target_cfh, nullptr, nullptr);
   if (!s.ok()) return s;
   uint64_t manifest_file_size = 0;
   s = db->GetLiveFiles(*output, &manifest_file_size);
@@ -211,6 +221,9 @@ Status MergeTables(const std::vector<std::string>& files, const std::string& dbn
   output->erase(last_sst, output->end());
   for (auto& fname : *output) {
     fname = dbname + fname;
+  }
+  if (target_cfh != cfh[0]) {
+    db->DestroyColumnFamilyHandle(target_cfh).PermitUncheckedError();
   }
   db->DestroyColumnFamilyHandle(cfh[0]).PermitUncheckedError();
   delete db;
