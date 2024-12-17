@@ -444,11 +444,16 @@ class DispatcherTableBuilder : public TableBuilder {
   uint64_t NumEntries() const final { return tb->NumEntries(); }
   bool IsEmpty() const { return tb->IsEmpty(); }
   uint64_t FileSize() const final { return tb->FileSize(); }
-  uint64_t EstimatedFileSize() const { return tb->EstimatedFileSize(); }
+  uint64_t EstimatedFileSize() const final { return tb->EstimatedFileSize(); }
+  uint64_t GetTailSize() const final { return tb->GetTailSize(); }
   bool NeedCompact() const { return tb->NeedCompact(); }
   TableProperties GetTableProperties() const final { return tb->GetTableProperties(); }
   std::string GetFileChecksum() const final { return tb->GetFileChecksum(); }
   const char* GetFileChecksumFuncName() const final { return tb->GetFileChecksumFuncName(); }
+  void SetSeqnoTimeTableProperties(const std::string& encoded_seqno_to_time_mapping,
+                                   uint64_t oldest_ancestor_time) final {
+    tb->SetSeqnoTimeTableProperties(encoded_seqno_to_time_mapping, oldest_ancestor_time);
+  }
 };
 
 DispatcherTableFactory::~DispatcherTableFactory() {}
