@@ -21,6 +21,12 @@
 #include "rocksdb/wal_filter.h"
 #include "util/string_util.h"
 
+// typeid requires complete types, #include for it
+#include "db/compaction/compaction_executor.h"
+#include "rocksdb/filter_policy.h"
+#include "rocksdb/cache.h"
+#include "rocksdb/persistent_cache.h"
+
 #include "json.h"
 #include "side_plugin_factory.h"
 #include "side_plugin_internal.h"
@@ -525,13 +531,34 @@ Status SidePluginRepo::ListCFs(const std::string& dbstem,
   return Status::OK();
 }
 
+template<class Ptr>
+std::string GetStemClassName(const Ptr& p) {
+  std::string fullname = demangle(typeid(*p));
+  auto hitpos = fullname.rfind("::");
+  const char *start, *finish;
+  start = fullname.data() + (hitpos == std::string::npos ? 0 : hitpos + 2);
+  if (Slice(fullname).ends_with("Factory")) {
+    finish = &*(fullname.end() - strlen("Factory"));
+  } else {
+    finish = fullname.data() + fullname.size();
+  }
+  return std::string(start, finish);
+}
+
 template<class Map, class Ptr>
 static void
 Impl_PutTpl(const std::string& name, json&& spec, Map& map, const Ptr& p) {
   auto& name2p = *map.name2p;
   if (p) { // put
     auto ib = name2p.emplace(name, p);
-    if (!ib.second) {
+    if (ib.second) {
+      if (spec.is_null()) {
+        spec = json{
+          {"class", GetStemClassName(p)},
+          {"params", {{"manual", "initial null json"}}}
+        };
+      }
+    } else {
       if (spec.is_null()) {
         spec = std::move(map.p2name[GetRawPtr(ib.first->second)].spec);
       }
@@ -641,25 +668,85 @@ template<class Map, class Ptr>
 static void
 Impl_Put(const std::string& name, Map& map, const Ptr& p,
          const SidePluginRepo& repo) {
-  json spec{
-    {"class", "(manual)"},
-    {"params", {"manual", true}}
-  };
-  Impl_Put(name, std::move(spec), map, p, repo);
+  Impl_Put(name, json(), map, p, repo);
+}
+
+template<class Map, class Ptr>
+static void
+Impl_PutOPT(const std::string& name, json&& spec, Map& map, const Ptr& p,
+            const SidePluginRepo& repo, const char* clazz) {
+  auto& name2p = *map.name2p;
+  if (p) { // put
+    auto ib = name2p.emplace(name, p);
+    if (ib.second) {
+      if (spec.is_null()) {
+        spec = {{"manual", "initial null json"}};
+      }
+      spec = json{
+        {"class", clazz},
+        {"params", std::move(spec)}
+      };
+    }
+    else {
+      if (spec.is_null()) {
+        spec = std::move(map.p2name[GetRawPtr(ib.first->second)].spec);
+      }
+      map.p2name.erase(GetRawPtr(ib.first->second));
+      ib.first->second = p; // overwrite
+    }
+    map.p2name[GetRawPtr(ib.first->second)] = {name, std::move(spec)};
+  }
+  else {
+    ROCKSDB_DIE("name = %s, ptr is null, spec = %s",
+                 name.c_str(), spec.dump().c_str());
+   #if 0
+    // p is null, do delete
+    auto iter = name2p.find(name);
+    if (name2p.end() == iter) {
+      return;
+    }
+    map.p2name.erase(GetRawPtr(iter->second));
+    name2p.erase(iter);
+   #endif
+  }
+}
+
+template<class Map, class Ptr>
+static void
+Impl_PutOPT(const std::string& name, const char* spec, Map& map, const Ptr& p,
+            const SidePluginRepo& repo, const char* clazz) {
+  try {
+    const char* spec_end = spec + strlen(spec);
+    json jspec(json::parse(spec, spec_end));
+    Impl_PutOPT(name, std::move(jspec), map, p, repo, clazz);
+  } catch (const std::exception& ex) {
+    fprintf(stderr,
+      "ERROR: SidePluginRepo::Put(name, str_spec, ptr), ex.what = %s\n",
+      ex.what());
+    throw;
+  }
 }
 
 template<class Map, class Ptr>
 static void
 Impl_PutOPT(const std::string& name, Map& map, const Ptr& p,
             const SidePluginRepo& repo, const char* clazz) {
-  json spec{
-    {"class", clazz},
-    {"params", {"manual", true}}
-  };
-  Impl_Put(name, std::move(spec), map, p, repo);
+  Impl_PutOPT(name, json(), map, p, repo, clazz);
 }
 
 #define Impl_Put_OPT_define(OPT) \
+static void \
+Impl_Put(const std::string& name, json&& spec, \
+         SidePluginRepo::Impl::ObjRepo<OPT>& map, \
+         const shared_ptr<OPT>& p, \
+         const SidePluginRepo& repo) \
+{ Impl_PutOPT(name, std::move(spec), map, p, repo, #OPT); } \
+static void \
+Impl_Put(const std::string& name, const char* spec, \
+         SidePluginRepo::Impl::ObjRepo<OPT>& map, \
+         const shared_ptr<OPT>& p, \
+         const SidePluginRepo& repo) \
+{ Impl_PutOPT(name, spec, map, p, repo, #OPT); } \
 static void \
 Impl_Put(const std::string& name, \
          SidePluginRepo::Impl::ObjRepo<OPT>& map, \
@@ -673,7 +760,7 @@ Impl_Put_OPT_define(ColumnFamilyOptions)
 
 template<class Map, class Ptr>
 static bool
-Impl_Get(const std::string& name, const Map& map, Ptr* pp) {
+Impl_GetReal(const std::string& name, const Map& map, Ptr* pp) {
   auto& name2p = *map.name2p;
   if (auto iter = name2p.find(name); name2p.end() != iter) {
     *pp = iter->second;
@@ -682,6 +769,20 @@ Impl_Get(const std::string& name, const Map& map, Ptr* pp) {
   else {
     *pp = Ptr(nullptr);
     return false;
+  }
+}
+template<class Map, class Ptr>
+static bool
+Impl_Get(const std::string& name, const Map& map, Ptr* pp) {
+  if (name.empty()) {
+    *pp = Ptr(nullptr);
+    return false;
+  }
+  if (name[0] == '$') {
+    std::string realname = PluginParseInstID(name);
+    return Impl_GetReal(realname, map, pp);
+  } else {
+    return Impl_GetReal(name, map, pp);
   }
 }
 
