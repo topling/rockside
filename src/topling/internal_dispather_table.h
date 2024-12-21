@@ -45,6 +45,7 @@ public:
   std::string MetricStr(const json& dump_options,
                         const SidePluginRepo& repo) const;
   void UpdateOptions(const json& js, const SidePluginRepo& repo);
+  void UpdatePointer(std::shared_ptr<TableFactory> Old, std::shared_ptr<TableFactory> New);
 
 // should be protected, but use public for simple
   struct Stat {

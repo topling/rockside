@@ -930,6 +930,32 @@ void DispatcherTableFactory::BackPatch(const SidePluginRepo& repo) {
   DEBG("Dispatch::BackPatch: IsDeleteRangeSupported = %d", m_is_delete_range_supported);
 }
 
+void DispatcherTableFactoryUpdatePointer(TableFactory* f,
+    std::shared_ptr<TableFactory> Old, std::shared_ptr<TableFactory> New) {
+  if (auto dispatcher = dynamic_cast<DispatcherTableFactory*>(f)) {
+    dispatcher->UpdatePointer(Old, New);
+  }
+}
+void DispatcherTableFactory::UpdatePointer
+(std::shared_ptr<TableFactory> Old, std::shared_ptr<TableFactory> New)
+{
+  ROCKSDB_VERIFY(m_is_back_patched);
+  for (auto& fac : m_level_writers) {
+    if (fac == Old)
+        fac = New;
+  }
+  for (auto& [ptr, js] : m_factories_spec) {
+    if (ptr == Old.get())
+        ptr = New.get();
+  }
+  for (auto& [magic, rf] : m_magic_to_factory) {
+    if (rf.factory == Old)
+        rf.factory = New;
+  }
+  if (m_default_writer == Old)
+      m_default_writer = New;
+}
+
 std::string DispatcherTableFactory::GetPrintableOptions() const {
   return m_json_str;
 }
