@@ -564,6 +564,26 @@ JS_NewCappedPrefixTransform(const json& js, const SidePluginRepo&) {
 ROCKSDB_FACTORY_REG("CappedPrefixTransform", JS_NewCappedPrefixTransform);
 
 //////////////////////////////////////////////////////////////////////////////
+struct SliceTransform_Manip : PluginManipFunc<const SliceTransform> {
+  void Update(const SliceTransform*,
+              const json&, const json&, const SidePluginRepo&) const final {
+    // do nothing
+  }
+  std::string ToString(const SliceTransform& stf, const json& dump_options,
+                       const SidePluginRepo& repo) const final {
+    size_t prefix_len = 0;
+    json js;
+    bool full_len_enabled = stf.FullLengthEnabled(&prefix_len);
+    js["class"] = stf.Name();
+    ROCKSDB_JSON_SET_PROP(js, prefix_len);
+    ROCKSDB_JSON_SET_PROP(js, full_len_enabled);
+    return JsonToString(js, dump_options);
+  }
+};
+ROCKSDB_REG_PluginManip("FixedPrefixTransform", SliceTransform_Manip);
+ROCKSDB_REG_PluginManip("CappedPrefixTransform", SliceTransform_Manip);
+
+//////////////////////////////////////////////////////////////////////////////
 
 static const Comparator*
 BytewiseComp(const json&, const SidePluginRepo&) {
