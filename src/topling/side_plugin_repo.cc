@@ -115,23 +115,19 @@ static void Impl_Import(SidePluginRepo::Impl::ObjMap<Ptr>& field,
       auto old_clazz = JsonGetClassName(ROCKSDB_FUNC, oi_iter->second.spec);
       auto new_clazz = JsonGetClassName(ROCKSDB_FUNC, value);
       if (new_clazz == old_clazz) {
-      #if defined(NDEBUG)
-        try {
-      #endif
+        TOPLINGDB_TRY {
           if (auto i_params = value.find("params"); value.end() != i_params) {
             const json& params = i_params.value();
             PluginUpdate(existing, field, json(), params, repo);
             oi_iter->second.spec.merge_patch(value);
           }
           continue; // done for current item
-      #if defined(NDEBUG)
         }
-        catch (const Status& st) {
+        TOPLINGDB_CATCH (const Status& st) {
           // not found updater, overwrite with merged json
           oi_iter->second.spec.merge_patch(value);
           value.swap(oi_iter->second.spec);
         }
-      #endif
       }
     }
     // do not use ObtainPlugin, to disallow define var2 = var1
@@ -225,26 +221,23 @@ std::string ReadWholeFile(const Slice& fname) {
 }
 
 Status SidePluginRepo::ImportJsonFile(const Slice& fname)
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   std::string json_str = ReadWholeFile(fname);
   return Import(json_str);
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(std::string(__FILE__)
                        + ":" ROCKSDB_PP_STR(__LINE__) ": "
                        + ROCKSDB_FUNC + ": file = " + fname, ex.what());
 }
-#endif
+}
 
 std::string YamlToJson(std::string& yaml_str);
 Status SidePluginRepo::ImportYamlFile(const Slice& fname)
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   std::string json_str;
   {
@@ -253,31 +246,28 @@ try
   }
   return Import(json_str);
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(std::string(__FILE__)
                        + ":" ROCKSDB_PP_STR(__LINE__) ": "
                        + ROCKSDB_FUNC + ": file = " + fname, ex.what());
 }
-#endif
+}
 
 Status SidePluginRepo::Import(const string& json_str)
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   json js = json::parse(json_str);
   return Import(js);
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   // just parse error
   return Status::InvalidArgument(std::string(__FILE__)
                        + ":" ROCKSDB_PP_STR(__LINE__) ": "
                        + ROCKSDB_FUNC,
          Slice(ex.what()) + ": json_str is :\n" + json_str);
 }
-#endif
+}
 
 static
 void MergeSubObject(json* target, const json& patch, const string& subname) {
@@ -366,9 +356,8 @@ extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
 extern void DynaMemTableBackPatch(MemTableRepFactory*, const SidePluginRepo&);
 
 Status SidePluginRepo::Import(const json& main_js)
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   JS_setenv(main_js);
   MergeSubObject(&m_impl->db_js, main_js, "databases");
@@ -432,14 +421,13 @@ try
 
   return Status::OK();
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, ex.what());
 }
-catch (const Status& s) {
+TOPLINGDB_CATCH (const Status& s) {
   return s;
 }
-#endif
+}
 
 template<class Ptr>
 static void Impl_Export(const SidePluginRepo::Impl::ObjMap<Ptr>& field,
@@ -451,9 +439,8 @@ static void Impl_Export(const SidePluginRepo::Impl::ObjMap<Ptr>& field,
 }
 
 Status SidePluginRepo::Export(json* main_js) const
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   assert(NULL != main_js);
 #define JSON_EXPORT_REPO(Clazz, field) \
@@ -490,11 +477,10 @@ try
 
   return Status::OK();
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, ex.what());
 }
-#endif
+}
 
 Status SidePluginRepo::Export(string* json_str, bool pretty) const {
   assert(NULL != json_str);
@@ -1010,29 +996,25 @@ Status SidePluginRepo::OpenDB(const json& js, DB_MultiCF** dbp) {
 
 extern json JsonFromText(const std::string& text);
 Status SidePluginRepo::OpenDB(const std::string& js, DB** dbp)
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   return OpenDB_tpl<DB>(*this, JsonFromText(js), dbp);
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, "bad json object");
 }
-#endif
+}
 Status SidePluginRepo::OpenDB(const std::string& js, DB_MultiCF** dbp)
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   return OpenDB_tpl<DB_MultiCF>(*this, JsonFromText(js), dbp);
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, "bad json object");
 }
-#endif
+}
 
 inline DB* GetDB(DB* db) { return db; }
 inline DB* GetDB(DB_MultiCF* db) { return db->db; }
@@ -1090,15 +1072,11 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
   // this may be time consuming, some applications open many db concurrently,
   // so it should be out of mutex lock, to allow open db concurrently
   DBT* db = nullptr;
-#if defined(NDEBUG)
-  try {
-#endif
+  TOPLINGDB_TRY {
     db = PluginFactory<DBT*>::AcquirePlugin(method, params_js, repo);
-#if defined(NDEBUG)
-  } catch (...) {
+  } TOPLINGDB_CATCH (...) {
     throw;
   }
-#endif
   assert(nullptr != db);
   // now insert db ptr into repo, need lock
   std::lock_guard<std::mutex> lock(repo.m_impl->db_mtx);
@@ -1123,9 +1101,8 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
 template<class DBT>
 static
 Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp)
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   *dbp = nullptr;
   auto open_defined_db = [&](const std::string& dbname) {
@@ -1186,19 +1163,17 @@ try
   }
   return Status::OK();
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, ex.what());
 }
-catch (const Status& s) {
+TOPLINGDB_CATCH (const Status& s) {
   return s;
 }
-#endif
+}
 
 Status SidePluginRepo::OpenAllDB()
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   size_t num = 0;
   for (auto& item : m_impl->db_js.items()) {
@@ -1238,15 +1213,14 @@ try
   }
   return Status::OK();
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, ex.what());
 }
-catch (const Status& s) {
+TOPLINGDB_CATCH (const Status& s) {
   // nested Status
   return Status::InvalidArgument(ROCKSDB_FUNC, s.ToString());
 }
-#endif
+}
 
 std::shared_ptr<std::map<std::string, DB_Ptr> >
 SidePluginRepo::GetAllDB() const {
@@ -1275,9 +1249,8 @@ Status SidePluginRepo::OpenDB(DB_MultiCF** db) {
 }
 
 Status SidePluginRepo::StartHttpServer()
-#if defined(NDEBUG)
-try
-#endif
+{
+TOPLINGDB_TRY
 {
   if (m_impl->http.Started()) {
     return Status::OK();
@@ -1298,15 +1271,14 @@ try
   }
   return Status::OK();
 }
-#if defined(NDEBUG)
-catch (const std::exception& ex) {
+TOPLINGDB_CATCH (const std::exception& ex) {
   return Status::InvalidArgument(ROCKSDB_FUNC, ex.what());
 }
-catch (const Status& s) {
+TOPLINGDB_CATCH (const Status& s) {
   // nested Status
   return Status::InvalidArgument(ROCKSDB_FUNC, s.ToString());
 }
-#endif
+}
 
 void SidePluginRepo::CloseHttpServer() {
   if (SidePluginRepo::DebugLevel() >= 2) {

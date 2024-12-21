@@ -320,9 +320,7 @@ function SetParam(name, value) {
 </script>)");
         mg_print_cur_time(conn, m_repo);
       }
-#if defined(NDEBUG)
-      try {
-#endif
+      TOPLINGDB_TRY {
         using namespace std::chrono;
         bool html_time = JsonSmartBool(query, "html_time");
         auto t1 = steady_clock::now();
@@ -340,15 +338,13 @@ function SetParam(name, value) {
 "document.getElementById('time_stat_line').innerHTML += ', html_time = %.6f sec';"
             "</script>", sec);
         }
-#if defined(NDEBUG)
       }
-      catch (const Status& es) {
+      TOPLINGDB_CATCH (const Status& es) {
         mg_printf(conn, "Caught Status: %s\n", es.ToString().c_str());
       }
-      catch (const std::exception& ex) {
+      TOPLINGDB_CATCH (const std::exception& ex) {
         mg_printf(conn, "Caught std::exception: %s\n", ex.what());
       }
-#endif
       if (html)
         mg_printf(conn, "</body></html>\n");
     }

@@ -25,6 +25,22 @@ namespace ROCKSDB_NAMESPACE {
 #define THROW_NotFound(msg) THROW_STATUS(NotFound, msg)
 #define THROW_NotSupported(msg) THROW_STATUS(NotSupported, msg)
 
+#if !defined(TOPLINGDB_ENABLE_TRY_CATCH)
+  #if defined(NDEBUG)
+    #define TOPLINGDB_ENABLE_TRY_CATCH 1
+  #else
+    #define TOPLINGDB_ENABLE_TRY_CATCH 0
+  #endif
+#endif
+
+#if TOPLINGDB_ENABLE_TRY_CATCH
+  #define TOPLINGDB_TRY            try
+  #define TOPLINGDB_CATCH(Except)  catch (Except)
+#else
+  #define TOPLINGDB_TRY            if (1)
+  #define TOPLINGDB_CATCH(Except)  else if (0) try {} catch (Except)
+#endif
+
 template<class P> struct RemovePtr_tpl; // NOLINT
 template<class T> struct RemovePtr_tpl<T*> { typedef T type; };
 template<class T> struct RemovePtr_tpl<std::shared_ptr<T> > { typedef T type; };

@@ -1578,9 +1578,7 @@ std::string Json_DB_CF_SST_HtmlTable(Version* version, ColumnFamilyData* cfd,
   extern const unsigned int     g_sst_list_html_highlight_classes;
   std::string html;
   const double GiB = 1L << 30;
-#if defined(NDEBUG)
-try {
-#endif
+TOPLINGDB_TRY {
   char buf[128];
   ColumnFamilyMetaData meta;
   TablePropertiesCollection props;
@@ -2075,12 +2073,9 @@ else if (show_per_level >= 1) {
 } // if (show_per_level)
   html.append("</div>");
   return html;
-#if defined(NDEBUG)
-}
-catch (const std::exception& ex) {
+} TOPLINGDB_CATCH(const std::exception& ex) {
   throw std::runtime_error(html + "\n" + ex.what());
 }
-#endif
 }
 
 Slice SliceSlice(Slice big, Slice sub) {
