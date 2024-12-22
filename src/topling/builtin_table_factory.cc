@@ -939,6 +939,9 @@ void DispatcherTableFactoryUpdatePointer(TableFactory* f,
 void DispatcherTableFactory::UpdatePointer
 (std::shared_ptr<TableFactory> Old, std::shared_ptr<TableFactory> New)
 {
+  terark::fstring OldFacName = Old->Name();
+  terark::fstring NewFacName = New->Name();
+  TERARK_VERIFY_S_EQ(OldFacName, NewFacName);
   ROCKSDB_VERIFY(m_is_back_patched);
   for (auto& fac : m_level_writers) {
     if (fac == Old)
@@ -948,6 +951,7 @@ void DispatcherTableFactory::UpdatePointer
     if (ptr == Old.get())
         ptr = New.get();
   }
+  std::sort(m_factories_spec.begin(), m_factories_spec.end());
   for (auto& [magic, rf] : m_magic_to_factory) {
     if (rf.factory == Old)
         rf.factory = New;
