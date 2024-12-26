@@ -5,6 +5,7 @@
 #include "db/column_family.h"
 #include <topling/side_plugin_factory.h>
 #include <topling/builtin_table_factory.h>
+#include <terark/num_to_str.hpp>
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -54,9 +55,14 @@ void Html_AppendInternalKey(std::string& html, Slice ikey, const UserKeyCoder*);
 
 class AccessBlockBasedTable : public BlockBasedTable {
 public:
-std::string BlockIndexHtml(ColumnFamilyData* cfd) const {
+std::string BlockIndexHtml(const json& dump_options) const {
+  auto cfd = (ColumnFamilyData*)(dump_options["__ptr_cfd__"].get<size_t>());
+  auto cols = JsonSmartInt(dump_options, "cols", 4);
   char buf[64];
   std::string html;
+  auto& oss = static_cast<terark::string_appender<>&>(html);
+  oss|"<div style='column-count:"|cols|"; column-rule-style:double; column-rule-width:thick'>";
+  ROCKSDB_SCOPE_EXIT(html += "</div>");
   const bool index_key_includes_seq = rep_->index_key_includes_seq;
   const bool index_has_first_key = rep_->index_has_first_key;
   html.append("<h4>DataBlock Index</h4>");
@@ -321,8 +327,7 @@ json ToWebViewJson(const json& dump_options) const {
     djs["num_unfragmented_tombstones"] =
           r->fragmented_range_dels->num_unfragmented_tombstones();
 
-  auto cfd = (ColumnFamilyData*)(dump_options["__ptr_cfd__"].get<size_t>());
-  djs["BlockIndex"] = BlockIndexHtml(cfd);
+  djs["BlockIndex"] = BlockIndexHtml(dump_options);
 
   return djs;
 }
