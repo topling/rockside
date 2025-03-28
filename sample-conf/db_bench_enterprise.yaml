@@ -77,7 +77,7 @@ MemTableRepFactory:
       # convert_to_sst: kDumpMem
       convert_to_sst: kFileMmap
       sync_sst_file: false
-      chroot_dir: /dev/shm
+      #chroot_dir: /dev/shm # when use ${cat_env}
   skiplist:
     class: SkipList
     params:
@@ -97,7 +97,7 @@ TableFactory:
   zip:
     class: ToplingZipTable
     params:
-      localTempDir: /tmp
+      localTempDir: /dev/shm
       indexNestLevel: 1
       enableStatistics: false
       warmupLevel: kIndex
@@ -164,6 +164,9 @@ WriteBufferManager:
       buffer_size: 4G
 CFOptions:
   default:
+    #enable_blob_files: true
+    #min_blob_size: 200
+    enable_blob_garbage_collection: true
     max_write_buffer_number: 3
     #disable_auto_compactions: true
     #memtable_factory: "${skiplist}"
@@ -213,7 +216,8 @@ Env:
       file_system: "$cat_fs"
 DBOptions:
   dbo:
-    env: "$cat_env"
+    #env: "$cat_env"
+    #memtable_as_log_index: true
     allow_fallocate: false # default true
     allow_fdatasync: false # default true
     create_if_missing: true
@@ -240,7 +244,8 @@ databases:
       dyna_cf_opt: "$default"
       #path is optional, if not defined, use name as path
       #last part of path must be same as name(here is 'db_bench_enterprise')
-      path: /db_bench_enterprise
+      #path: /db_bench_enterprise # when use ${cat_env}
+      path: /dev/shm/db_bench_enterprise
   db_test:
     method: DB::Open
     params:
