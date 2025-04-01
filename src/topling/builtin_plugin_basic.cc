@@ -775,6 +775,15 @@ struct DynaMemTableFactory : public MemTableRepFactory {
                     uint32_t cf_id) override {
     return real_fac->CreateMemTableRep(level0_dir, mcfopt, kc, a, st, logger, cf_id);
   }
+  bool SupportOpenMemTableRep() const {
+    return real_fac->SupportOpenMemTableRep();
+  }
+  Status OpenMemTableRep(std::unique_ptr<MemTableRep>* result,
+                         const std::string& fname,
+                         const std::string& wal_dir,
+                         Logger* log, uint32_t cf_id) {
+    return real_fac->OpenMemTableRep(result, fname, wal_dir, log, cf_id);
+  }
   bool IsInsertConcurrentlySupported() const override {
     return real_fac->IsInsertConcurrentlySupported();
   }
