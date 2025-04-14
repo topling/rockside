@@ -61,3 +61,11 @@ a:active {
   color: #0969da;
   text-decoration: underline;
 }
+
+#vertical-rule {
+  border-left: 1px solid rgb(190, 190, 190);
+  height: 2em;
+  margin-top:-0.3em;
+  margin-bottom:-0.6em;
+  display: inline-block;
+}
