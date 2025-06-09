@@ -958,10 +958,11 @@ Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp);
 /**
  * @param js may be:
  *  1. string name ref to a db defined in 'this' repo
- *  2. { "DB::Open": { options: {...} } }
- *  3. { "SomeStackableDB::Open": { } } }
- *  4. string name ref target in repo looks like:
- *     db : {
+ *  2. a db object likes which defined in 'this' repo,
+ *     in this case, params.name can be defined, if params.name is not defined,
+ *     use name part of params.path, databases in repo likes:
+ *
+ *     databases : {
  *       dbname1 : {
  *         method : "DB::Open",
  *         params : {
@@ -987,6 +988,8 @@ Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp);
  *         }
  *       }
  *     }
+ *
+ *     @param js can be a json object such as dbname1, dbname2, dbname3.
  */
 Status SidePluginRepo::OpenDB(const json& js, DB** dbp) {
   return OpenDB_tpl<DB>(*this, js, dbp);
