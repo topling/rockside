@@ -163,12 +163,12 @@ void DB_MultiCF_Impl::AddOneCF_ToMap(const std::string& cfname,
 
 void DB_MultiCF_Impl::InitAddCF_ToMap(const json& js_cf_desc) {
   size_t i = 0;
-  assert(js_cf_desc.size() == cf_handles.size());
+  ROCKSDB_VERIFY_EQ(js_cf_desc.size(), cf_handles.size());
   for (auto& item : js_cf_desc.items()) {
     auto& cfname = item.key();
     auto& js_cf = item.value();
     ColumnFamilyHandle* cfh = cf_handles[i];
-    assert(cfname == cfh->GetName());
+    TERARK_VERIFY_S_EQ(cfname, cfh->GetName());
     AddOneCF_ToMap(cfname, cfh, js_cf);
     i++;
   }
