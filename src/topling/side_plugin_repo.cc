@@ -4,6 +4,7 @@
 #include <cinttypes>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 #include "rocksdb/db.h"
 #include "rocksdb/env.h"
@@ -1129,25 +1130,39 @@ TOPLINGDB_TRY
       open_defined_db(str_val); // str_val is dbname
     }
   } else if (js.is_object()) {
-    // when name is empty, js["params"]["name"] must be defined
+    // if params.name is missing, use name part of params.path,
     // this happens on OpenDB with a json
     auto i1 = js.find("params");
     if (js.end() == i1) {
       THROW_InvalidArgument(R"(missing "params": )" + js.dump());
     }
-    auto i2 = i1.value().find("name");
-    if (js.end() == i2) {
-      THROW_InvalidArgument("missing params.name: " + js.dump());
+    std::string name;
+    auto& params_js = i1.value();
+    auto i2 = params_js.find("name");
+    if (params_js.end() == i2) {
+      auto i3 = params_js.find("path");
+      if (params_js.end() == i3) {
+        THROW_InvalidArgument("missing params.name and params.path: " + js.dump());
+      }
+      if (!i3.value().is_string()) {
+        THROW_InvalidArgument("params.path must be string: " + js.dump());
+      }
+      std::filesystem::path p = i3.value().get<std::string>();
+      name = p.filename(); // name part
+      if (name.empty()) {
+        THROW_InvalidArgument("namepart of params.path must not be empty: " + js.dump());
+      }
     }
-    if (!i2.value().is_string()) {
-      THROW_InvalidArgument("params.name must be string: " + js.dump());
+    else {
+      if (!i2.value().is_string()) {
+        THROW_InvalidArgument("params.name must be string: " + js.dump());
+      }
+      name = i2.value().get<std::string>();
+      if (name.empty()) {
+        THROW_InvalidArgument("params.name must not be empty: " + js.dump());
+      }
     }
-    const auto& name = i2.value().get_ref<const std::string&>();
-    if (name.empty()) {
-      THROW_InvalidArgument("params.name must not be empty: " + js.dump());
-    }
-    std::string empty_name = ""; // NOLINT
-    Impl_OpenDB_tpl(empty_name, js, repo, dbp);
+    Impl_OpenDB_tpl(name, js, repo, dbp);
   }
   else {
     THROW_InvalidArgument("bad js = " + js.dump());
