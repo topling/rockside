@@ -2,8 +2,12 @@
 #include <rocksdb/db.h>
 #include <thread>
 
+namespace ROCKSDB_NAMESPACE {
+std::string ReadWholeFile(const Slice& fname);
+}
+
 void usage(int line, const char* prog) {
-  fprintf(stderr, "%d: usage: %s conf-file\n", line, prog);
+  fprintf(stderr, "%d: usage: %s conf-file [dbjs-file]\n", line, prog);
   exit(1);
 }
 
@@ -19,9 +23,18 @@ int main(int argc, char* argv[]) {
     return 2;
   }
   DB_MultiCF* mcf = nullptr;
-  s = repo.OpenDB(&mcf);
+  if (argc >= 3) { // argv[2] is dbjs file
+    std::string str_dbjs = ROCKSDB_NAMESPACE::ReadWholeFile(argv[2]);
+    s = repo.OpenDB(str_dbjs, &mcf);
+  } else {
+    s = repo.OpenDB(&mcf);
+  }
   if (!s.ok()) {
-    fprintf(stderr, "ERROR: repo.OpenDB(DB*) = %s\n", s.ToString().c_str());
+    if (argc >= 3) {
+      fprintf(stderr, "ERROR: repo.OpenDB(<%s>, DB*) = %s\n", argv[2], s.ToString().c_str());
+    } else {
+      fprintf(stderr, "ERROR: repo.OpenDB(DB*) = %s\n", s.ToString().c_str());
+    }
     return 2;
   }
   TERARK_SCOPE_EXIT(repo.CloseAllDB());

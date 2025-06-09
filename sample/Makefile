@@ -63,6 +63,7 @@ INCS := -I${TOPLINGDB_HOME}/include -I${TOPLINGDB_HOME} \
 
 CXXFLAGS += -std=gnu++17
 CXXFLAGS += ${INCS}
+LDFLAGS += -ljemalloc
 LDFLAGS += -L${TOPLINGDB_HOME} \
       ${BEG_WHOLE_ARCHIVE} \
            -l${LIBROCKSDB} \
