@@ -1102,6 +1102,44 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
   *dbp = db;
 }
 
+std::string ParamsGetName(const json& js, const json& params_js) {
+  // if params.name is missing, use name part of params.path,
+  // this happens on OpenDB with a json
+  std::string name;
+  auto i2 = params_js.find("name");
+  if (params_js.end() == i2) {
+    auto i3 = params_js.find("path");
+    if (params_js.end() == i3) {
+      THROW_InvalidArgument("missing params.name and params.path: " + js.dump());
+    }
+    if (!i3.value().is_string()) {
+      THROW_InvalidArgument("params.path must be string: " + js.dump());
+    }
+    std::filesystem::path p = i3.value().get<std::string>();
+    name = p.filename(); // name part
+    if (name.empty()) {
+      THROW_InvalidArgument("namepart of params.path must not be empty: " + js.dump());
+    }
+  }
+  else {
+    if (!i2.value().is_string()) {
+      THROW_InvalidArgument("params.name must be string: " + js.dump());
+    }
+    name = i2.value().get<std::string>();
+    if (name.empty()) {
+      THROW_InvalidArgument("params.name must not be empty: " + js.dump());
+    }
+  }
+  return name;
+}
+std::string DBjsGetName(const json& js) {
+  auto iter = js.find("params");
+  if (js.end() == iter) {
+    THROW_InvalidArgument(R"(missing "params": )" + js.dump());
+  }
+  return ParamsGetName(js, iter.value());
+}
+
 template<class DBT>
 static
 Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp)
@@ -1133,38 +1171,7 @@ TOPLINGDB_TRY
       open_defined_db(str_val); // str_val is dbname
     }
   } else if (js.is_object()) {
-    // if params.name is missing, use name part of params.path,
-    // this happens on OpenDB with a json
-    auto i1 = js.find("params");
-    if (js.end() == i1) {
-      THROW_InvalidArgument(R"(missing "params": )" + js.dump());
-    }
-    std::string name;
-    auto& params_js = i1.value();
-    auto i2 = params_js.find("name");
-    if (params_js.end() == i2) {
-      auto i3 = params_js.find("path");
-      if (params_js.end() == i3) {
-        THROW_InvalidArgument("missing params.name and params.path: " + js.dump());
-      }
-      if (!i3.value().is_string()) {
-        THROW_InvalidArgument("params.path must be string: " + js.dump());
-      }
-      std::filesystem::path p = i3.value().get<std::string>();
-      name = p.filename(); // name part
-      if (name.empty()) {
-        THROW_InvalidArgument("namepart of params.path must not be empty: " + js.dump());
-      }
-    }
-    else {
-      if (!i2.value().is_string()) {
-        THROW_InvalidArgument("params.name must be string: " + js.dump());
-      }
-      name = i2.value().get<std::string>();
-      if (name.empty()) {
-        THROW_InvalidArgument("params.name must not be empty: " + js.dump());
-      }
-    }
+    std::string name = DBjsGetName(js);
     Impl_OpenDB_tpl(name, js, repo, dbp);
   }
   else {
