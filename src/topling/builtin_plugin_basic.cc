@@ -600,15 +600,38 @@ ROCKSDB_FACTORY_REG(                  "Bytewise", BytewiseComp);
 ROCKSDB_FACTORY_REG(        "BytewiseComparator", BytewiseComp);
 ROCKSDB_FACTORY_REG("leveldb.BytewiseComparator", BytewiseComp);
 ROCKSDB_FACTORY_REG("rocksdb.BytewiseComparator", BytewiseComp);
+ROCKSDB_FACTORY_REG(    "BytewiseComparatorImpl", BytewiseComp);
+
 ROCKSDB_FACTORY_REG(        "ReverseBytewise"          , RevBytewiseComp);
 ROCKSDB_FACTORY_REG(        "ReverseBytewiseComparator", RevBytewiseComp);
 ROCKSDB_FACTORY_REG("rocksdb.ReverseBytewiseComparator", RevBytewiseComp);
+ROCKSDB_FACTORY_REG(    "ReverseBytewiseComparatorImpl", RevBytewiseComp);
 
 //////////////////////////////////////////////////////////////////////////////
 static Env* DefaultEnv(const json&, const SidePluginRepo&) {
   return Env::Default();
 }
 ROCKSDB_FACTORY_REG("default", DefaultEnv);
+ROCKSDB_FACTORY_REG(TERARK_IF_MSVC("WinEnv", "PosixEnv"), DefaultEnv);
+
+struct DefaultEnv_Manip : PluginManipFunc<Env> {
+  void Update(Env*, const json&, const json&, const SidePluginRepo&) const final {
+    THROW_InvalidArgument("Not supported");
+  }
+  std::string ToString(const Env& env, const json& dump_options,
+                       const SidePluginRepo& repo) const final {
+    bool html = JsonSmartBool(dump_options, "html", true);
+    json js;
+    js["class"] = TERARK_IF_MSVC("WinEnv", "PosixEnv");
+    auto file_system = env.GetFileSystem();
+    //auto clock = env.GetSystemClock();
+    ROCKSDB_JSON_SET_FACT(js, file_system);
+    //ROCKSDB_JSON_SET_FACT(js, clock);
+    return JsonToString(js, dump_options);
+  }
+};
+ROCKSDB_REG_PluginManip("default", DefaultEnv_Manip);
+ROCKSDB_REG_PluginManip(TERARK_IF_MSVC("WinEnv", "PosixEnv"), DefaultEnv_Manip);
 
 /////////////////////////////////////////////////////////////////////////////
 ROCKSDB_REG_Plugin(FlushBlockBySizePolicyFactory, FlushBlockPolicyFactory);

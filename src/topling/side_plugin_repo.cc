@@ -441,6 +441,8 @@ TOPLINGDB_TRY
 
   for (auto& kv : *m_impl->db_options.name2p) {
     DBOptions& opt = *kv.second;
+    if (opt.env)
+      JSON_ASSIGN_NAME2(file_system, opt.env->GetFileSystem());
     JSON_ASSIGN_NAME1(env);
     JSON_ASSIGN_NAME1(rate_limiter);
     JSON_ASSIGN_NAME1(sst_file_manager);
@@ -460,9 +462,14 @@ TOPLINGDB_TRY
     JSON_ASSIGN_NAME1(compaction_filter_factory);
     JSON_ASSIGN_NAME1(compaction_thread_limiter);
     JSON_ASSIGN_NAME1(sst_partitioner_factory);
+    JSON_ASSIGN_NAME1(memtable_factory);
+    JSON_ASSIGN_NAME1(table_factory);
     JSON_ASSIGN_NAME2(slice_transform, opt.prefix_extractor);
     JSON_ASSIGN_NAME2(cache, opt.blob_cache);
   }
+  JSON_ASSIGN_NAME2(env, Env::Default());
+  JSON_ASSIGN_NAME2(file_system, FileSystem::Default());
+  JSON_ASSIGN_NAME2(file_system, Env::Default()->GetFileSystem());
 
   static_cast<SideRepoImpl*>(m_impl.get())->ImportPermissions(main_js);
 
