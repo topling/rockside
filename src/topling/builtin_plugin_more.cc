@@ -17,6 +17,8 @@
 #include <env/env_chroot.h>
 #include <env/fs_cat.h>
 
+#include <file/sst_file_manager_impl.h>
+
 #include <logging/auto_roll_logger.h>
 #include <utilities/merge_operators/bytesxor.h>
 #include <utilities/merge_operators/sortlist.h>
@@ -212,8 +214,88 @@ JS_NewSstFileManager(const json& js, const SidePluginRepo& repo) {
   }
   return std::shared_ptr<SstFileManager>(mgr);
 }
+ROCKSDB_FACTORY_REG("SstFileManagerImpl", JS_NewSstFileManager);
 ROCKSDB_FACTORY_REG("SstFileManager", JS_NewSstFileManager);
 ROCKSDB_FACTORY_REG("Default", JS_NewSstFileManager);
+
+struct SstFileManager_Manip : PluginManipFunc<SstFileManager> {
+  void Update(SstFileManager* pmgr, const json&, const json& js,
+              const SidePluginRepo&) const final {
+    if (js.contains("max_allowed_space_usage")) {
+      uint64_t max_allowed_space = 0;
+      ROCKSDB_JSON_REQ_SIZE(js, max_allowed_space);
+      pmgr->SetMaxAllowedSpaceUsage(max_allowed_space);
+    }
+    if (js.contains("compaction_buffer_size")) {
+      uint64_t compaction_buffer_size = 64 * 1024 * 1024;
+      ROCKSDB_JSON_REQ_SIZE(js, compaction_buffer_size);
+      pmgr->SetCompactionBufferSize(compaction_buffer_size);
+    }
+    if (js.contains("delete_rate_bytes_per_sec")) {
+      int64_t rate_bytes_per_sec = 0;
+      ROCKSDB_JSON_REQ_SIZE(js, rate_bytes_per_sec);
+      if (rate_bytes_per_sec < 0) {
+        THROW_InvalidArgument("delete_rate_bytes_per_sec must be >= 0");
+      }
+      pmgr->SetDeleteRateBytesPerSecond(rate_bytes_per_sec);
+    }
+    if (js.contains("max_trash_db_ratio")) {
+      double max_trash_db_ratio = 0.25;
+      ROCKSDB_JSON_REQ_PROP(js, max_trash_db_ratio);
+      if (max_trash_db_ratio < 0 || max_trash_db_ratio > 1) {
+        THROW_InvalidArgument("max_trash_db_ratio must be in [0, 1]");
+      }
+      pmgr->SetMaxTrashDBRatio(max_trash_db_ratio);
+    }
+  }
+  std::string ToString(const SstFileManager& cmgr, const json& dump_options,
+                       const SidePluginRepo& repo) const final {
+    bool html = JsonSmartBool(dump_options, "html", true);
+    auto verbose = JsonSmartInt(dump_options, "verbose", false);
+    auto pmgr = const_cast<SstFileManager*>(&cmgr);
+    auto impl = dynamic_cast<SstFileManagerImpl*>(pmgr);
+    json js;
+    js["class"] = "SstFileManagerImpl";
+    auto file_system = impl->GetFileSystem();
+    //auto clock = impl->GetClock();
+    auto info_log = impl->GetLogger();
+    ROCKSDB_JSON_SET_FACT(js, file_system);
+    //ROCKSDB_JSON_SET_FACT(js, clock);
+    ROCKSDB_JSON_SET_FACT(js, info_log);
+
+    js["total_trash_size"] = SizeToString(pmgr->GetTotalTrashSize());
+    js["delete_rate_bytes_per_sec"] = pmgr->GetDeleteRateBytesPerSecond();
+    js["max_allowed_space_reached"] = pmgr->IsMaxAllowedSpaceReached();
+    js["max_trash_db_ratio"] = pmgr->GetMaxTrashDBRatio();
+    js["bytes_max_delete_chunk"] =
+        SizeToString(impl->delete_scheduler()->bytes_max_delete_chunk());
+
+    if (verbose >= 2) {
+      auto files = pmgr->GetTrackedFiles();
+      using namespace std;
+      vector<pair<string, uint64_t> > sorted(files.begin(), files.end());
+      std::sort(sorted.begin(), sorted.end());
+      json& tjs = js["tracked_files"];
+      if (files.empty()) {
+        tjs = "EMPTY";
+      } else {
+        tjs = json::array();
+        for (auto& kv : sorted) {
+          tjs.push_back(json::object({
+            {"file", kv.first},
+            {"size", SizeToString(kv.second)},
+          }));
+        }
+        if (html)
+          tjs[0]["<htmltab:col>"] = json::array({"file", "size"});
+      }
+    }
+    return JsonToString(js, dump_options);
+  }
+};
+ROCKSDB_REG_PluginManip("SstFileManagerImpl", SstFileManager_Manip);
+ROCKSDB_REG_PluginManip("SstFileManager", SstFileManager_Manip);
+ROCKSDB_REG_PluginManip("Default", SstFileManager_Manip);
 
 /////////////////////////////////////////////////////////////////////////////
 
