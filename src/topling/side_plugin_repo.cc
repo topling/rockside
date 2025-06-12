@@ -353,6 +353,22 @@ struct SideRepoImpl : SidePluginRepo::Impl {
   }
 };
 
+template<class Ptr>
+static void AssignNameToUnnamed(Ptr p,
+                   SidePluginRepo::Impl::ObjMap<Ptr>& field,
+                   SidePluginRepo& repo) {
+  if (!p) {
+    return;
+  }
+  auto iter = field.p2name.find(GetRawPtr(p));
+  if (field.p2name.end() == iter) {
+    char generated_name[256];
+    sprintf(generated_name, "auto_name_%s_%zd",
+            GetStemClassName(p).c_str(), field.p2name.size());
+    repo.Put(generated_name, json(nullptr), p);
+  }
+}
+
 extern void DispatcherTableBackPatch(TableFactory*, const SidePluginRepo&);
 extern void DynaMemTableBackPatch(MemTableRepFactory*, const SidePluginRepo&);
 
@@ -417,6 +433,36 @@ TOPLINGDB_TRY
 
   Impl_ImportOptions(m_impl->db_options, "DBOptions", main_js, repo);
   Impl_ImportOptions(m_impl->cf_options, "CFOptions", main_js, repo);
+
+  #define JSON_ASSIGN_NAME1(field) \
+          JSON_ASSIGN_NAME2(field, opt.field)
+  #define JSON_ASSIGN_NAME2(field, ptr) \
+    AssignNameToUnnamed(ptr, m_impl->field, *this)
+
+  for (auto& kv : *m_impl->db_options.name2p) {
+    DBOptions& opt = *kv.second;
+    JSON_ASSIGN_NAME1(env);
+    JSON_ASSIGN_NAME1(rate_limiter);
+    JSON_ASSIGN_NAME1(sst_file_manager);
+    JSON_ASSIGN_NAME1(info_log);
+    JSON_ASSIGN_NAME1(statistics);
+    JSON_ASSIGN_NAME1(write_buffer_manager);
+    JSON_ASSIGN_NAME1(wbwi_factory);
+    for (auto& x : opt.listeners)
+      JSON_ASSIGN_NAME2(event_listener, x);
+  }
+
+  using CFOptions = ColumnFamilyOptions;
+  for (auto& kv : *m_impl->cf_options.name2p) {
+    CFOptions& opt = *kv.second;
+    JSON_ASSIGN_NAME1(comparator);
+    JSON_ASSIGN_NAME1(compaction_executor_factory);
+    JSON_ASSIGN_NAME1(compaction_filter_factory);
+    JSON_ASSIGN_NAME1(compaction_thread_limiter);
+    JSON_ASSIGN_NAME1(sst_partitioner_factory);
+    JSON_ASSIGN_NAME2(slice_transform, opt.prefix_extractor);
+    JSON_ASSIGN_NAME2(cache, opt.blob_cache);
+  }
 
   static_cast<SideRepoImpl*>(m_impl.get())->ImportPermissions(main_js);
 
