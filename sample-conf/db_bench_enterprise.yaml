@@ -217,7 +217,8 @@ Env:
 DBOptions:
   dbo:
     #env: "$cat_env"
-    #memtable_as_log_index: true
+    memtable_as_log_index: true
+    max_total_wal_size: 4G
     allow_fallocate: false # default true
     allow_fdatasync: false # default true
     create_if_missing: true

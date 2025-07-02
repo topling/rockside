@@ -217,6 +217,7 @@ CFOptions:
     max_bytes_for_level_base: 16M
 DBOptions:
   dbo:
+    memtable_as_log_index: true
     allow_fallocate: false # default true
     allow_fdatasync: false # default true
     create_if_missing: true
