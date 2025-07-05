@@ -59,8 +59,7 @@ MemTableRepFactory:
     class: cspp
     params:
       mem_cap: 2G
-      use_vm: false
-      token_use_idle: true
+      convert_to_sst: kFileMmap
   skiplist:
     class: SkipList
     params:
@@ -113,11 +112,13 @@ CFOptions:
     - kZSTD
 DBOptions:
   dbo:
+    allow_fallocate: false # default true
     create_if_missing: true
     create_missing_column_families: true
     max_background_compactions: 13
     max_subcompactions: 1
-    max_level1_subcompactions: 7
+    max_level1_subcompactions: 5
+    memtable_as_log_index: true
     inplace_update_support: false
     WAL_size_limit_MB: 0
     statistics: "${stat}"
