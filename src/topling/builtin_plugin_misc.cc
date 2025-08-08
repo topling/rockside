@@ -3074,7 +3074,6 @@ static std::string RunManualFlush(const DB* dbc, ColumnFamilyHandle* cfh,
 }
 static std::string RunManualFlushAll(const DB_MultiCF& dbm, const json& dump_options) {
   DB* db = const_cast<DB*>(dbm.db);
-  DBOptions dbo = db->GetDBOptions();
   MyFO fo(dump_options);
   Status s = db->Flush(fo, dbm.get_cf_handles_view());
   return StatusToJsonString(s);
