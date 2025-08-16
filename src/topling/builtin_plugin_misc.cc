@@ -3704,6 +3704,19 @@ JS_CreateCF(DB* db, const std::string& cfname,
   }
   return cfh;
 }
+static ColumnFamilyHandle*
+JS_CreateCFWithImport(DB* db, const std::string& cfname,
+            const ColumnFamilyOptions& cfo,
+            const ImportColumnFamilyOptions& import_options,
+            const std::vector<const ExportImportFilesMetaData*>& metadatas,
+            const json&) {
+  ColumnFamilyHandle* cfh = nullptr;
+  Status s = db->CreateColumnFamilyWithImport(cfo, cfname, import_options, metadatas, &cfh);
+  if (!s.ok()) {
+    throw s; // NOLINT
+  }
+  return cfh;
+}
 
 DB_MultiCF_Impl::DB_MultiCF_Impl(const SidePluginRepo* repo,
         const std::string& dbname, DB* db,
@@ -3715,6 +3728,7 @@ DB_MultiCF_Impl::DB_MultiCF_Impl(const SidePluginRepo* repo,
   m_catch_up_running = false;
   m_catch_up_delay_ms = catch_up_delay_ms;
   m_create_cf = &JS_CreateCF;
+  m_create_cf_with_import = &JS_CreateCFWithImport;
   std::vector<ColumnFamilyDescriptor> cfdvec(cf_handles.size());
   for (size_t i = 0; i < cf_handles.size(); i++) {
     cf_handles[i]->GetDescriptor(&cfdvec[i]);
@@ -3744,6 +3758,7 @@ DB_MultiCF* JS_DB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       if (!read_only) {
         db->m_create_cf = &JS_CreateCF;
+        db->m_create_cf_with_import = &JS_CreateCFWithImport;
       }
       db->InitAddCF_ToMap(*js_cf_desc);
     }
@@ -3792,6 +3807,7 @@ JS_DB_MultiCF_OpenAsSecondary(const json& js, const SidePluginRepo& repo) {
         THROW_Corruption("cf_handles.size() != cfdvec.size()");
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       db->m_create_cf = &JS_CreateCF;
+      db->m_create_cf_with_import = &JS_CreateCFWithImport;
       db->InitAddCF_ToMap(*js_cf_desc);
       db->m_catch_up_delay_ms = auto_catch_up_delay_ms;
       if (auto_catch_up_delay_ms > 0) {
@@ -3865,6 +3881,7 @@ JS_DBWithTTL_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
       db->db = dbptr;
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       db->m_create_cf = &JS_CreateCF_WithTTL;
+      db->m_create_cf_with_import = &JS_CreateCFWithImport;
       db->InitAddCF_ToMap(*js_cf_desc);
     }
   } p(js, repo);
@@ -3966,6 +3983,7 @@ JS_TransactionDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
       db->db = dbptr;
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       db->m_create_cf = &JS_CreateCF;
+      db->m_create_cf_with_import = &JS_CreateCFWithImport;
       db->InitAddCF_ToMap(*js_cf_desc);
     }
   } p(js, repo);
@@ -4026,6 +4044,7 @@ JS_TransactionDB_MultiCF_OpenAsSecondary(const json& js, const SidePluginRepo& r
       db->db = dbptr;
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       db->m_create_cf = &JS_CreateCF;
+      db->m_create_cf_with_import = &JS_CreateCFWithImport;
       db->InitAddCF_ToMap(*js_cf_desc);
       db->m_catch_up_delay_ms = auto_catch_up_delay_ms;
       if (auto_catch_up_delay_ms > 0) {
@@ -4084,6 +4103,7 @@ JS_OccTransactionDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
       db->db = dbptr;
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       db->m_create_cf = &JS_CreateCF;
+      db->m_create_cf_with_import = &JS_CreateCFWithImport;
       db->InitAddCF_ToMap(*js_cf_desc);
     }
   } p(js, repo);
@@ -4169,6 +4189,7 @@ JS_BlobDB_MultiCF_Open(const json& js, const SidePluginRepo& repo) {
       db->db = dbptr;
       SetCFPropertiesWebView(db.get(), name, cfdvec, repo);
       db->m_create_cf = &JS_CreateCF;
+      db->m_create_cf_with_import = &JS_CreateCFWithImport;
       db->InitAddCF_ToMap(*js_cf_desc);
     }
   } p(js, repo);

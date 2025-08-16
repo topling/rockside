@@ -10,6 +10,10 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   ~DB_MultiCF_Impl() override;
   ColumnFamilyHandle* Get(const std::string& cfname) const override;
   Status CreateColumnFamily(const std::string& cfname, const std::string& json_str, ColumnFamilyHandle**) override;
+  Status CreateColumnFamilyWithImport(
+                  const std::string& cfname, const ImportColumnFamilyOptions&,
+                  const std::vector<const ExportImportFilesMetaData*>&,
+                  const std::string& json_str, ColumnFamilyHandle**);
   Status DropColumnFamilyImpl(const std::string& cfname, ColumnFamilyHandle**);
   Status DropColumnFamily(const std::string& cfname, bool del_cfh) override;
   Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh) override;
@@ -21,6 +25,12 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   std::function<ColumnFamilyHandle*
     (DB*, const std::string& cfname, const ColumnFamilyOptions&, const json& extra_args)
    > m_create_cf;
+  std::function<ColumnFamilyHandle*
+    (DB*, const std::string& cfname, const ColumnFamilyOptions&,
+          const ImportColumnFamilyOptions& import_options,
+          const std::vector<const ExportImportFilesMetaData*>& metadatas,
+          const json& extra_args)
+   > m_create_cf_with_import;
   std::unique_ptr<std::thread> m_catch_up_thread;
   bool m_catch_up_running;
   int m_catch_up_delay_ms;

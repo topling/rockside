@@ -29,6 +29,8 @@ struct Options;
 struct DBOptions;
 struct ColumnFamilyDescriptor;
 struct ColumnFamilyOptions;
+struct ExportImportFilesMetaData;
+struct ImportColumnFamilyOptions;
 struct DB_Ptr;
 
 class Cache;
@@ -70,6 +72,10 @@ struct DB_MultiCF {
   virtual ~DB_MultiCF();
   virtual ColumnFamilyHandle* Get(const std::string& cfname) const = 0;
   virtual Status CreateColumnFamily(const std::string& cfname, const std::string& json_str, ColumnFamilyHandle**) = 0;
+  virtual Status CreateColumnFamilyWithImport(
+                  const std::string& cfname, const ImportColumnFamilyOptions&,
+                  const std::vector<const ExportImportFilesMetaData*>&,
+                  const std::string& json_str, ColumnFamilyHandle**) = 0;
   virtual Status DropColumnFamily(const std::string& cfname, bool del_cfh = false) = 0;
   virtual Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh = false) = 0;
   virtual std::vector<ColumnFamilyHandle*> get_cf_handles_view() const = 0;

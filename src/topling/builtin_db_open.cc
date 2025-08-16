@@ -98,6 +98,35 @@ catch (const Status& st) {
   return st;
 }
 
+Status DB_MultiCF_Impl::CreateColumnFamilyWithImport(
+            const std::string& cfname,
+            const ImportColumnFamilyOptions& import_options,
+            const std::vector<const ExportImportFilesMetaData*>& metadatas,
+            const std::string& json_str, ColumnFamilyHandle** cfh)
+try {
+  json js = JsonFromText(json_str);
+  auto cfo = ObtainOPT(m_repo->m_impl->cf_options, "CFOptions", js, *m_repo);
+  if (!m_create_cf) {
+    return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
+  }
+  auto cfh1 = m_create_cf_with_import(db, cfname, *cfo, import_options, metadatas, js);
+  //*cfh = cfh1->CloneHandle(); // return a clone
+  *cfh = cfh1;
+  {
+    std::lock_guard<std::shared_mutex> lk(m_mtx);
+    AddOneCF_ToMap(cfname, cfh1, js);
+    cf_handles.push_back(cfh1);
+  }
+  AddCFPropertiesWebView(this, cfh1, cfname, *m_repo);
+  return Status::OK();
+}
+catch (const std::exception& ex) {
+  return Status::InvalidArgument(ROCKSDB_FUNC, ex.what());
+}
+catch (const Status& st) {
+  return st;
+}
+
 Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname, bool del_cfh) {
   ColumnFamilyHandle* cfh = nullptr;
   Status s = DropColumnFamilyImpl(cfname, &cfh);
