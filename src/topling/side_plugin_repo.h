@@ -140,6 +140,7 @@ class SidePluginRepo {
 
   // user must ensure all dbs are alive when calling this function
   void CloseAllDB(bool del_rocksdb_objs = true);
+  Status CloseOneDB(DB*, bool del_rocksdb_objs = true);
 
   ///@{
   /// the semantic is overwrite

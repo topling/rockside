@@ -4245,4 +4245,69 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
   m_impl->db.p2name.clear();
 }
 
+Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
+{
+  std::lock_guard<std::mutex> lock(m_impl->db_mtx);
+
+  using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
+  //using view_kv_ptr = const std::pair<const void* const, Impl::ObjInfo>*;
+  std::map<const void*, view_kv_ptr> cfh_to_view;
+  for (auto& kv : m_impl->props.p2name) {
+    auto view = (CFPropertiesWebView*)kv.first;
+    cfh_to_view[view->cfh] = &kv;
+  }
+  auto del_view = [&](ColumnFamilyHandle* cfh) {
+    auto iter = cfh_to_view.find(cfh);
+    assert(cfh_to_view.end() != iter);
+    ROCKSDB_VERIFY_F(cfh_to_view.end() != iter, "cfh must in cfh_to_view");
+    auto view = (CFPropertiesWebView*)(iter->second->first);
+    const Impl::ObjInfo& oi = iter->second->second;
+    m_impl->props.name2p->erase(oi.name);
+    m_impl->props.p2name.erase(view); // this erase invalidate 'oi'
+  };
+  auto del_rocks = [del_rocksdb_objs](auto obj) {
+    if (del_rocksdb_objs)
+      delete obj;
+  };
+  auto iter = m_impl->db.p2name.find(db);
+  if (m_impl->db.p2name.end() == iter) {
+    return Status::InvalidArgument("SidePluginRepo::CloseOneDB not found p2name", db->GetName());
+  }
+  const std::string dbname = iter->second.name;
+  auto iter2 = m_impl->db.name2p->find(dbname);
+  if (m_impl->db.name2p->end() == iter2) {
+    return Status::InvalidArgument("SidePluginRepo::CloseOneDB not found name2p", db->GetName());
+  }
+  const auto& kv = *iter2;
+  ROCKSDB_VERIFY_EQ(db, kv.second.db);
+  if (kv.second.dbm) {
+    DB_MultiCF* dbm = kv.second.dbm;
+    ROCKSDB_VERIFY_EQ(kv.second.db, dbm->db);
+    auto idbm = static_cast<DB_MultiCF_Impl*>(dbm);
+    if (idbm->m_catch_up_thread) {
+      idbm->m_catch_up_running = false; // notify stop
+      idbm->m_catch_up_thread->join();
+      idbm->m_catch_up_thread.reset();
+    }
+    for (auto cfh : dbm->cf_handles) {
+      del_view(cfh);
+      del_rocks(cfh);
+    }
+    del_rocks(dbm->db);
+    delete dbm;
+  }
+  else {
+    DB* db = kv.second.db;
+    auto iter3 = m_impl->keep_default_cf.find(db);
+    ROCKSDB_VERIFY(iter3 != m_impl->keep_default_cf.end());
+    auto cfh = iter3->second;
+    m_impl->keep_default_cf.erase(iter3);
+    del_view(cfh);
+    del_rocks(db);
+  }
+  m_impl->db.name2p->erase(iter2);
+  m_impl->db.p2name.erase(iter);
+  return Status::OK();
+}
+
 }
