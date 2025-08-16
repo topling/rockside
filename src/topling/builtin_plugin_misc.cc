@@ -2095,17 +2095,20 @@ GetIntProp(const DB& db, ColumnFamilyHandle* cfh, const std::string& prop) {
   const_cast<DB&>(db).GetIntProperty(cfh, prop, &value);
   return value;
 }
+static std::string RepoGetDBName(const SidePluginRepo& repo, const DB* dbp) {
+  auto iter = repo.m_impl->db.p2name.find(dbp);
+  if (iter != repo.m_impl->db.p2name.end()) {
+    return iter->second.name;
+  }
+  ROCKSDB_DIE("db.GetName() = %s must in repo", dbp->GetName().c_str());
+}
 static std::string
 Json_DB_NoFileHistogram_Add_convenient_links(
         const SidePluginRepo& repo,
         const DB& dbr,
         ColumnFamilyHandle* cfh,
         const std::string& str) {
-#if defined(_MSC_VER)
-  const auto db = std::filesystem::path(dbr.GetName()).filename().string();
-#else
-  const std::string  db = basename(dbr.GetName().c_str());
-#endif
+  const std::string  db = RepoGetDBName(repo, &dbr);
   const std::string& cf = cfh->GetName();
   Slice big = str;
   Slice pos = SliceSlice(big, "\nUptime(secs):");
