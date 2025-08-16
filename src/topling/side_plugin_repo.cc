@@ -548,7 +548,7 @@ Status SidePluginRepo::Export(string* json_str, bool pretty) const {
 
 Status SidePluginRepo::ListCFs(const std::string& dbstem,
                                std::vector<std::string>* cf_names) const {
-  auto iter1 = m_impl->db_js.find(".rocksdb");
+  auto iter1 = m_impl->db_js.find(dbstem);
   if (m_impl->db_js.end() == iter1) {
      return Status::InvalidArgument("Missing json databases", dbstem);
   }
