@@ -376,6 +376,8 @@ Status SidePluginRepo::Import(const json& main_js)
 {
 TOPLINGDB_TRY
 {
+  std::lock_guard<std::mutex> lock(m_impl->db_mtx);
+
   JS_setenv(main_js);
   MergeSubObject(&m_impl->db_js, main_js, "databases");
   MergeSubObject(&m_impl->http_js, main_js, "http");
