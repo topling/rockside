@@ -151,10 +151,23 @@ struct DBOptions_Json : DBOptions {
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
+    DoUpdate(js, repo, true);
+  }
+  void DoUpdate(const json& js, const SidePluginRepo& repo, bool recursive) {
     if (!TemplatePropLoadFromJson<DBOptions>(this, js, repo)) {
       stats_dump_period_sec = 0; // change default to 0
       stats_persist_period_sec = 0; // change default to 0
       persist_stats_to_disk = false; // change default to false
+    }
+    if (auto iter  = repo.m_impl->cf_options.name2p->find("update_from");
+             iter != repo.m_impl->cf_options.name2p->end()) {
+      if (recursive) {
+        auto iter2 = repo.m_impl->cf_options.p2name.find(iter->second.get());
+        const json& src_js = iter2->second.spec["params"];
+        DoUpdate(src_js, repo, false);
+      } else {
+        fprintf(stderr, "WARN: DBOptions_Json::DoUpdate: recursive update_from, ignored\n");
+      }
     }
     ROCKSDB_JSON_OPT_PROP(js, create_if_missing);
     ROCKSDB_JSON_OPT_PROP(js, create_missing_column_families);
@@ -534,7 +547,20 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
     Update(js, repo);
   }
   void Update(const json& js, const SidePluginRepo& repo) {
+    DoUpdate(js, repo, true);
+  }
+  void DoUpdate(const json& js, const SidePluginRepo& repo, bool recursive) {
     TemplatePropLoadFromJson<ColumnFamilyOptions>(this, js, repo);
+    if (auto iter  = repo.m_impl->cf_options.name2p->find("update_from");
+             iter != repo.m_impl->cf_options.name2p->end()) {
+      if (recursive) {
+        auto iter2 = repo.m_impl->cf_options.p2name.find(iter->second.get());
+        const json& src_js = iter2->second.spec["params"];
+        DoUpdate(src_js, repo, false);
+      } else {
+        fprintf(stderr, "WARN: CFOptions_Json::DoUpdate: recursive update_from, ignored\n");
+      }
+    }
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number);
     ROCKSDB_JSON_OPT_PROP(js, min_write_buffer_number_to_merge);
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number_to_maintain);
