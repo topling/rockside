@@ -1121,7 +1121,7 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
   // If CompactionFilter ... are simple and need not access DB, caller need
   // not do such complex and error prone things.
 
-  if (SidePluginRepo::DebugLevel() >= 2) {
+  if (SidePluginRepo::DebugLevel() >= 1) {
     fprintf(stderr, "%s: INFO: %s:%d: Impl_OpenDB_tpl(): dbname = %s, params = %s\n",
             StrDateTimeNow(),
             __FILE__, __LINE__, dbname.c_str(), params_js.dump(4).c_str());
@@ -1136,6 +1136,13 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
   } TOPLINGDB_CATCH (...) {
     throw;
   }
+  if (SidePluginRepo::DebugLevel() >= 1) {
+    fprintf(stderr,
+      "%s: INFO: %s:%d: Impl_OpenDB_tpl(): db/m = %p, dp = %p, dbname = %s, params = %s\n",
+      StrDateTimeNow(), __FILE__, __LINE__,
+      db, Get_DB_Ptr(db), dbname.c_str(), params_js.dump(4).c_str());
+  }
+
   assert(nullptr != db);
   // now insert db ptr into repo, need lock
   std::lock_guard<std::mutex> lock(repo.m_impl->db_mtx);
@@ -1153,7 +1160,8 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
         { "params", std::move(params_js) }
       })
     });
-  ROCKSDB_VERIFY(ib2.second);
+  ROCKSDB_VERIFY_F(ib2.second, "dup dbname %s, json: %s",
+                   dbname.c_str(), db_open_js.dump(4).c_str());
   *dbp = db;
 }
 

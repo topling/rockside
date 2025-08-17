@@ -36,6 +36,9 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   int m_catch_up_delay_ms;
   mutable std::shared_mutex m_mtx;
 };
+inline DB* Get_DB_Ptr(DB* db) { return db; }
+inline DB* Get_DB_Ptr(DB_MultiCF* dbm) { return dbm->db; }
+
 template<class Ptr>
 Ptr ObtainOPT(SidePluginRepo::Impl::ObjMap<Ptr>& field,
               const char* option_class, // "DBOptions" or "CFOptions"
