@@ -4294,6 +4294,11 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
 
 Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
 {
+  if (SidePluginRepo::DebugLevel() >= 1) {
+    fprintf(stderr, "%s: INFO: %s:%d: SidePluginRepo::CloseOneDB(): db = %p, dbname = %s\n",
+            StrDateTimeNow(), __FILE__, __LINE__, db, db->GetName().c_str());
+  }
+
   std::lock_guard<std::mutex> lock(m_impl->db_mtx);
 
   using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
