@@ -144,7 +144,39 @@ static Status Json_EventListenerVec(const json& js, const SidePluginRepo& repo,
   return Status::OK();
 }
 
+template<class Object, class ObjMap>
+static
+void PluginUpdateFrom(const json& js, const SidePluginRepo& repo,
+                      bool recursive, Object* self, const ObjMap& objmap) {
+  const char* clazz = self->Name();
+  //fprintf(stderr, "WARN: PluginUpdateFrom: %s js = %s\n", clazz, js.dump(4).c_str());
+  auto src_iter = js.find("update_from");
+  if (js.end() == src_iter || !src_iter.value().is_string()) {
+    return;
+  }
+  const std::string& src_name = src_iter.value().get_ref<const std::string&>();
+  auto iter = objmap.name2p->find(src_name);
+  if (iter == objmap.name2p->end()) {
+    fprintf(stderr, "WARN: %s: update_from: name %s not found\n",
+            clazz, src_name.c_str());
+    return;
+  }
+  if (recursive) {
+    auto iter2 = objmap.p2name.find(iter->second.get());
+    const json& src_js = iter2->second.spec["params"];
+    if (SidePluginRepo::DebugLevel() >= 1) {
+      fprintf(stderr, "INFO: %s: update_from: name %s, spec %s\n", clazz,
+              iter2->second.name.c_str(), iter2->second.spec.dump(4).c_str());
+    }
+    self->DoUpdate(src_js, repo, false);
+  } else {
+    fprintf(stderr, "WARN: %s: recursive update_from %s, ignored\n",
+            clazz, src_name.c_str());
+  }
+}
+
 struct DBOptions_Json : DBOptions {
+  static const char* Name() { return "DBOptions"; }
   DBOptions_Json(const json& js, const SidePluginRepo& repo) {
     write_dbid_to_manifest = true;
     avoid_unnecessary_blocking_io = true;
@@ -159,16 +191,7 @@ struct DBOptions_Json : DBOptions {
       stats_persist_period_sec = 0; // change default to 0
       persist_stats_to_disk = false; // change default to false
     }
-    if (auto iter  = repo.m_impl->cf_options.name2p->find("update_from");
-             iter != repo.m_impl->cf_options.name2p->end()) {
-      if (recursive) {
-        auto iter2 = repo.m_impl->cf_options.p2name.find(iter->second.get());
-        const json& src_js = iter2->second.spec["params"];
-        DoUpdate(src_js, repo, false);
-      } else {
-        fprintf(stderr, "WARN: DBOptions_Json::DoUpdate: recursive update_from, ignored\n");
-      }
-    }
+    PluginUpdateFrom(js, repo, recursive, this, repo.m_impl->db_options);
     ROCKSDB_JSON_OPT_PROP(js, create_if_missing);
     ROCKSDB_JSON_OPT_PROP(js, create_missing_column_families);
     ROCKSDB_JSON_OPT_PROP(js, error_if_exists);
@@ -526,6 +549,7 @@ struct CompressionOptions_Json : CompressionOptions {
 CompressionOptions_Json NestForBase(const CompressionOptions&);
 
 struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
+  static const char* Name() { return "CFOptions"; }
   ColumnFamilyOptions_Json(const json& js, const SidePluginRepo& repo) {
     // rocksdb changed default level_compaction_dynamic_level_bytes to true in
     // bc04ec85dbf8d37ab429894a78e23ec52eadeb44(2023-06-15 by Changyu Bi), this
@@ -551,16 +575,7 @@ struct ColumnFamilyOptions_Json : ColumnFamilyOptions {
   }
   void DoUpdate(const json& js, const SidePluginRepo& repo, bool recursive) {
     TemplatePropLoadFromJson<ColumnFamilyOptions>(this, js, repo);
-    if (auto iter  = repo.m_impl->cf_options.name2p->find("update_from");
-             iter != repo.m_impl->cf_options.name2p->end()) {
-      if (recursive) {
-        auto iter2 = repo.m_impl->cf_options.p2name.find(iter->second.get());
-        const json& src_js = iter2->second.spec["params"];
-        DoUpdate(src_js, repo, false);
-      } else {
-        fprintf(stderr, "WARN: CFOptions_Json::DoUpdate: recursive update_from, ignored\n");
-      }
-    }
+    PluginUpdateFrom(js, repo, recursive, this, repo.m_impl->cf_options);
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number);
     ROCKSDB_JSON_OPT_PROP(js, min_write_buffer_number_to_merge);
     ROCKSDB_JSON_OPT_PROP(js, max_write_buffer_number_to_maintain);
