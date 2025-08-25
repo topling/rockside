@@ -13,7 +13,7 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   Status CreateColumnFamilyWithImport(
                   const std::string& cfname, const ImportColumnFamilyOptions&,
                   const std::vector<const ExportImportFilesMetaData*>&,
-                  const std::string& json_str, ColumnFamilyHandle**);
+                  const std::string& json_str, ColumnFamilyHandle**) override;
   Status DropColumnFamilyImpl(const std::string& cfname, ColumnFamilyHandle**);
   Status DropColumnFamily(const std::string& cfname, bool del_cfh) override;
   Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh) override;
