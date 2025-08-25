@@ -3058,6 +3058,8 @@ static std::string RunManualCompact(const DB* dbc, ColumnFamilyHandle* cfh,
  #else
 	(void)pthread_setname_np(pthread_self(), "web-compact");
  #endif
+#elif defined(__ANDROID__)
+	(void)pthread_setname_np(pthread_self(), "web-compact");
 #elif defined(__linux__)
 	/* On Linux we can use the prctl function.
 	 * When building for Linux Standard Base (LSB) use
