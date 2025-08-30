@@ -78,12 +78,16 @@ TableFactory:
       block_cache_compressed:
       persistent_cache:
       filter_policy:
+  cspp_memtab_sst:
+    class: CSPPMemTabTable
+    params: # empty params
   dispatch:
     class: DispatcherTable
     params:
       default: bb
       readers:
         BlockBasedTable: bb
+        CSPPMemTabTable: cspp_memtab_sst
       level_writers: [bb, bb, bb, bb, bb, bb]
 CFOptions:
   default:
