@@ -411,6 +411,9 @@ JsonCivetServer::Impl::Impl(const json& conf, SidePluginRepo* repo) {
   std::vector<std::string> options;
   for (const auto& kv : conf.items()) {
     std::string key = kv.key();
+    if (key == "auto_start_http") {
+      continue;
+    }
     options.push_back(std::move(key));
     const auto& value = kv.value();
     if (value.is_string())
