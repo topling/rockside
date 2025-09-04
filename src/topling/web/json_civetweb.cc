@@ -218,7 +218,7 @@ try {
 //---------------------------------------------------------------------------
     const mg_request_info* req = mg_get_request_info(conn);
     json query = from_query_string(req->query_string);
-    const char* uri = req->local_uri;
+    const char* uri = req->request_uri;
     if (nullptr == uri) {
       mg_printf(conn, "ERROR: local uri is null\r\n");
       return true;
@@ -351,6 +351,16 @@ function SetParam(name, value) {
     else if (html) {
       mg_printf(conn, "<html><title>ERROR</title><body>\r\n");
       mg_printf(conn, "<h1>ERROR: not found: %s</h1>\r\n", uri);
+      mg_printf(conn, R"EOS(
+<table>
+  <tr><td>request_uri</td><td>%s</td></tr>
+  <tr><td>local_uri</td><td>%s</td></tr>
+  <tr><td>uri</td><td>%s</td></tr>
+  <tr><td>urilen</td><td>%zd</td></tr>
+  <tr><td>slash</td><td>%s</td></tr>
+  <tr><td>name</td><td>%s</td></tr>
+</table>
+)EOS", req->request_uri, req->local_uri, uri, urilen, slash, name);
       mg_printf(conn, "<h1><a href='/%.*s%s%s'>see all %.*s</a>\r\n",
                 int(slash - uri), uri,
                 req->query_string ? "?" : "",
