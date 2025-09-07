@@ -1099,9 +1099,7 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
     THROW_InvalidArgument(
         "dbname = \"" + dbname + "\", \"params\" must be a json object");
   }
-  if (!dbname.empty()) {
-    params_js["name"] = dbname;
-  }
+  params_js["name"] = dbname; // ensure params.name is dbname
   { // dbname of rocksdb is really the db's default dir path.
     // And MANIFEST is always in the dir specified by dbname,
     // so dbname in rocksdb can be /some/path/to/db_dir, this makes
