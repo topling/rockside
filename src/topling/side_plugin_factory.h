@@ -231,6 +231,34 @@ struct SerDeFunc {
   virtual void DeSerialize(FILE*, Object*) const = 0;
   using InterfaceType = SerDeFunc;
 };
+template<class Object>
+struct DcompactSerDeFunc : SerDeFunc<Object> {
+  virtual void Serialize(FILE* fp, const Object& obj) const override {
+    if (!IsCompactionWorker())
+      SerializeRequest(fp, obj); // phase 1, DB Side
+    else
+      SerializeResponse(fp, obj); // phase 3, compact worker side
+  }
+  virtual void DeSerialize(FILE* fp, Object* obj) const override {
+    if (IsCompactionWorker())
+      DeSerializeRequest(fp, obj); // phase 2, compact worker side
+    else
+      DeSerializeResponse(fp, obj); // phase 4, DB Side
+  }
+  virtual void SerializeRequest(FILE*, const Object&) const {
+    ROCKSDB_VERIFY(!IsCompactionWorker()); // phase 1, DB Side
+  }
+  virtual void DeSerializeRequest(FILE*, Object*) const {
+    ROCKSDB_VERIFY(IsCompactionWorker()); // phase 2, compact worker side
+  }
+  virtual void SerializeResponse(FILE*, const Object&) const {
+    ROCKSDB_VERIFY(IsCompactionWorker()); // phase 3, compact worker side
+  }
+  virtual void DeSerializeResponse(FILE*, Object*) const {
+    ROCKSDB_VERIFY(!IsCompactionWorker()); // phase 4, DB side
+  }
+};
+
 template<class First, class... List>
 struct SFINAE_FirstType {
 	typedef First type;
