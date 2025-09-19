@@ -586,11 +586,7 @@ GetStemClassName(const Ptr& p) {
   auto hitpos = fullname.rfind("::");
   const char *start, *finish;
   start = fullname.data() + (hitpos == std::string::npos ? 0 : hitpos + 2);
-  if (Slice(fullname).ends_with("Factory")) {
-    finish = &*(fullname.end() - strlen("Factory"));
-  } else {
-    finish = fullname.data() + fullname.size();
-  }
+  finish = fullname.data() + fullname.size();
   return std::string(start, finish);
 }
 
