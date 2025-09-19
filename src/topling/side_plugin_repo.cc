@@ -573,8 +573,15 @@ Status SidePluginRepo::ListCFs(const std::string& dbstem,
   return Status::OK();
 }
 
+template<class Ptr, class = void>
+struct HasName : std::false_type {};
+
 template<class Ptr>
-std::string GetStemClassName(const Ptr& p) {
+struct HasName<Ptr, std::void_t<decltype(std::declval<Ptr>()->Name())> > : std::true_type {};
+
+template<class Ptr>
+std::enable_if_t<!HasName<Ptr>::value, std::string>
+GetStemClassName(const Ptr& p) {
   std::string fullname = demangle(typeid(*p));
   auto hitpos = fullname.rfind("::");
   const char *start, *finish;
@@ -585,6 +592,11 @@ std::string GetStemClassName(const Ptr& p) {
     finish = fullname.data() + fullname.size();
   }
   return std::string(start, finish);
+}
+
+template<class Ptr>
+auto GetStemClassName(const Ptr& p) -> decltype(std::string(p->Name())) {
+  return std::string(p->Name());
 }
 
 template<class Map, class Ptr>
