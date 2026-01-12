@@ -10,6 +10,11 @@ setenv:
     #comment: overwrite is default to false
     overwrite: true
     value: force overwrite this env by overwrite true
+AnyPlugin:
+  pretty_user_key_coder:
+    class: PrettyHexUserKeyCoder
+    params:
+      prefix_len: 0
 Cache:
   lru_cache:
     class: LRUCache
@@ -20,6 +25,8 @@ Cache:
       #high_pri_pool_ratio: 0.5 # default is 0
       #use_adaptive_mutex: false
       #metadata_charge_policy: kFullChargeCacheMetadata
+permissions:
+  web_compact: true
 Statistics:
   stat:
     class: default
@@ -97,6 +104,9 @@ TableFactory:
   zip:
     class: ToplingZipTable
     params:
+      indexType: Mixed_XL_256_32_FL
+      #indexType: Mixed_SE_512_32_FL
+      #keyPrefixLen: 0
       localTempDir: /dev/shm
       indexNestLevel: 1
       enableStatistics: false
@@ -106,6 +116,8 @@ TableFactory:
       sampleRatio: 0.01
       checksumLevel: 0
       debugLevel: 0
+      #enableEntropyStore: true
+      #acceptEntropyStoreZipRatio: 2.0 # always accept
       minDictZipValueSize: 3000
       minPreadLen: -1
   bb:
@@ -162,11 +174,18 @@ WriteBufferManager:
     class: WriteBufferManager
     params:
       buffer_size: 4G
+SstPartitionerFactory:
+  fixed-prefix:
+    class: SstPartitionerFixedPrefix
+    params:
+      prefix_len: 1
 CFOptions:
   default:
     #enable_blob_files: true
     #min_blob_size: 200
     enable_blob_garbage_collection: true
+    html_user_key_coder: ${pretty_user_key_coder} # when db_bench -wkey_file=...
+    sst_partitioner_factory: ${fixed-prefix}
     max_write_buffer_number: 3
     #disable_auto_compactions: true
     #memtable_factory: "${skiplist}"

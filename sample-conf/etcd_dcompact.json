@@ -260,7 +260,7 @@
     },
     "SstPartitionerFactory": {
       "fixed-prefix": {
-        "class": "SstPartitionerFixedPrefixFactory",
+        "class": "SstPartitionerFixedPrefix",
         "params": {
           "prefix_len": 4
         }
