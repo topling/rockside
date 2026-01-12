@@ -9,7 +9,7 @@
 struct mg_connection;
 namespace ROCKSDB_NAMESPACE {
 
-using nlohmann::json;
+using topling::json;
 class SidePluginRepo;
 class JsonCivetServer {
 public:

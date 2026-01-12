@@ -63,7 +63,7 @@ class TransactionDBMutexFactory;
 class WriteBufferManager;
 class WBWIFactory;
 
-using nlohmann::json;
+using topling::json;
 
 struct DB_MultiCF {
   DB_MultiCF(const DB_MultiCF&) = delete;
