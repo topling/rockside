@@ -370,7 +370,6 @@ function SetParam(name, value) {
       }
       TOPLINGDB_TRY {
         using namespace std::chrono;
-        bool html_time = JsonSmartBool(query, "html_time");
         auto t1 = steady_clock::now();
         if (needsUpdate) {
           std::string body_jstr = ReadPostData(conn);
@@ -380,7 +379,7 @@ function SetParam(name, value) {
         std::string str = PluginToString(p, *m_map, query, *m_repo);
         auto t2 = steady_clock::now();
         mg_write(conn, str.data(), str.size());
-        if (html_time) {
+        if (html && JsonSmartBool(query, "html_time")) {
           double sec = duration_cast<microseconds>(t2-t1).count() / 1e6;
           mg_printf(conn, "<script>"
 "document.getElementById('time_stat_line').innerHTML += ', html_time = %.6f sec';"
