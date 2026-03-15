@@ -7,6 +7,7 @@
 #include <port/sys_time.h>
 #include <topling/side_plugin_factory.h>
 #include <chrono>
+#include <terark/io/MemStream.hpp>
 
 #if defined(_MSC_VER)
 #define strncasecmp strnicmp
@@ -78,7 +79,7 @@ static std::string& operator|(std::string& str, Slice x) {
   str.append(x.data_, x.size_);
   return str;
 }
-void mg_print_cur_time(mg_connection* conn, const SidePluginRepo* repo) {
+std::string str_cur_time(const SidePluginRepo* repo) {
   std::string str;
   str.reserve(4096);
   std::string tm_str = cur_time_stat();
@@ -106,6 +107,10 @@ void mg_print_cur_time(mg_connection* conn, const SidePluginRepo* repo) {
     str | "<a href='/" | dbname | "/LOG'>LOG</a>";
   }
   str|"</p>";
+  return str;
+}
+void mg_print_cur_time(mg_connection* conn, const SidePluginRepo* repo) {
+  std::string str = str_cur_time(repo);
   mg_write(conn, str.data(), str.size());
 }
 void mg_print_cur_time(mg_connection* conn) {
@@ -177,6 +182,38 @@ T CopyOrNotCopy(const T& x, std::true_type) { return x; }
 template<class T>
 const T& CopyOrNotCopy(const T& x, std::false_type) { return x; }
 
+// only used in this compilation unit
+class HttpChunkBuf {
+public:
+  static constexpr size_t BUF_INIT_CAP = TERARK_IF_DEBUG(256, 32*1024);
+  struct mg_connection* conn;
+  terark::AutoGrownMemIO buf{BUF_INIT_CAP};
+  void write(Slice s) {
+    write(s.data(), s.size());
+  }
+  terark_no_inline void write(const void* ptr, size_t len) {
+    if (buf.tell() + len > BUF_INIT_CAP) {
+      flush_chunk();
+      if (len >= BUF_INIT_CAP) {
+        mg_send_chunk(conn, (const char*)ptr, len);
+        return;
+      }
+    }
+    buf.write(ptr, len);
+  }
+  terark_no_inline ~HttpChunkBuf() {
+    flush_chunk();
+    mg_write(conn, "0\r\n\r\n", 5);
+  }
+private:
+  void flush_chunk() {
+    if (size_t len = buf.tell()) {
+      mg_send_chunk(conn, (const char*)buf.begin(), len);
+      buf.rewind();
+    }
+  }
+};
+
 template<class Ptr>
 class RepoHandler : public CivetHandler {
 public:
@@ -212,8 +249,18 @@ public:
               "HTTP/1.1 200 OK\r\n"
               "Content-Type: text/html; charset=utf-8\r\n"
               //"Connection: close\r\n"
+              "Transfer-Encoding: chunked\r\n"
               "\r\n");
 
+    HttpChunkBuf http_chunk_buf{conn};
+    // intetional hide global mg_print_cur_time, mg_write, mg_printf
+    auto mg_print_cur_time = [&](mg_connection*, const SidePluginRepo* repo) {
+      http_chunk_buf.write(str_cur_time(repo));
+    };
+    auto mg_write = [&](mg_connection*, auto... args) {
+      http_chunk_buf.write(args...);
+    };
+    #define mg_printf(conn, ...) http_chunk_buf.buf.printf(__VA_ARGS__)
 try {
 //---------------------------------------------------------------------------
     const mg_request_info* req = mg_get_request_info(conn);
