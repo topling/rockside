@@ -343,8 +343,9 @@ try {
       m_repo->m_impl->props_mtx.unlock();
     }
     if (p) {
+      int refresh = -1;
       if (html) {
-        int refresh = JsonSmartInt(query, "refresh", 0);
+        refresh = JsonSmartInt(query, "refresh", -1);
         if (refresh > 0) {
           mg_printf(conn,
             "<html><title>%s</title>\n"
@@ -384,6 +385,10 @@ function SetParam(name, value) {
           mg_printf(conn, "<script>"
 "document.getElementById('time_stat_line').innerHTML += ', html_time = %.6f sec';"
             "</script>", sec);
+        }
+        if (html && refresh == 0) {
+          mg_write(conn, "<script>setTimeout(() => location.replace(location.href), 100);</script>\n");
+          // refresh with interval = 100ms -----------------------------------------^^^
         }
       }
       TOPLINGDB_CATCH (const Status& es) {
