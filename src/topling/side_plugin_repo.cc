@@ -1605,8 +1605,9 @@ void JsonSmartBool(bool* result, const json& js, const char* subname) {
 int JsonSmartInt(const json& js) {
   if (js.is_string()) {
     const std::string& s = js.get_ref<const std::string&>();
-    if (isdigit((unsigned char)s[0])) {
-      return atoi(s.c_str());
+    char* endptr = nullptr;
+    if (long val = strtol(s.c_str(), &endptr, 10); endptr > s.c_str()) {
+      return int(val);
     }
     throw std::invalid_argument("JsonSmartInt: bad js = " + s);
   }
