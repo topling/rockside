@@ -94,12 +94,12 @@ std::string str_cur_time(const SidePluginRepo* repo) {
   str.append(space + 1, comma);
   str|"</a>";
   str|" , ";
-  str|"<a href='javascript:SetParam(`refresh`,`-1`)'>Up</a>: ";
+  str|"<a href='javascript:SetParam(`refresh`,`0`)'>Up</a>: ";
   str|"<a href='javascript:SetParam(`refresh`,`1`)'>";
   std::string_view t2 = comma + 6;
   str.append(t2.data(), t2.size()-3);
   str|"</a>:";
-  str|"<a href='javascript:SetParam(`refresh`,`0`)'>";
+  str|"<a href='javascript:SetParam(`refresh`,`-100`)'>";
   str.append(t2.end()-2);
   str|"</a>";
   if (repo) for (auto& kvp : *repo->GetAllDB()) {
@@ -347,18 +347,8 @@ try {
       m_repo->m_impl->props_mtx.unlock();
     }
     if (p) {
-      int refresh = -1;
       if (html) {
-        refresh = JsonSmartInt(query, "refresh", -1);
-        if (refresh > 0) {
-          mg_printf(conn,
-            "<html><title>%s</title>\n"
-            "<meta http-equiv='refresh' content='%d'>\n"
-            "<body>\n", name, refresh);
-        }
-        else {
-          mg_printf(conn, "<html><title>%s</title><body>\n", name);
-        }
+        mg_printf(conn, "<html><title>%s</title><body>\n", name);
         mg_write(conn,
 R"(<link rel='stylesheet' type='text/css' href='/style.css'>
 <script>
@@ -389,9 +379,26 @@ function SetParam(name, value) {
 "document.getElementById('time_stat_line').innerHTML += ', html_time = %.6f sec';"
             "</script>", sec);
         }
-        if (html && refresh == 0) {
-          mg_write(conn, "<script>setTimeout(() => location.replace(location.href), 100);</script>\n");
-          // refresh with interval = 100ms -----------------------------------------^^^
+        if (html) {
+          if (int refresh = JsonSmartInt(query, "refresh", 0)) {
+            int millisec = refresh > 0
+                         ? refresh * 1000 // positive means seconds
+                         : -refresh; // negative means milliseconds
+mg_printf(conn,
+R"EOS(
+<script>
+  setTimeout(() => {
+    fetch(location.href)
+    .then(res => res.text())
+    .then(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    })
+  }, %d);
+</script>
+)EOS", millisec);
+          }
         }
       }
       TOPLINGDB_CATCH (const Status& es) {
