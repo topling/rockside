@@ -90,16 +90,16 @@ std::string str_cur_time(const SidePluginRepo* repo) {
   str.append(tm_str.c_str(), space);
   str|"</a>";
   str|" "; // space
-  str|"<a href='javascript:SetParam(`refresh`,`3`)'>";
+  str|"<a href='javascript:SetParam(`refresh`,`3`)' title='auto refresh 3 seconds'>";
   str.append(space + 1, comma);
   str|"</a>";
   str|" , ";
-  str|"<a href='javascript:SetParam(`refresh`,`0`)'>Up</a>: ";
-  str|"<a href='javascript:SetParam(`refresh`,`1`)'>";
+  str|"<a href='javascript:SetParam(`refresh`,`0`)' title='stop auto refresh'>Up</a>: ";
+  str|"<a href='javascript:SetParam(`refresh`,`1`)' title='auto refresh 1 second'>";
   std::string_view t2 = comma + 6;
   str.append(t2.data(), t2.size()-3);
   str|"</a>:";
-  str|"<a href='javascript:SetParam(`refresh`,`-100`)'>";
+  str|"<a href='javascript:SetParam(`refresh`,`-100`)' title='auto refresh 100 milliseconds'>";
   str.append(t2.end()-2);
   str|"</a>";
   if (repo) for (auto& kvp : *repo->GetAllDB()) {
