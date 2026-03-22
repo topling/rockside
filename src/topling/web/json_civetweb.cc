@@ -85,7 +85,7 @@ std::string str_cur_time(const SidePluginRepo* repo) {
   std::string tm_str = cur_time_stat();
   const char* space = (const char*)memchr(tm_str.data(), ' ', tm_str.size());
   const char* comma = (const char*)memchr(tm_str.data(), ',', tm_str.size());
-  str|"<p id='time_stat_line'>";
+  str|"<p>";
   str|"<a href='/'>";
   str.append(tm_str.c_str(), space);
   str|"</a>";
@@ -110,6 +110,7 @@ std::string str_cur_time(const SidePluginRepo* repo) {
     str | "<a href='/" | dbname | "/'>" | dbname | "</a>/";
     str | "<a href='/" | dbname | "/LOG'>LOG</a>";
   }
+  str|"<span id='html_time'></span>";
   str|"</p>";
   return str;
 }
@@ -376,7 +377,7 @@ function SetParam(name, value) {
         if (html && JsonSmartBool(query, "html_time")) {
           double sec = duration_cast<microseconds>(t2-t1).count() / 1e6;
           mg_printf(conn, "<script>"
-"document.getElementById('time_stat_line').innerHTML += ', html_time = %.6f sec';"
+"document.getElementById('html_time').innerHTML = ', html_time = %.6f sec';"
             "</script>", sec);
         }
         if (html) {
