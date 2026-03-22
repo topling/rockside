@@ -111,6 +111,7 @@ std::string str_cur_time(const SidePluginRepo* repo) {
     str | "<a href='/" | dbname | "/LOG'>LOG</a>";
   }
   str|"<span id='html_time'></span>";
+  str|"<code id='rperf' style='white-space: pre; font-family: monospace'></code>";
   str|"</p>";
   return str;
 }
@@ -378,7 +379,7 @@ function SetParam(name, value) {
         if (html && JsonSmartBool(query, "html_time")) {
           double sec = duration_cast<microseconds>(t2-t1).count() / 1e6;
           mg_printf(conn, "<script>"
-"document.getElementById('html_time').innerHTML = ', html_time = %.6f sec';"
+"document.getElementById('html_time').innerText = ', html_time = %.6f sec';"
             "</script>", sec);
         }
         if (html) {
@@ -386,22 +387,31 @@ function SetParam(name, value) {
             int millisec = refresh > 0
                          ? refresh * 1000 // positive means seconds
                          : -refresh; // negative means milliseconds
+auto rperf = JsonSmartBool(query, "rperf")
+?"document.getElementById('rperf').innerText = '  | parse ' + (t1-t0).toFixed(1).padStart(5, ' ') + ' ms, render ' + (t3-t2).toFixed(1).padStart(5, ' ') + ' ms';"
+:"";
 mg_printf(conn,
 R"EOS(
 <script>
-  function on_timeout() {
+  async function on_timeout() {
     fetch(location.href)
     .then(res => res.text())
-    .then(html => {
-       let newDoc = new DOMParser().parseFromString(html, 'text/html');
-       for (const eId of ['r3sec', 'r1sec', 'rstop', 'r100ms']) {
-         const node1 = newDoc.getElementById(eId);
-         const node0 = document.getElementById(eId);
-         if (node1.innerHTML != node0.innerHTML) {
-           node0.innerHTML = node1.innerHTML;
-         }
-       }
-       document.getElementById('main').replaceWith(newDoc.getElementById('main'));
+    .then(async html => {
+        const t0 = performance.now();
+        let newDoc = new DOMParser().parseFromString(html, 'text/html');
+        const t1 = performance.now();
+        for (const eId of ['r3sec', 'r1sec', 'rstop', 'r100ms']) {
+          const node1 = newDoc.getElementById(eId);
+          const node0 = document.getElementById(eId);
+          if (node1.innerText != node0.innerText) {
+            node0.innerText = node1.innerText;
+          }
+        }
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        const t2 = performance.now();
+        document.getElementById('main').replaceWith(newDoc.getElementById('main'));
+        const t3 = performance.now();
+        %s
     })
     .finally(() => {
       setTimeout(on_timeout, %d);
@@ -409,7 +419,7 @@ R"EOS(
   }
   setTimeout(on_timeout, %d);
 </script>
-)EOS", millisec, millisec);
+)EOS", rperf, millisec, millisec);
           }
         }
       }
