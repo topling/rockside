@@ -85,21 +85,21 @@ std::string str_cur_time(const SidePluginRepo* repo) {
   std::string tm_str = cur_time_stat();
   const char* space = (const char*)memchr(tm_str.data(), ' ', tm_str.size());
   const char* comma = (const char*)memchr(tm_str.data(), ',', tm_str.size());
-  str|"<p>";
+  str|"<p id='time_stat_line'>";
   str|"<a href='/'>";
   str.append(tm_str.c_str(), space);
   str|"</a>";
   str|" "; // space
-  str|"<a href='javascript:SetParam(`refresh`,`3`)' title='auto refresh 3 seconds'>";
+  str|"<a id='r3sec' href='javascript:SetParam(`refresh`,`3`)' title='auto refresh 3 seconds'>";
   str.append(space + 1, comma);
   str|"</a>";
   str|" , ";
-  str|"<a href='javascript:SetParam(`refresh`,`0`)' title='stop auto refresh'>Up</a>: ";
-  str|"<a href='javascript:SetParam(`refresh`,`1`)' title='auto refresh 1 second'>";
+  str|"<a id='rstop' href='javascript:SetParam(`refresh`,`0`)' title='stop auto refresh'>Up</a>: ";
+  str|"<a id='r1sec' href='javascript:SetParam(`refresh`,`1`)' title='auto refresh 1 second'>";
   std::string_view t2 = comma + 6;
   str.append(t2.data(), t2.size()-3);
   str|"</a>:";
-  str|"<a href='javascript:SetParam(`refresh`,`-100`)' title='auto refresh 100 milliseconds'>";
+  str|"<a id='r100ms' href='javascript:SetParam(`refresh`,`-100`)' title='auto refresh 100 milliseconds'>";
   str.append(t2.end()-2);
   str|"</a>";
   if (repo) for (auto& kvp : *repo->GetAllDB()) {
@@ -362,6 +362,7 @@ function SetParam(name, value) {
 }
 </script>)");
         mg_print_cur_time(conn, m_repo);
+        mg_write(conn, "\n<div id='main'>\n");
       }
       TOPLINGDB_TRY {
         using namespace std::chrono;
@@ -388,17 +389,27 @@ function SetParam(name, value) {
 mg_printf(conn,
 R"EOS(
 <script>
-  setTimeout(() => {
+  function on_timeout() {
     fetch(location.href)
     .then(res => res.text())
     .then(html => {
-      document.open();
-      document.write(html);
-      document.close();
+       let newDoc = new DOMParser().parseFromString(html, 'text/html');
+       for (const eId of ['r3sec', 'r1sec', 'rstop', 'r100ms']) {
+         const node1 = newDoc.getElementById(eId);
+         const node0 = document.getElementById(eId);
+         if (node1.innerHTML != node0.innerHTML) {
+           node0.innerHTML = node1.innerHTML;
+         }
+       }
+       document.getElementById('main').replaceWith(newDoc.getElementById('main'));
     })
-  }, %d);
+    .finally(() => {
+      setTimeout(on_timeout, %d);
+    });
+  }
+  setTimeout(on_timeout, %d);
 </script>
-)EOS", millisec);
+)EOS", millisec, millisec);
           }
         }
       }
@@ -409,7 +420,7 @@ R"EOS(
         mg_printf(conn, "Caught std::exception: %s\n", ex.what());
       }
       if (html)
-        mg_printf(conn, "</body></html>\n");
+        mg_printf(conn, "</div></body></html>\n");
     }
     else if (html) {
       mg_printf(conn, "<html><title>ERROR</title><body>\r\n");

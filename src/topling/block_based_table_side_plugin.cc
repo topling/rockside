@@ -61,7 +61,7 @@ std::string BlockIndexHtml(const json& dump_options) const {
   char buf[64];
   std::string html;
   auto& oss = static_cast<terark::string_appender<>&>(html);
-  oss|"<div style='column-count:"|cols|"; column-rule-style:double; column-rule-width:thick'>";
+  oss|"<div id='bb_sst' style='column-count:"|cols|"; column-rule-style:double; column-rule-width:thick'>";
   ROCKSDB_SCOPE_EXIT(html += "</div>");
   const bool index_key_includes_seq = rep_->index_key_includes_seq;
   const bool index_has_first_key = rep_->index_has_first_key;
@@ -69,19 +69,19 @@ std::string BlockIndexHtml(const json& dump_options) const {
   {
     html.append(R"(
   <style>
-    div * td {
+    #bb_sst td {
       text-align: right;
       font-family: monospace;
     }
-    div * td.left {
+    #bb_sst td.left {
       text-align: left;
       font-family: Sans-serif;
     }
-    div * td.monoleft {
+    #bb_sst td.monoleft {
       text-align: left;
       font-family: monospace;
     }
-    div * td.center {
+    #bb_sst td.center {
       text-align: center;
       font-family: Sans-serif;
     }

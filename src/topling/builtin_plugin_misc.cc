@@ -1998,7 +1998,7 @@ TOPLINGDB_TRY {
     html.append("<th title='Type'>T</th>");
     html.append("</tr></thead>");
   };
-  html.append("<div>");
+  html.append("<div id='lsm_prop_page'>");
   html.append(R"EOS(
   <script>
     function sst_file_href(file, path_id, fsize, smallest, largest) {

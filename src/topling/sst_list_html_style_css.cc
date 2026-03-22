@@ -4,21 +4,21 @@ namespace rocksdb {
 
 extern const std::string_view g_sst_list_html_style_css =
 R"EOS(<style>
-  div * td {
+  #lsm_prop_page td {
     text-align: right;
     font-family: monospace;
   }
-  div * td.left {
+  #lsm_prop_page td.left {
     text-align: left;
     font-family: Sans-serif;
   }
-  div * td.monoleft {
+  #lsm_prop_page td.monoleft {
     text-align: left;
     font-family: monospace;
     max-width: 40ch;
     word-break: break-all;
   }
-  div * td.center {
+  #lsm_prop_page td.center {
     text-align: center;
     font-family: Sans-serif;
   }
