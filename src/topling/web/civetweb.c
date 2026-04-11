@@ -6774,7 +6774,7 @@ mg_write(struct mg_connection *conn, const void *buf, size_t len)
 int
 mg_send_chunk(struct mg_connection *conn,
               const char *chunk,
-              unsigned int chunk_len)
+              size_t chunk_len)
 {
 	char lenbuf[16];
 	size_t lenbuf_len;
@@ -6782,7 +6782,7 @@ mg_send_chunk(struct mg_connection *conn,
 	int t;
 
 	/* First store the length information in a text buffer. */
-	sprintf(lenbuf, "%x\r\n", chunk_len);
+	sprintf(lenbuf, "%zx\r\n", chunk_len);
 	lenbuf_len = strlen(lenbuf);
 
 	/* Then send length information, chunk and terminating \r\n. */
