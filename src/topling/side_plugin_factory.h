@@ -165,7 +165,7 @@ public:
   static bool HasPlugin(const std::string& class_name);
   static bool SamePlugin(const std::string& clazz1, const std::string& clazz2);
 
-  typedef Ptr (*AcqFunc)(const json&, const SidePluginRepo&);
+  typedef std::function<Ptr(const json&, const SidePluginRepo&)> AcqFunc;
   struct Meta;
   struct Reg {
     Reg(const Reg&) = delete;
@@ -175,6 +175,8 @@ public:
     typename std::map<Slice, Meta>::iterator ipos;
     struct Impl;
   };
+  static void DoReg(const char* class_name, AcqFunc, const char* file, int line) noexcept;
+  static void UnReg(const char* class_name) noexcept;
 };
 template<class Object>
 using PluginFactorySP = PluginFactory<std::shared_ptr<Object> >;

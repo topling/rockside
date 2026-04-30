@@ -70,6 +70,19 @@ PluginFactory<Ptr>::Reg::~Reg() {
   imp.func_map.erase(ipos);
 }
 
+template<class Ptr>
+void PluginFactory<Ptr>::DoReg(const char* class_name, AcqFunc acq, const char* file, int line)
+noexcept {
+  char buf[sizeof(Reg)];
+  new(buf) Reg(class_name, acq, file, line); // intentional leak, omit destruct
+  // caller should call UnReg instead
+}
+template<class Ptr>
+void PluginFactory<Ptr>::UnReg(const char* class_name) noexcept {
+  auto& imp = Reg::Impl::s_singleton();
+  imp.func_map.erase(class_name);
+}
+
 template<class Ptr> SidePluginRepo::Impl::ObjMap<Ptr>::ObjMap() {
    name2p = std::make_shared<std::map<std::string, Ptr> >();
 }
@@ -333,7 +346,7 @@ bool PluginFactory<Ptr>::SamePlugin(const std::string& clazz1,
   if (imp.func_map.end() == i2) {
     THROW_NotFound("clazz2 = " + clazz2);
   }
-  return i1->second.acq == i2->second.acq;
+  return memcmp(&i1->second.acq, &i2->second.acq, sizeof(i1->second.acq)) == 0;
 }
 
 template<class Ptr>
