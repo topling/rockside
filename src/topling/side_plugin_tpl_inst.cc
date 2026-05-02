@@ -454,6 +454,7 @@ template class SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*>;
 explicit_instantiate_serde(AnyPlugin);
 explicit_instantiate_serde(CompactionFilterFactory);
 explicit_instantiate_serde(Comparator);
+explicit_instantiate_serde(FilterPolicy);
 explicit_instantiate_serde(SliceTransform);
 explicit_instantiate_serde(MergeOperator);
 explicit_instantiate_serde(SstPartitionerFactory);
