@@ -170,8 +170,10 @@ bool UpdateFromName(const std::string& src_name, const SidePluginRepo& repo,
   const char* clazz = self->Name();
   auto iter = objmap.name2p->find(src_name);
   if (iter == objmap.name2p->end()) {
-    fprintf(stderr, "WARN: %s: update_from: name %s not found\n",
-            clazz, src_name.c_str());
+    if (SidePluginRepo::DebugLevel() >= 1) {
+      fprintf(stderr, "WARN: %s: update_from: name %s not found\n",
+              clazz, src_name.c_str());
+    }
     return false;
   }
   if (recursive) {
