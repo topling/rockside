@@ -148,6 +148,9 @@ class SidePluginRepo {
   void CloseAllDB(bool del_rocksdb_objs = true);
   Status CloseOneDB(DB*, bool del_rocksdb_objs = true);
 
+  bool DBOptionsUpdateFrom(DBOptions*, const std::string& src_name) const;
+  bool CFOptionsUpdateFrom(ColumnFamilyOptions*, const std::string& src_name) const;
+
   ///@{
   /// the semantic is overwrite
   /// Put(name, PtrType(nullptr)) means delete

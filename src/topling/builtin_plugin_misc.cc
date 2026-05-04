@@ -146,20 +146,33 @@ static Status Json_EventListenerVec(const json& js, const SidePluginRepo& repo,
 
 template<class Object, class ObjMap>
 static
+bool UpdateFromName(const std::string& src_name, const SidePluginRepo& repo,
+                    bool recursive, Object* self, const ObjMap& objmap);
+
+template<class Object, class ObjMap>
+static
 void PluginUpdateFrom(const json& js, const SidePluginRepo& repo,
                       bool recursive, Object* self, const ObjMap& objmap) {
-  const char* clazz = self->Name();
+  //const char* clazz = self->Name();
   //fprintf(stderr, "WARN: PluginUpdateFrom: %s js = %s\n", clazz, js.dump(4).c_str());
   auto src_iter = js.find("update_from");
   if (js.end() == src_iter || !src_iter.value().is_string()) {
     return;
   }
   const std::string& src_name = src_iter.value().get_ref<const std::string&>();
+  UpdateFromName(src_name, repo, recursive, self, objmap);
+}
+
+template<class Object, class ObjMap>
+static
+bool UpdateFromName(const std::string& src_name, const SidePluginRepo& repo,
+                    bool recursive, Object* self, const ObjMap& objmap) {
+  const char* clazz = self->Name();
   auto iter = objmap.name2p->find(src_name);
   if (iter == objmap.name2p->end()) {
     fprintf(stderr, "WARN: %s: update_from: name %s not found\n",
             clazz, src_name.c_str());
-    return;
+    return false;
   }
   if (recursive) {
     auto iter2 = objmap.p2name.find(iter->second.get());
@@ -173,6 +186,7 @@ void PluginUpdateFrom(const json& js, const SidePluginRepo& repo,
     fprintf(stderr, "WARN: %s: recursive update_from %s, ignored\n",
             clazz, src_name.c_str());
   }
+  return true;
 }
 
 struct DBOptions_Json : DBOptions {
@@ -894,6 +908,21 @@ struct CFOptions_Manip : PluginManipFunc<ColumnFamilyOptions> {
 };
 ROCKSDB_REG_PluginManip("ColumnFamilyOptions", CFOptions_Manip);
 ROCKSDB_REG_PluginManip("CFOptions", CFOptions_Manip);
+
+//////////////////////////////////////////////////////////////////////////////
+
+bool SidePluginRepo::DBOptionsUpdateFrom(DBOptions* opt, const std::string& src_name) const {
+  const SidePluginRepo& repo = *this;
+  bool recursive = true;
+  auto ptr = static_cast<DBOptions_Json*>(opt);
+  return UpdateFromName(src_name, repo, recursive, ptr, repo.m_impl->db_options);
+}
+bool SidePluginRepo::CFOptionsUpdateFrom(ColumnFamilyOptions* opt, const std::string& src_name) const {
+  const SidePluginRepo& repo = *this;
+  auto ptr = static_cast<CFOptions_Json*>(opt);
+  bool recursive = true;
+  return UpdateFromName(src_name, repo, recursive, ptr, repo.m_impl->cf_options);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
