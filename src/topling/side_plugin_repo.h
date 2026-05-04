@@ -396,6 +396,15 @@ class SidePluginRepo {
   std::shared_ptr<Impl> m_impl;
 };
 
+const std::shared_ptr<SidePluginRepo>& GetEasyMigrateSidePluginRepo();
+bool MaybeDBOptionsUpdateFrom(DBOptions*, const std::string& src_name);
+bool MaybeCFOptionsUpdateFrom(ColumnFamilyOptions*, const std::string& src_name);
+bool MaybeOptionsUpdateFrom(Options*, const std::string& src_name);
+bool MaybeOptionsUpdateFrom
+(DBOptions*, ColumnFamilyDescriptor*, size_t num_cf, const std::string& src_dbo_name);
+bool MaybeOptionsUpdateFrom
+(DBOptions*, std::vector<ColumnFamilyDescriptor>*, const std::string& src_dbo_name);
+
 ///@param obj json object to be dumped
 ///@param options options for dump(pretty,indent)
 std::string JsonToString(const json& obj, const json& options);

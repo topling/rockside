@@ -1216,6 +1216,11 @@ Status OpenDB_tpl(SidePluginRepo& repo, const json& js, DBT** dbp)
 TOPLINGDB_TRY
 {
   *dbp = nullptr;
+  if (GetEasyMigrateSidePluginRepo() != nullptr) {
+    return Status::NotSupported (
+      "OpenDB via SidePluginRepo is not supported when"
+      " env TOPLINGDB_EASY_MIGRATE_CONF is defined");
+  }
   auto open_defined_db = [&](const std::string& dbname) {
       auto iter = repo.m_impl->db_js.find(dbname);
       if (repo.m_impl->db_js.end() == iter) {
@@ -1269,6 +1274,11 @@ Status SidePluginRepo::OpenAllDB()
 {
 TOPLINGDB_TRY
 {
+  if (GetEasyMigrateSidePluginRepo() != nullptr) {
+    return Status::NotSupported (
+      "OpenDB via SidePluginRepo is not supported when"
+      " env TOPLINGDB_EASY_MIGRATE_CONF is defined");
+  }
   size_t num = 0;
   for (auto& item : m_impl->db_js.items()) {
     const std::string& dbname = item.key();

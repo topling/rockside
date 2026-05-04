@@ -924,6 +924,69 @@ bool SidePluginRepo::CFOptionsUpdateFrom(ColumnFamilyOptions* opt, const std::st
   return UpdateFromName(src_name, repo, recursive, ptr, repo.m_impl->cf_options);
 }
 
+const std::shared_ptr<SidePluginRepo>& GetEasyMigrateSidePluginRepo() {
+  static std::string conf_file = terark::getEnvStr("TOPLINGDB_EASY_MIGRATE_CONF", "");
+  static auto repo = []() -> std::shared_ptr<SidePluginRepo> {
+    if (conf_file.empty()) {
+      return nullptr;
+    }
+    auto p = std::make_shared<SidePluginRepo>();
+    Status s = p->ImportAutoFile(conf_file);
+    if (!s.ok()) {
+      ROCKSDB_DIE("SidePluginRepo::ImportAutoFile(%s) = %s",
+                  conf_file.c_str(), s.ToString().c_str());
+    }
+    return p;
+  }();
+  return repo;
+}
+
+bool MaybeDBOptionsUpdateFrom(DBOptions* opt, const std::string& src_name) {
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    p_repo->DBOptionsUpdateFrom(opt, src_name);
+    return true;
+  }
+  return false;
+}
+bool MaybeCFOptionsUpdateFrom(CFOptions* opt, const std::string& src_name) {
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    if (!p_repo->CFOptionsUpdateFrom(opt, src_name)) {
+      p_repo->CFOptionsUpdateFrom(opt, "default");
+    }
+    return true;
+  }
+  return false;
+}
+bool MaybeOptionsUpdateFrom(Options* opt, const std::string& src_name) {
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    p_repo->DBOptionsUpdateFrom(opt, src_name);
+    p_repo->CFOptionsUpdateFrom(opt, src_name);
+    return true;
+  }
+  return false;
+}
+bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
+                            ColumnFamilyDescriptor* cfvec, size_t num_cf,
+                            const std::string& src_dbo_name) {
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    p_repo->DBOptionsUpdateFrom(db_opts, src_dbo_name);
+    for (size_t i = 0; i < num_cf; i++) {
+      auto& cf = cfvec[i];
+      if (!p_repo->CFOptionsUpdateFrom(&cf.options, cf.name)) {
+        p_repo->CFOptionsUpdateFrom(&cf.options, "default");
+      }
+    }
+    return true;
+  }
+  return false;
+}
+bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
+                                   std::vector<ColumnFamilyDescriptor>* cfvec,
+                                   const std::string& src_dbo_name) {
+  return MaybeOptionsUpdateFrom(db_opts, cfvec->data(), cfvec->size(),
+                                       src_dbo_name);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 struct RawStatisticsData {
