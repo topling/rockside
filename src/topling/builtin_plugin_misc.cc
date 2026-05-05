@@ -31,9 +31,7 @@
 
 #include <terark/num_to_str.hpp>
 #include <terark/util/fstrvec.hpp>
-#if defined(_MSC_VER)
 #include <filesystem>
-#endif
 
 extern const char* rocksdb_build_cxxflags;
 extern const char* rocksdb_build_cxxdefs;
@@ -967,15 +965,83 @@ bool MaybeOptionsUpdateFrom(Options* opt, const std::string& src_name) {
   }
   return false;
 }
+static void RemovePathPrefix(std::filesystem::path& p) {
+  if (p.has_root_directory()) {
+    p = p.relative_path();
+  } else {
+    auto it = p.begin();
+    std::filesystem::path tmp;
+    for (++it; it != p.end(); ++it) tmp /= *it;
+    p = std::move(tmp);
+  }
+}
+// Under TOPLINGDB_EASY_MIGRATE_CONF, this provides complete configuration
+// expressiveness by treating dbpath as a namespace hierarchy (analogous to
+// C++ namespace resolution). Starting from the most qualified (full path),
+// progressively strip the leftmost path component until only the basename
+// remains. This allows configs to be matched at any level of nesting.
+//
+// For example, given dbpath = "/home/alice/data/db/table":
+//   /home/alice/data/db/table    (most specific)
+//   home/alice/data/db/table
+//   alice/data/db/table
+//   data/db/table
+//   db/table
+//   table                        (least specific)
+//   → fallback to "default" if all miss
+//
+// The key completeness property: configs can be expressed at any level of
+// precision. A more precise match (longer path) takes priority over a less
+// precise one (shorter path) — analogous to an inner namespace scope taking
+// priority over an outer one, without any "shadowing" mechanism needed.
+//
+// For example, suppose a default config exists at "table" and you want
+// "data/db/table" to opt out — just define an empty (sentinel) config at
+// "data/db/table". The lookup hits "data/db/table" first and stops, so the
+// broader "table" config is never reached. This is the classic namespace
+// shadowing pattern: a more specific scope shadows less specific ones.
+//
+// For CF options, the same namespace walk is applied, first with
+//   cf.name as suffix, then (if not "default" and not yet found)
+//   with "default" as suffix. Each try_cfname includes both the
+//   path-prefix walk and a bare-name fallback (no path prefix).
 bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
                             ColumnFamilyDescriptor* cfvec, size_t num_cf,
-                            const std::string& src_dbo_name) {
+                            const std::string& dbpath) {
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
-    p_repo->DBOptionsUpdateFrom(db_opts, src_dbo_name);
+    auto normpath = std::filesystem::path(dbpath).lexically_normal();
+    if (!normpath.has_filename()) {
+      ROCKSDB_DIE("FATAL: bad dbpath = %s", dbpath.c_str());
+    }
+    std::filesystem::path p = normpath;
+    std::string basename = p.filename().generic_string();
+    bool db_opt_done = false;
+    while (p.has_filename()) {
+      std::string db_opt_name = p.generic_string();
+      db_opt_done = p_repo->DBOptionsUpdateFrom(db_opts, db_opt_name);
+      if (db_opt_done) {
+        break;
+      }
+      RemovePathPrefix(p);
+    }
+    if (!db_opt_done && basename != "default") {
+      p_repo->DBOptionsUpdateFrom(db_opts, "default");
+    }
     for (size_t i = 0; i < num_cf; i++) {
       auto& cf = cfvec[i];
-      if (!p_repo->CFOptionsUpdateFrom(&cf.options, cf.name)) {
-        p_repo->CFOptionsUpdateFrom(&cf.options, "default");
+      auto try_cfname = [&](const std::string& cfname) {
+        p = normpath;
+        while (p.has_filename()) {
+          std::string cf_opt_name = p.generic_string() + ":" + cfname;
+          if (p_repo->CFOptionsUpdateFrom(&cf.options, cf_opt_name)) {
+            return true;
+          }
+          RemovePathPrefix(p);
+        }
+        return p_repo->CFOptionsUpdateFrom(&cf.options, cfname);
+      };
+      if (!try_cfname(cf.name) && cf.name != "default") {
+        try_cfname("default");
       }
     }
     return true;
@@ -983,10 +1049,9 @@ bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
   return false;
 }
 bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
-                                   std::vector<ColumnFamilyDescriptor>* cfvec,
-                                   const std::string& src_dbo_name) {
-  return MaybeOptionsUpdateFrom(db_opts, cfvec->data(), cfvec->size(),
-                                       src_dbo_name);
+                            std::vector<ColumnFamilyDescriptor>* cfvec,
+                            const std::string& dbpath) {
+  return MaybeOptionsUpdateFrom(db_opts, cfvec->data(), cfvec->size(), dbpath);
 }
 
 //////////////////////////////////////////////////////////////////////////////

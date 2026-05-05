@@ -401,9 +401,9 @@ bool MaybeDBOptionsUpdateFrom(DBOptions*, const std::string& src_name);
 bool MaybeCFOptionsUpdateFrom(ColumnFamilyOptions*, const std::string& src_name);
 bool MaybeOptionsUpdateFrom(Options*, const std::string& src_name);
 bool MaybeOptionsUpdateFrom
-(DBOptions*, ColumnFamilyDescriptor*, size_t num_cf, const std::string& src_dbo_name);
+(DBOptions*, ColumnFamilyDescriptor*, size_t num_cf, const std::string& dbpath);
 bool MaybeOptionsUpdateFrom
-(DBOptions*, std::vector<ColumnFamilyDescriptor>*, const std::string& src_dbo_name);
+(DBOptions*, std::vector<ColumnFamilyDescriptor>*, const std::string& dbpath);
 
 ///@param obj json object to be dumped
 ///@param options options for dump(pretty,indent)
