@@ -399,6 +399,7 @@ class SidePluginRepo {
 const std::shared_ptr<SidePluginRepo>& GetEasyMigrateSidePluginRepo();
 bool MaybeDBOptionsUpdateFrom(DBOptions*, const std::string& src_name);
 bool MaybeCFOptionsUpdateFrom(ColumnFamilyOptions*, const std::string& src_name);
+bool MaybeCFOptionsUpdateFrom(ColumnFamilyOptions*, const std::string& cfname, const std::string& dbpath);
 bool MaybeOptionsUpdateFrom(Options*, const std::string& src_name);
 bool MaybeOptionsUpdateFrom
 (DBOptions*, ColumnFamilyDescriptor*, size_t num_cf, const std::string& dbpath);

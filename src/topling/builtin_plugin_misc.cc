@@ -975,6 +975,45 @@ static void RemovePathPrefix(std::filesystem::path& p) {
     p = std::move(tmp);
   }
 }
+static
+bool TryCFOptionsUpdateFrom(ColumnFamilyOptions* cfopt,
+                            const SidePluginRepo& repo,
+                            const std::string& cfname,
+                            std::filesystem::path normpath) {
+  while (normpath.has_filename()) {
+    std::string cf_opt_name = normpath.generic_string() + ":" + cfname;
+    if (repo.CFOptionsUpdateFrom(cfopt, cf_opt_name)) {
+      return true;
+    }
+    RemovePathPrefix(normpath);
+  }
+  return repo.CFOptionsUpdateFrom(cfopt, cfname);
+}
+static
+void DoCFOptionsUpdateFrom(ColumnFamilyOptions* cfopt,
+                           const SidePluginRepo& repo,
+                           const std::string& cfname,
+                           const std::filesystem::path& normpath) {
+  if (!TryCFOptionsUpdateFrom(cfopt, repo, cfname, normpath)) {
+    if (cfname != "default") {
+      TryCFOptionsUpdateFrom(cfopt, repo, "default", normpath);
+    }
+  }
+}
+bool MaybeCFOptionsUpdateFrom(ColumnFamilyOptions* cfopt,
+                              const std::string& cfname,
+                              const std::string& dbpath) {
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    auto normpath = std::filesystem::path(dbpath).lexically_normal();
+    if (!normpath.has_filename()) {
+      ROCKSDB_DIE("FATAL: bad dbpath = %s", dbpath.c_str());
+    }
+    DoCFOptionsUpdateFrom(cfopt, *p_repo, cfname, normpath);
+    return true;
+  }
+  return false;
+}
+
 // Under TOPLINGDB_EASY_MIGRATE_CONF, this provides complete configuration
 // expressiveness by treating dbpath as a namespace hierarchy (analogous to
 // C++ namespace resolution). Starting from the most qualified (full path),
@@ -1001,10 +1040,10 @@ static void RemovePathPrefix(std::filesystem::path& p) {
 // broader "table" config is never reached. This is the classic namespace
 // shadowing pattern: a more specific scope shadows less specific ones.
 //
-// For CF options, the same namespace walk is applied, first with
-//   cf.name as suffix, then (if not "default" and not yet found)
-//   with "default" as suffix. Each try_cfname includes both the
-//   path-prefix walk and a bare-name fallback (no path prefix).
+// For CF options, the same namespace walk is applied via DoCFOptionsUpdateFrom:
+// first with cf.name as suffix, then (if not "default" and not yet found) with
+// "default" as suffix — each pass includes the path-prefix walk and a bare-name
+// fallback (no path prefix).
 bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
                             ColumnFamilyDescriptor* cfvec, size_t num_cf,
                             const std::string& dbpath) {
@@ -1029,20 +1068,7 @@ bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
     }
     for (size_t i = 0; i < num_cf; i++) {
       auto& cf = cfvec[i];
-      auto try_cfname = [&](const std::string& cfname) {
-        p = normpath;
-        while (p.has_filename()) {
-          std::string cf_opt_name = p.generic_string() + ":" + cfname;
-          if (p_repo->CFOptionsUpdateFrom(&cf.options, cf_opt_name)) {
-            return true;
-          }
-          RemovePathPrefix(p);
-        }
-        return p_repo->CFOptionsUpdateFrom(&cf.options, cfname);
-      };
-      if (!try_cfname(cf.name) && cf.name != "default") {
-        try_cfname("default");
-      }
+      DoCFOptionsUpdateFrom(&cf.options, *p_repo, cf.name, normpath);
     }
     return true;
   }
