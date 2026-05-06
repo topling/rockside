@@ -936,6 +936,15 @@ const std::shared_ptr<SidePluginRepo>& GetEasyMigrateSidePluginRepo() {
       ROCKSDB_DIE("SidePluginRepo::ImportAutoFile(%s) = %s",
                   conf_file.c_str(), s.ToString().c_str());
     }
+    if (JsonSmartBool(p->m_impl->http_js, "auto_start_http")) {
+      s = p->StartHttpServer();
+      if (!s.ok()) {
+        // This fail will be ignored, just print a warning
+        std::string msg = s.ToString();
+        fprintf(stderr, "%s: WARN: EasyMigrate: config.http.auto_start_http is true, "
+                "StartHttpServer fail: %s\n", StrDateTimeNow(), msg.c_str());
+      }
+    }
     return p;
   }();
   return repo;
@@ -943,6 +952,7 @@ const std::shared_ptr<SidePluginRepo>& GetEasyMigrateSidePluginRepo() {
 
 bool MaybeDBOptionsUpdateFrom(DBOptions* opt, const std::string& src_name) {
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
     p_repo->DBOptionsUpdateFrom(opt, src_name);
     return true;
   }
@@ -950,6 +960,7 @@ bool MaybeDBOptionsUpdateFrom(DBOptions* opt, const std::string& src_name) {
 }
 bool MaybeCFOptionsUpdateFrom(CFOptions* opt, const std::string& src_name) {
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
     if (!p_repo->CFOptionsUpdateFrom(opt, src_name)) {
       p_repo->CFOptionsUpdateFrom(opt, "default");
     }
@@ -959,6 +970,7 @@ bool MaybeCFOptionsUpdateFrom(CFOptions* opt, const std::string& src_name) {
 }
 bool MaybeOptionsUpdateFrom(Options* opt, const std::string& src_name) {
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
     p_repo->DBOptionsUpdateFrom(opt, src_name);
     p_repo->CFOptionsUpdateFrom(opt, src_name);
     return true;
@@ -1008,6 +1020,7 @@ bool MaybeCFOptionsUpdateFrom(ColumnFamilyOptions* cfopt,
     if (!normpath.has_filename()) {
       ROCKSDB_DIE("FATAL: bad dbpath = %s", dbpath.c_str());
     }
+    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
     DoCFOptionsUpdateFrom(cfopt, *p_repo, cfname, normpath);
     return true;
   }
@@ -1054,6 +1067,7 @@ bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
     }
     std::filesystem::path p = normpath;
     std::string basename = p.filename().generic_string();
+    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
     bool db_opt_done = false;
     while (p.has_filename()) {
       std::string db_opt_name = p.generic_string();
@@ -1078,6 +1092,22 @@ bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
                             std::vector<ColumnFamilyDescriptor>* cfvec,
                             const std::string& dbpath) {
   return MaybeOptionsUpdateFrom(db_opts, cfvec->data(), cfvec->size(), dbpath);
+}
+
+void MaybeRetainDB(DB* db, const std::vector<ColumnFamilyHandle*>& handles) {
+  if (nullptr == db) {
+    return;
+  }
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    p_repo->Put(db->GetName(), db, handles); // with lock in it
+  }
+}
+void MaybeForgetDB(DB* db) {
+  ROCKSDB_VERIFY(nullptr != db);
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    bool do_delete = false;
+    p_repo->CloseOneDB(db, do_delete); // with lock in it
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////

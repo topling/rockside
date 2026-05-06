@@ -405,6 +405,8 @@ bool MaybeOptionsUpdateFrom
 (DBOptions*, ColumnFamilyDescriptor*, size_t num_cf, const std::string& dbpath);
 bool MaybeOptionsUpdateFrom
 (DBOptions*, std::vector<ColumnFamilyDescriptor>*, const std::string& dbpath);
+void MaybeRetainDB(DB*, const std::vector<ColumnFamilyHandle*>&);
+void MaybeForgetDB(DB*);
 
 ///@param obj json object to be dumped
 ///@param options options for dump(pretty,indent)
