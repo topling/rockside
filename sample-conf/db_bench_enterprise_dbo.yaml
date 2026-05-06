@@ -1,5 +1,5 @@
 DBOptions:
-  dbo:
+  default:
     create_if_missing: true
     create_missing_column_families: true
     max_background_compactions: 13
@@ -9,5 +9,5 @@ DBOptions:
     WAL_size_limit_MB: 0
     statistics: "${stat}"
   dbo2:
-    template: "$dbo"
+    template: "$default"
     max_level1_subcompactions: 3 # override this param

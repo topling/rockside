@@ -153,7 +153,7 @@
       }
     },
     "DBOptions": {
-      "dbo": {
+      "default": {
         "//bytes_per_sync": "2M",
         "create_if_missing": true,
         "create_missing_column_families": true,
@@ -171,7 +171,7 @@
       "strings": {
         "method": "DB::Open",
         "params": {
-          "db_options": "$dbo",
+          "db_options": "$default",
           "cf_options comment": "make it ok for SidePluginRepo::OpenDB(DB**)",
           "cf_options": "$default",
           "column_families": {

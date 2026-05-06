@@ -216,7 +216,7 @@ CFOptions:
     target_file_size_base: 32M # override
     max_bytes_for_level_base: 16M
 DBOptions:
-  dbo:
+  default:
     memtable_as_log_index: true
     allow_fallocate: false # default true
     allow_fdatasync: false # default true
@@ -234,13 +234,13 @@ DBOptions:
     sst_file_manager: sst_file_mgr
     statistics: "${stat}"
   dbo2:
-    template: "$dbo"
+    template: "$default"
     max_level1_subcompactions: 3 # override this param
 databases:
   db_bench_enterprise:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
       cf_options: "$default" # for single cf db
       column_families:       # for multi  cf db
         default: "$default"
@@ -251,5 +251,5 @@ databases:
   db_test:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
 open: db_bench_enterprise

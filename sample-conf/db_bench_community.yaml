@@ -115,7 +115,7 @@ CFOptions:
     - kZSTD
     - kZSTD
 DBOptions:
-  dbo:
+  default:
     allow_fallocate: false # default true
     create_if_missing: true
     create_missing_column_families: true
@@ -130,7 +130,7 @@ databases:
   db_bench_community:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
       cf_options: "$default" # for single cf db
       column_families:       # for multi  cf db
         default: "$default"

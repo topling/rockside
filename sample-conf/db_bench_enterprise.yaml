@@ -234,7 +234,7 @@ Env:
     params:
       file_system: "$cat_fs"
 DBOptions:
-  dbo:
+  default:
     #env: "$cat_env"
     memtable_as_log_index: true
     max_total_wal_size: 4G
@@ -257,7 +257,7 @@ databases:
   db_bench_enterprise:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
       cf_options: "$default" # for single cf db
       column_families:       # for multi  cf db
         default: "$default"
@@ -269,5 +269,5 @@ databases:
   db_test:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
 open: db_bench_enterprise

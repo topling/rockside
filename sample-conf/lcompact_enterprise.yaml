@@ -147,7 +147,7 @@ CFOptions:
     level0_file_num_compaction_trigger: 4
     ttl: 0
 DBOptions:
-  dbo:
+  default:
     #bytes_per_sync: 2M
     create_if_missing: true
     create_missing_column_families: true
@@ -163,7 +163,7 @@ databases:
   strings:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
       column_families:
         default: "$default"
       #path is optional, if not defined, use name as path

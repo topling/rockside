@@ -189,7 +189,7 @@ CFOptions:
     - kZSTD
     compaction_executor_factory: dcompact
 DBOptions:
-  dbo:
+  default:
     allow_fallocate: false # default true
     allow_fdatasync: false # default true
     create_if_missing: true
@@ -208,7 +208,7 @@ databases:
   db_bench_enterprise:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
       cf_options: "$default" # for single cf db
       column_families:       # for multi  cf db
         default: "$default"
@@ -219,7 +219,7 @@ databases:
   db_test:
     method: DB::Open
     params:
-      db_options: "$dbo"
+      db_options: "$default"
 open: db_bench_enterprise
 CompactionExecutorFactory:
   dcompact:
