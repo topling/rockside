@@ -2,6 +2,7 @@ http:
   # normally parent path of db path
   document_root: /dev/shm/db_bench_enterprise
   listening_ports: '2011'
+  auto_start_http: true
 setenv:
   DictZipBlobStore_zipThreads: 32
   StrSimpleEnvNameNotOverwrite: StringValue
@@ -243,7 +244,7 @@ DBOptions:
     create_if_missing: true
     create_missing_column_families: true
     #enable_pipelined_write: true # must be false if unordered_write is true
-    unordered_write: true
+    #unordered_write: true
     #info_log_level: DEBUG_LEVEL
     max_background_flushes: 2 # default is -1
     max_background_compactions: 13 # default is -1
