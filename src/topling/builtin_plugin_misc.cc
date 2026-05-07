@@ -1094,12 +1094,30 @@ bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
   return MaybeOptionsUpdateFrom(db_opts, cfvec->data(), cfvec->size(), dbpath);
 }
 
+ColumnFamilyHandle* DB_persist_stats_cf_handle(const DB*);
+
 void MaybeRetainDB(DB* db, const std::vector<ColumnFamilyHandle*>& handles) {
   if (nullptr == db) {
     return;
   }
+  if (handles.empty()) {
+    return;
+  }
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
-    p_repo->Put(db->GetName(), db, handles); // with lock in it
+    std::vector<ColumnFamilyHandle*> handles_cp = handles;
+    // rocksdb delete default_cfh and stat_cfh on simple Open
+    auto default_cfh = db->DefaultColumnFamily();
+    auto stat_cfh = DB_persist_stats_cf_handle(db);
+    auto stat_cf_id = stat_cfh ? stat_cfh->GetID() : UINT32_MAX;
+    for (ColumnFamilyHandle*& cfh : handles_cp) {
+      auto cf_id = cfh->GetID();
+      if (cf_id == 0) {
+        cfh = default_cfh;
+      } else if (cf_id == stat_cf_id) {
+        cfh = stat_cfh;
+      }
+    }
+    p_repo->Put(db->GetName(), db, handles_cp); // with lock in it
   }
 }
 void MaybeForgetDB(DB* db) {
