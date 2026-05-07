@@ -79,6 +79,9 @@ struct DB_MultiCF {
   virtual Status DropColumnFamily(const std::string& cfname, bool del_cfh = false) = 0;
   virtual Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh = false) = 0;
   virtual std::vector<ColumnFamilyHandle*> get_cf_handles_view() const = 0;
+  virtual void DoRegisterColumnFamily(ColumnFamilyHandle*) = 0;
+  virtual void UnRegisterColumnFamily(ColumnFamilyHandle*) = 0;
+
   ColumnFamilyHandle* operator[](const std::string& cfname) const { return Get(cfname); }
 
   DB* db = nullptr;
@@ -407,6 +410,8 @@ bool MaybeOptionsUpdateFrom
 (DBOptions*, std::vector<ColumnFamilyDescriptor>*, const std::string& dbpath);
 void MaybeRetainDB(DB*, const std::vector<ColumnFamilyHandle*>&);
 void MaybeForgetDB(DB*);
+void MaybeRetainCF(DB*, ColumnFamilyHandle*);
+void MaybeForgetCF(DB*, ColumnFamilyHandle*);
 
 ///@param obj json object to be dumped
 ///@param options options for dump(pretty,indent)

@@ -1128,6 +1128,36 @@ void MaybeForgetDB(DB* db) {
   }
 }
 
+void MaybeRetainCF(DB* db, ColumnFamilyHandle* cfh) {
+  if (nullptr == cfh) {
+    return;
+  }
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    auto& name2p = *p_repo->m_impl->db.name2p;
+    auto iter = name2p.find(db->GetName());
+    if (name2p.end() == iter) {
+      return;
+    }
+    DB_Ptr dbp = iter->second;
+    dbp.dbm->DoRegisterColumnFamily(cfh);
+  }
+}
+
+void MaybeForgetCF(DB* db, ColumnFamilyHandle* cfh) {
+  ROCKSDB_VERIFY(cfh != nullptr);
+  if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
+    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    auto& name2p = *p_repo->m_impl->db.name2p;
+    auto iter = name2p.find(db->GetName());
+    if (name2p.end() == iter) {
+      return;
+    }
+    DB_Ptr dbp = iter->second;
+    dbp.dbm->UnRegisterColumnFamily(cfh);
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 struct RawStatisticsData {

@@ -18,6 +18,9 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
   Status DropColumnFamily(const std::string& cfname, bool del_cfh) override;
   Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh) override;
   std::vector<ColumnFamilyHandle*> get_cf_handles_view() const override;
+  void DoRegisterColumnFamily(ColumnFamilyHandle*) override;
+  void UnRegisterColumnFamily(ColumnFamilyHandle*) override;
+
   void AddOneCF_ToMap(const std::string& cfname, ColumnFamilyHandle*, const json&);
   void InitAddCF_ToMap(const json& js_cf_desc);
   SidePluginRepo::Impl::ObjMap<ColumnFamilyHandle*> m_cfhs;

@@ -177,6 +177,42 @@ Status DB_MultiCF_Impl::DropColumnFamily(ColumnFamilyHandle* cfh, bool del_cfh) 
   return s;
 }
 
+void DB_MultiCF_Impl::DoRegisterColumnFamily(ColumnFamilyHandle* cfh) {
+  // Used for easy migrate, never del cfh in SidePluginRepo
+  TERARK_VERIFY_EQ(GetEasyMigrateSidePluginRepo().get(), m_repo);
+  const std::string& cfname = cfh->GetName();
+  {
+    std::lock_guard<std::shared_mutex> lk(m_mtx);
+    AddOneCF_ToMap(cfname, cfh, {});
+    cf_handles.push_back(cfh);
+  }
+  AddCFPropertiesWebView(this, cfh, cfname, *m_repo);
+}
+
+void DB_MultiCF_Impl::UnRegisterColumnFamily(ColumnFamilyHandle* cfh) {
+  // Used for easy migrate, never del cfh in SidePluginRepo
+  TERARK_VERIFY_EQ(GetEasyMigrateSidePluginRepo().get(), m_repo);
+  {
+    std::lock_guard<std::shared_mutex> write_lock(m_mtx);
+    const std::string& cfname = cfh->GetName();
+    auto iter = m_cfhs.name2p->find(cfname);
+    if (m_cfhs.name2p->end() == iter) {
+      fprintf(stderr, "WARN: UnRegisterColumnFamily: not found cfname = %s\n", cfname.c_str());
+      return;
+    }
+    m_cfhs.name2p->erase(iter);
+    m_cfhs.p2name.erase(cfh);
+    auto rm_iter = std::remove_if(cf_handles.begin(), cf_handles.end(),
+    [cfd = cfh->cfd()](ColumnFamilyHandle* h) {
+      return cfd == h->cfd(); // handle maybe clone, cfd is unique
+    });
+    ROCKSDB_VERIFY(rm_iter + 1 == cf_handles.end());
+    cf_handles.erase(rm_iter, cf_handles.end());
+  }
+  // TODO:
+  // remove from CFPropertiesWebView
+}
+
 std::vector<ColumnFamilyHandle*> DB_MultiCF_Impl::get_cf_handles_view() const {
   m_mtx.lock_shared();
   ROCKSDB_SCOPE_EXIT(m_mtx.unlock());
