@@ -4041,7 +4041,7 @@ DB_MultiCF_Impl::DB_MultiCF_Impl(const SidePluginRepo* repo,
   }
   SetCFPropertiesWebView(this, dbname, cfdvec, *repo);
   for (auto* cfh : cf_handles) {
-    AddOneCF_ToMap(cfh->GetName(), cfh, "{}");
+    AddOneCF_ToMap(cfh->GetName(), cfh, json::object({}));
   }
 }
 
