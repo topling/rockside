@@ -104,11 +104,12 @@ std::string str_cur_time(const SidePluginRepo* repo) {
   str|"</a>";
   if (repo) for (auto& kvp : *repo->GetAllDB()) {
     const std::string& dbname = kvp.first; // not dbpath
+    const std::string  slash = dbname.c_str()[0] == '/' ? "" : "/";
     const DB_Ptr& dbp = kvp.second;
     ROCKSDB_VERIFY(nullptr != dbp.db);
     str | "&nbsp;&nbsp;&nbsp;";
-    str | "<a href='/" | dbname | "/'>" | dbname | "</a>/";
-    str | "<a href='/" | dbname | "/LOG'>LOG</a>";
+    str | "<a href='" | slash | dbname | "/'>" | dbname | "</a>/";
+    str | "<a href='" | slash | dbname | "/LOG'>LOG</a>";
   }
   str|"<span id='html_time'></span>";
   str|"<code id='rperf' style='white-space: pre; font-family: monospace'></code>";
