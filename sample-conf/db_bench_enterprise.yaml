@@ -102,6 +102,20 @@ TableFactory:
     params:
       indexType: MainPatricia
       keyPrefixLen: 0
+  light_zip:
+    class: ToplingZipTable
+    params:
+      localTempDir: /dev/shm
+      indexNestLevel: 1
+      enableStatistics: false
+      warmupLevel: kIndex
+      acceptCompressionRatio: 0.8
+      offsetArrayBlockUnits: 128
+      minDictZipValueSize: "10M"
+      minPreadLen: -1
+      sampleRatio: 0.01
+      checksumLevel: 0
+      debugLevel: 0
   zip:
     class: ToplingZipTable
     params:
@@ -149,7 +163,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
-      level_writers: [fast, fast, zip, zip, zip, zip, zip, zip]
+      level_writers: [fast, light_zip, zip, zip, zip, zip, zip, zip]
   dispatch_all_fast:
     class: DispatcherTable
     params:
