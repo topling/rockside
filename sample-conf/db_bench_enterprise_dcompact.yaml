@@ -90,6 +90,14 @@ TableFactory:
     params:
       indexType: MainPatricia
       keyPrefixLen: 0
+  simple:
+    class: SimpleTopTable
+    params:
+      writeMethod: kToplingFileWrite
+      fileWriteBufferSize: 8192
+      collectProperties: true
+      forceNeedCompact: false
+      debugLevel: 0
   zip:
     class: ToplingZipTable
     params:
@@ -129,16 +137,18 @@ TableFactory:
       default: fast
       readers:
         SingleFastTable: fast
+        SimpleTopTable: simple
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
-      level_writers: [fast, fast, zip, zip, zip, zip, zip, zip]
+      level_writers: [fast, simple, zip, zip, zip, zip, zip, zip]
   dispatch_all_fast:
     class: DispatcherTable
     params:
       default: fast
       readers:
         SingleFastTable: fast
+        SimpleTopTable: simple
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
@@ -149,6 +159,7 @@ TableFactory:
       default: fast
       readers:
         SingleFastTable: fast
+        SimpleTopTable: simple
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
