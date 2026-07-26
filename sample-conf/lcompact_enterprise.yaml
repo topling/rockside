@@ -79,6 +79,14 @@ TableFactory:
     params:
       indexType: MainPatricia
       keyPrefixLen: 0
+  simple:
+    class: SimpleTopTable
+    params:
+      writeMethod: kToplingFileWrite
+      fileWriteBufferSize: 8192
+      collectProperties: true
+      forceNeedCompact: false
+      debugLevel: 0
   zip:
     class: ToplingZipTable
     params:
@@ -122,11 +130,12 @@ TableFactory:
       default: fast
       readers:
         SingleFastTable: fast
+        SimpleTopTable: simple
         ToplingZipTable: zip
         BlockBasedTable: bb
       level_writers:
       - fast
-      - fast
+      - simple
       - fast
       - zip
       - zip

@@ -71,6 +71,14 @@ TableFactory:
       fileWriteBufferSize: 128K
       useFilePreallocation: true
       keyPrefixLen: 0
+  simple:
+    class: SimpleTopTable
+    params:
+      writeMethod: kToplingFileWrite
+      fileWriteBufferSize: 8192
+      collectProperties: true
+      forceNeedCompact: false
+      debugLevel: 0
   zip:
     class: ToplingZipTable
     params:
@@ -98,10 +106,11 @@ TableFactory:
       default: fast
       readers:
         ToplingFastTable: fast
+        SimpleTopTable: simple
         ToplingZipTable: zip
       level_writers:
       - fast
-      - fast
+      - simple
       - zip
       - zip
       - zip

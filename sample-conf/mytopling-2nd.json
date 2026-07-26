@@ -91,6 +91,17 @@
         "forceNeedCompact": true
       }
     },
+    "simple": {
+      "class": "SimpleTopTable",
+      "params": {
+        "writeMethod": "kToplingFileWrite",
+        "fileWriteBufferSize": 8192,
+        "collectProperties": true,
+        "forceNeedCompact": false,
+        "debugLevel": 0
+      }
+    },
+
     "bb": {
       "class": "BlockBasedTable",
       "params": {
@@ -125,12 +136,13 @@
         "default": "sng",
         "readers": {
           "VecAutoSortTable": "auto_sort",
+          "SimpleTopTable": "simple",
           "BlockBasedTable": "bb",
           "SingleFastTable": "sng",
           "ToplingZipTable": "dzip"
         },
         "level_writers": [
-          "sng", "sng",
+          "sng", "simple",
           "dzip", "dzip", "dzip", "dzip", "dzip"
         ]
       }

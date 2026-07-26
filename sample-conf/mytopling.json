@@ -110,6 +110,17 @@
         "forceNeedCompact": true
       }
     },
+    "simple": {
+      "class": "SimpleTopTable",
+      "params": {
+        "writeMethod": "kToplingFileWrite",
+        "fileWriteBufferSize": 8192,
+        "collectProperties": true,
+        "forceNeedCompact": false,
+        "debugLevel": 0
+      }
+    },
+
     "bb": {
       "class": "BlockBasedTable",
       "params": {
@@ -202,6 +213,7 @@
         "trivial_move_max_file_size_multiplier": 4,
         "readers": {
           "VecAutoSortTable": "auto_sort",
+          "SimpleTopTable": "simple",
           "CSPPMemTabTable": "cspp_memtab_sst",
           "BlockBasedTable": "bb",
           "SingleFastTable": "sng",
@@ -214,7 +226,7 @@
           "bb"
         ],
         "level_writers": [
-          "sng", "sng",
+          "sng", "simple",
           "dzip", "dzip", "dzip", "dzip", "dzip"
         ]
       }

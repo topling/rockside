@@ -48,6 +48,14 @@ MemTableRepFactory:
     params:
       lookahead: 0
 TableFactory:
+  simple:
+    class: SimpleTopTable
+    params:
+      writeMethod: kToplingFileWrite
+      fileWriteBufferSize: 8192
+      collectProperties: true
+      forceNeedCompact: false
+      debugLevel: 0
   bb:
     class: BlockBasedTable
     params:
@@ -68,6 +76,7 @@ TableFactory:
       default: bb
       readers:
         BlockBasedTable: bb
+        SimpleTopTable: simple
       level_writers:
       - bb
       - bb
