@@ -189,6 +189,12 @@ struct PluginManipFunc {
   virtual ~PluginManipFunc() {}
   virtual void Update(Object*, const json& query, const json& body, const SidePluginRepo&) const = 0;
   virtual std::string ToString(const Object&, const json&, const SidePluginRepo&) const = 0;
+  virtual std::string HandleUpdate(Object* object, const json& query,
+                                   const json& body,
+                                   const SidePluginRepo& repo) const {
+    Update(object, query, body, repo);
+    return ToString(*object, query, repo);
+  }
   using InterfaceType = PluginManipFunc;
 };
 template<class ManipClass>
@@ -209,6 +215,13 @@ void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>&,
                   const json& query, const json& body, const SidePluginRepo&);
 void PluginUpdate(const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>&,
                   const json& query, const json& body, const SidePluginRepo&);
+template<class Ptr>
+std::string PluginHandleUpdate(
+    const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>&,
+    const json& query, const json& body, const SidePluginRepo&);
+std::string PluginHandleUpdate(
+    const DB_Ptr&, const SidePluginRepo::Impl::ObjMap<DB_Ptr>&,
+    const json& query, const json& body, const SidePluginRepo&);
 
 template<class Ptr>
 std::string

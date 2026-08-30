@@ -369,12 +369,14 @@ function SetParam(name, value) {
       TOPLINGDB_TRY {
         using namespace std::chrono;
         auto t1 = steady_clock::now();
+        std::string str;
         if (needsUpdate) {
           std::string body_jstr = ReadPostData(conn);
           json body_js = json::parse(body_jstr);
-          PluginUpdate(p, *m_map, query, body_js, *m_repo);
+          str = PluginHandleUpdate(p, *m_map, query, body_js, *m_repo);
+        } else {
+          str = PluginToString(p, *m_map, query, *m_repo);
         }
-        std::string str = PluginToString(p, *m_map, query, *m_repo);
         auto t2 = steady_clock::now();
         mg_write(conn, str.data(), str.size());
         if (html && JsonSmartBool(query, "html_time")) {

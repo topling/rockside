@@ -380,12 +380,29 @@ void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
   }
 }
 
+template<class Ptr>
+std::string PluginHandleUpdate(
+    const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
+    const json& query, const json& body, const SidePluginRepo& repo) {
+  using Object = RemovePtr<Ptr>;
+  auto iter = map.p2name.find(GetRawPtr(p));
+  if (map.p2name.end() != iter) {
+    auto manip = PluginManip<Object>::AcquirePlugin(iter->second.spec, repo);
+    return manip->HandleUpdate(GetRawPtr(p), query, body, repo);
+  }
+  THROW_NotFound("Ptr not found");
+}
+
 #define explicit_instantiate_sp(Interface) \
   template std::string PluginToString<std::shared_ptr<Interface> >( \
      const std::shared_ptr<Interface>&, \
      const SidePluginRepo::Impl::ObjMap<std::shared_ptr<Interface>>&, \
      const json&, const SidePluginRepo&); \
   template void PluginUpdate<std::shared_ptr<Interface> >( \
+     const std::shared_ptr<Interface>&, \
+     const SidePluginRepo::Impl::ObjMap<std::shared_ptr<Interface> >&, \
+     const json& query, const json& body, const SidePluginRepo& repo); \
+  template std::string PluginHandleUpdate<std::shared_ptr<Interface> >( \
      const std::shared_ptr<Interface>&, \
      const SidePluginRepo::Impl::ObjMap<std::shared_ptr<Interface> >&, \
      const json& query, const json& body, const SidePluginRepo& repo); \
@@ -399,6 +416,10 @@ void PluginUpdate(const Ptr& p, const SidePluginRepo::Impl::ObjMap<Ptr>& map,
      const SidePluginRepo::Impl::ObjMap<Interface*>&, \
      const json&, const SidePluginRepo&); \
   template void PluginUpdate<Interface*>( \
+     Interface* const &, \
+     const SidePluginRepo::Impl::ObjMap<Interface*>&, \
+     const json& query, const json& body, const SidePluginRepo& repo); \
+  template std::string PluginHandleUpdate<Interface*>( \
      Interface* const &, \
      const SidePluginRepo::Impl::ObjMap<Interface*>&, \
      const json& query, const json& body, const SidePluginRepo& repo); \

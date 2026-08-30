@@ -3404,6 +3404,20 @@ void PluginUpdate(const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& m
   }
 }
 
+std::string PluginHandleUpdate(
+    const DB_Ptr& p, const SidePluginRepo::Impl::ObjMap<DB_Ptr>& map,
+    const json& query, const json& body, const SidePluginRepo& repo) {
+  if (auto iter = map.p2name.find(p.db); map.p2name.end() != iter) {
+    if (p.dbm) {
+      auto manip = PluginManip<DB_MultiCF>::AcquirePlugin(iter->second.spec, repo);
+      return manip->HandleUpdate(p.dbm, query, body, repo);
+    }
+    auto manip = PluginManip<DB>::AcquirePlugin(iter->second.spec, repo);
+    return manip->HandleUpdate(p.db, query, body, repo);
+  }
+  THROW_NotFound("db ptr is not in repo");
+}
+
 static
 void UpdateDBOptions(DB* db, const string& str, const SidePluginRepo& repo) {
   std::unordered_map<string, string> optMap;
