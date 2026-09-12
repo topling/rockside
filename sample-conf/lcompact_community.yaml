@@ -47,7 +47,7 @@ MemTableRepFactory:
     class: SkipList
     params:
       lookahead: 0
-  OffsetSkipList:
+  offset_skiplist:
     class: OffsetSkipList
     params:
       mem_cap: 256M
@@ -75,7 +75,7 @@ TableFactory:
       block_cache_compressed:
       persistent_cache:
       #filter_policy: "${bloom_filter}"
-  OffsetSkipListTable:
+  offset_skiplist_sst:
     class: OffsetSkipListTable
     params:
   dispatch:
@@ -85,7 +85,7 @@ TableFactory:
       readers:
         BlockBasedTable: bb
         SimpleTopTable: simple
-        OffsetSkipListTable: OffsetSkipListTable
+        OffsetSkipListTable: offset_skiplist_sst
       level_writers:
       - bb
       - bb
@@ -105,7 +105,7 @@ CFOptions:
     table_factory: dispatch
     memtable_factory: "$cspp"
     #memtable_factory: "$skiplist"
-    #memtable_factory: "$OffsetSkipList"
+    #memtable_factory: "$offset_skiplist"
     compression_per_level:
     - kNoCompression
     - kNoCompression

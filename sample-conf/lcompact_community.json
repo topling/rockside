@@ -101,7 +101,7 @@
           "lookahead": 0
         }
       },
-      "OffsetSkipList": {
+      "offset_skiplist": {
         "class": "OffsetSkipList",
         "params": {
           "mem_cap": "256M",
@@ -120,7 +120,7 @@
           "debugLevel": 0
         }
       },
-      "OffsetSkipListTable": {
+      "offset_skiplist_sst": {
         "class": "OffsetSkipListTable",
         "params": {}
       },
@@ -148,7 +148,7 @@
           "readers": {
             "BlockBasedTable": "bb",
             "SimpleTopTable": "simple",
-            "OffsetSkipListTable": "OffsetSkipListTable"
+            "OffsetSkipListTable": "offset_skiplist_sst"
           },
           "level_writers": ["bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb"]
         }
@@ -163,7 +163,7 @@
         "table_factory": "dispatch",
         "memtable_factory": "$cspp",
         "//memtable_factory": "$skiplist",
-        "//memtable_factory OffsetSkipList": "$OffsetSkipList",
+        "//memtable_factory offset_skiplist": "$offset_skiplist",
         "compression_per_level": [
           "kNoCompression",
           "kNoCompression",

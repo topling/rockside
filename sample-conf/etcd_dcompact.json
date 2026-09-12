@@ -79,7 +79,7 @@
           "lookahead": 0
         }
       },
-      "OffsetSkipList": {
+      "offset_skiplist": {
         "class": "OffsetSkipList",
         "params": {
           "mem_cap": "8G",
@@ -133,7 +133,7 @@
           "minPreadLen": -1
         }
       },
-      "OffsetSkipListTable": {
+      "offset_skiplist_sst": {
         "class": "OffsetSkipListTable",
         "params": {}
       },
@@ -145,7 +145,7 @@
             "ToplingFastTable": "fast",
             "SimpleTopTable": "simple",
             "ToplingZipTable": "zip",
-            "OffsetSkipListTable": "OffsetSkipListTable"
+            "OffsetSkipListTable": "offset_skiplist_sst"
           },
           "level_writers": [
             "fast",
@@ -243,7 +243,7 @@
         "num_levels": 10, "max_bytes_for_level_multiplier": 4,
         "///memtable_factory": "$cspp",
         "//memtable_factory": "$skiplist",
-        "//memtable_factory OffsetSkipList": "$OffsetSkipList",
+        "//memtable_factory offset_skiplist": "$offset_skiplist",
         "html_user_key_coder": "${db_bench_key_coder}",
         "max_write_buffer_number": 6,
         "write_buffer_size": "3G",

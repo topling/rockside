@@ -76,7 +76,7 @@ MemTableRepFactory:
     class: SkipList
     params:
       lookahead: 0
-  OffsetSkipList:
+  offset_skiplist:
     class: OffsetSkipList
     params:
       mem_cap: 2G
@@ -107,7 +107,7 @@ TableFactory:
       block_cache_compressed:
       persistent_cache:
       filter_policy:
-  OffsetSkipListTable:
+  offset_skiplist_sst:
     class: OffsetSkipListTable
     params:
   bb16k:
@@ -123,12 +123,12 @@ TableFactory:
       readers:
         BlockBasedTable: bb
         SimpleTopTable: simple
-        OffsetSkipListTable: OffsetSkipListTable
+        OffsetSkipListTable: offset_skiplist_sst
       level_writers: [bb, bb, bb, bb, bb, bb, bb, bb, bb]
 CFOptions:
   default:
     max_write_buffer_number: 4
-    #memtable_factory: "${OffsetSkipList}"
+    #memtable_factory: "${offset_skiplist}"
     memtable_factory: "${dyna}"
     write_buffer_size: 256M
     target_file_size_base: 16M

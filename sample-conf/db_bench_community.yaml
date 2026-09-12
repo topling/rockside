@@ -64,7 +64,7 @@ MemTableRepFactory:
     class: SkipList
     params:
       lookahead: 0
-  OffsetSkipList:
+  offset_skiplist:
     class: OffsetSkipList
     params:
       mem_cap: 2G
@@ -96,7 +96,7 @@ TableFactory:
   cspp_memtab_sst:
     class: CSPPMemTabTable
     params: # empty params
-  OffsetSkipListTable:
+  offset_skiplist_sst:
     class: OffsetSkipListTable
     params: # empty params
   dispatch:
@@ -107,12 +107,12 @@ TableFactory:
         BlockBasedTable: bb
         SimpleTopTable: simple
         CSPPMemTabTable: cspp_memtab_sst
-        OffsetSkipListTable: OffsetSkipListTable
+        OffsetSkipListTable: offset_skiplist_sst
       level_writers: [bb, bb, bb, bb, bb, bb]
 CFOptions:
   default:
     max_write_buffer_number: 4
-    #memtable_factory: "${OffsetSkipList}"
+    #memtable_factory: "${offset_skiplist}"
     memtable_factory: "${cspp}"
     write_buffer_size: 8M
     # set target_file_size_base as small as 512K is to make many SST files,

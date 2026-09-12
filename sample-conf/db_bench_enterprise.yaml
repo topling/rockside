@@ -90,7 +90,7 @@ MemTableRepFactory:
     class: SkipList
     params:
       lookahead: 0
-  OffsetSkipList:
+  offset_skiplist:
     class: OffsetSkipList
     params:
       mem_cap: 3G
@@ -169,7 +169,7 @@ TableFactory:
   cspp_memtab_sst:
     class: CSPPMemTabTable
     params: # empty params
-  OffsetSkipListTable:
+  offset_skiplist_sst:
     class: OffsetSkipListTable
     params: # empty params
   dispatch:
@@ -182,7 +182,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
-        OffsetSkipListTable: OffsetSkipListTable
+        OffsetSkipListTable: offset_skiplist_sst
       level_writers: [fast, simple, zip, zip, zip, zip, zip, zip]
   dispatch_all_fast:
     class: DispatcherTable
@@ -194,7 +194,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
-        OffsetSkipListTable: OffsetSkipListTable
+        OffsetSkipListTable: offset_skiplist_sst
       level_writers: [fast, fast, fast, fast, fast, fast, fast]
   dispatch_fast_bb:
     class: DispatcherTable
@@ -206,7 +206,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
-        OffsetSkipListTable: OffsetSkipListTable
+        OffsetSkipListTable: offset_skiplist_sst
       level_writers: [fast, fast, bb, bb, bb, bb, bb]
 WriteBufferManager:
   wbm:
@@ -228,7 +228,7 @@ CFOptions:
     max_write_buffer_number: 3
     #disable_auto_compactions: true
     #memtable_factory: "${skiplist}"
-    #memtable_factory: "${OffsetSkipList}"
+    #memtable_factory: "${offset_skiplist}"
     memtable_factory: "${cspp}"
     write_buffer_size: 2G  # 64m, rocksdb recommend small, toplingdb recommend large
     target_file_size_base: 32M

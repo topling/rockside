@@ -96,7 +96,7 @@
           "lookahead": 0
         }
       },
-      "OffsetSkipList": {
+      "offset_skiplist": {
         "class": "OffsetSkipList",
         "params": {
           "mem_cap": "2G",
@@ -121,7 +121,7 @@
           "debugLevel": 0
         }
       },
-      "OffsetSkipListTable": {
+      "offset_skiplist_sst": {
         "class": "OffsetSkipListTable",
         "params": {}
       },
@@ -156,7 +156,7 @@
           "readers": {
             "BlockBasedTable": "bb",
             "SimpleTopTable": "simple",
-            "OffsetSkipListTable": "OffsetSkipListTable"
+            "OffsetSkipListTable": "offset_skiplist_sst"
           },
           "level_writers": ["bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb", "bb"]
         }
@@ -166,7 +166,7 @@
       "default": {
         "max_write_buffer_number": 4,
         "memtable_factory": "${dyna}",
-        "//memtable_factory": "${OffsetSkipList}",
+        "//memtable_factory": "${offset_skiplist}",
         "write_buffer_size": "256M",
         "target_file_size_base": "16M",
         "target_file_size_multiplier": 2,
