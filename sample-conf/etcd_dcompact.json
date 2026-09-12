@@ -78,6 +78,13 @@
         "params": {
           "lookahead": 0
         }
+      },
+      "OffsetSkipList": {
+        "class": "OffsetSkipList",
+        "params": {
+          "mem_cap": "8G",
+          "lookahead": 0
+        }
       }
     },
     "TableFactory": {
@@ -126,6 +133,10 @@
           "minPreadLen": -1
         }
       },
+      "OffsetSkipListTable": {
+        "class": "OffsetSkipListTable",
+        "params": {}
+      },
       "dispatch" : {
         "class": "DispatcherTable",
         "params": {
@@ -133,7 +144,8 @@
           "readers": {
             "ToplingFastTable": "fast",
             "SimpleTopTable": "simple",
-            "ToplingZipTable": "zip"
+            "ToplingZipTable": "zip",
+            "OffsetSkipListTable": "OffsetSkipListTable"
           },
           "level_writers": [
             "fast",
@@ -231,6 +243,7 @@
         "num_levels": 10, "max_bytes_for_level_multiplier": 4,
         "///memtable_factory": "$cspp",
         "//memtable_factory": "$skiplist",
+        "//memtable_factory OffsetSkipList": "$OffsetSkipList",
         "html_user_key_coder": "${db_bench_key_coder}",
         "max_write_buffer_number": 6,
         "write_buffer_size": "3G",

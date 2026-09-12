@@ -130,6 +130,10 @@
         "minPreadLen": 64
       }
     },
+    "OffsetSkipListTable": {
+      "class": "OffsetSkipListTable",
+      "params": { }
+    },
     "dispatch": {
       "class": "DispatcherTable",
       "params": {
@@ -139,7 +143,8 @@
           "SimpleTopTable": "simple",
           "BlockBasedTable": "bb",
           "SingleFastTable": "sng",
-          "ToplingZipTable": "dzip"
+          "ToplingZipTable": "dzip",
+          "OffsetSkipListTable": "OffsetSkipListTable"
         },
         "level_writers": [
           "sng", "simple",
@@ -177,6 +182,13 @@
     "skiplist": {
       "class": "SkipList",
       "params": { "lookahead": 0 }
+    },
+    "OffsetSkipList": {
+      "class": "OffsetSkipList",
+      "params": {
+        "mem_cap": "2G",
+        "lookahead": 0
+      }
     }
   },
   "WBWIFactory": {
@@ -216,6 +228,7 @@
       "disable_auto_compactions": true,
       "level0_file_num_compaction_trigger": 4,
       "memtable_factory": "${dyna}",
+      "//memtable_factory": "${OffsetSkipList}",
       "max_write_buffer_number": 4, "write_buffer_size": "1G",
       "//max_bytes_for_level_base": "400M",
       "target_file_size_base": "32M", "target_file_size_multiplier": 2,

@@ -202,6 +202,10 @@
       "class": "CSPPMemTabTable",
       "params": { }
     },
+    "OffsetSkipListTable": {
+      "class": "OffsetSkipListTable",
+      "params": { }
+    },
     "dispatch": {
       "class": "DispatcherTable",
       "params": {
@@ -215,6 +219,7 @@
           "VecAutoSortTable": "auto_sort",
           "SimpleTopTable": "simple",
           "CSPPMemTabTable": "cspp_memtab_sst",
+          "OffsetSkipListTable": "OffsetSkipListTable",
           "BlockBasedTable": "bb",
           "SingleFastTable": "sng",
           "ToplingZipTable": "dzip"
@@ -268,6 +273,15 @@
     "skiplist": {
       "class": "SkipList",
       "params": { "lookahead": 0 }
+    },
+    "OffsetSkipList": {
+      "class": "OffsetSkipList",
+      "params": {
+        "mem_cap": "6G",
+        "lookahead": 0,
+        "convert_to_sst": "kFileMmap",
+        "sync_sst_file": false
+      }
     }
   },
   "WBWIFactory": {
@@ -351,6 +365,7 @@
       "compaction_pri": "kMinOverlappingRatio",
       "//compaction_pri": "kMinOverlappingBytes",
       "memtable_factory": "${dyna}",
+      "//memtable_factory": "${OffsetSkipList}",
       "max_write_buffer_number": 4, "write_buffer_size": "2560M",
       "max_write_buffer_size_to_maintain": "256M",
       "target_file_size_base": "32M", "target_file_size_multiplier": 2.3,

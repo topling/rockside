@@ -66,6 +66,11 @@ MemTableRepFactory:
     class: SkipList
     params:
       lookahead: 0
+  OffsetSkipList:
+    class: OffsetSkipList
+    params:
+      mem_cap: 2G
+      lookahead: 0
 TableFactory:
   fast:
     class: SingleFastTable
@@ -107,6 +112,9 @@ TableFactory:
       block_cache_compressed:
       persistent_cache:
       filter_policy:
+  OffsetSkipListTable:
+    class: OffsetSkipListTable
+    params:
   dispatch:
     class: DispatcherTable
     params:
@@ -116,6 +124,7 @@ TableFactory:
         SimpleTopTable: simple
         ToplingZipTable: zip
         BlockBasedTable: bb
+        OffsetSkipListTable: OffsetSkipListTable
       level_writers:
       - fast
       - simple
@@ -132,6 +141,7 @@ WriteBufferManager:
 CFOptions:
   default:
     max_write_buffer_number: 4
+    #memtable_factory: "${OffsetSkipList}"
     memtable_factory: "${cspp}"
     write_buffer_size: 8M
     # set target_file_size_base as small as 512K is to make many SST files,

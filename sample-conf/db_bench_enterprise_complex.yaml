@@ -78,6 +78,13 @@ MemTableRepFactory:
     class: SkipList
     params:
       lookahead: 0
+  OffsetSkipList:
+    class: OffsetSkipList
+    params:
+      mem_cap: 2G
+      lookahead: 0
+      convert_to_sst: kFileMmap
+      sync_sst_file: false
 FilterPolicy:
   bloom:
     class: BloomFilter
@@ -131,6 +138,9 @@ TableFactory:
   cspp_memtab_sst:
     class: CSPPMemTabTable
     params: # empty params
+  OffsetSkipListTable:
+    class: OffsetSkipListTable
+    params: # empty params
   dispatch:
     class: DispatcherTable
     params:
@@ -141,6 +151,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
+        OffsetSkipListTable: OffsetSkipListTable
       level_writers: [fast, simple, zip, zip, zip, zip, zip]
   dispatch_all_fast:
     class: DispatcherTable
@@ -152,6 +163,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
+        OffsetSkipListTable: OffsetSkipListTable
       level_writers: [fast, fast, fast, fast, fast, fast, fast]
   dispatch_fast_bb:
     class: DispatcherTable
@@ -163,6 +175,7 @@ TableFactory:
         ToplingZipTable: zip
         BlockBasedTable: bb
         CSPPMemTabTable: cspp_memtab_sst
+        OffsetSkipListTable: OffsetSkipListTable
       level_writers: [fast, bb, bb, bb, bb, bb, bb]
 WriteBufferManager:
   wbm:
@@ -196,6 +209,7 @@ SstFileManager:
 CFOptions:
   default:
     max_write_buffer_number: 3
+    #memtable_factory: "${OffsetSkipList}"
     memtable_factory: "${cspp}"
     write_buffer_size: 768M
     target_file_size_base: 32M
