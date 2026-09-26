@@ -262,6 +262,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_OPT_PROP(js, stats_persist_period_sec);
     ROCKSDB_JSON_OPT_PROP(js, persist_stats_to_disk);
     ROCKSDB_JSON_OPT_PROP(js, memtable_as_log_index);
+    ROCKSDB_JSON_OPT_PROP(js, memtable_crash_safe_recover);
     ROCKSDB_JSON_OPT_PROP(js, check_wal_format);
     ROCKSDB_JSON_OPT_SIZE(js, stats_history_buffer_size);
     ROCKSDB_JSON_OPT_PROP(js, advise_random_on_open);
@@ -388,6 +389,7 @@ struct DBOptions_Json : DBOptions {
     ROCKSDB_JSON_SET_PROP(js, stats_persist_period_sec);
     ROCKSDB_JSON_SET_PROP(js, persist_stats_to_disk);
     ROCKSDB_JSON_SET_PROP(js, memtable_as_log_index);
+    ROCKSDB_JSON_SET_PROP(js, memtable_crash_safe_recover);
     ROCKSDB_JSON_SET_PROP(js, check_wal_format);
     ROCKSDB_JSON_SET_SIZE(js, stats_history_buffer_size);
     ROCKSDB_JSON_SET_PROP(js, advise_random_on_open);
