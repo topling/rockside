@@ -276,6 +276,7 @@ Env:
 DBOptions:
   default:
     #env: "$cat_env"
+    memtable_crash_safe_recover: true
     memtable_as_log_index: true
     max_total_wal_size: 4G
     allow_fallocate: false # default true
