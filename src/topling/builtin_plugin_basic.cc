@@ -765,6 +765,7 @@ struct DynaMemTableFactory : public MemTableRepFactory {
         THROW_InvalidArgument("real_fac must not be DynaMemTableFactory");
       }
       this->real_fac = real_fac;
+      this->convert_to_sst = real_fac->GetConvertKind();
     }
   }
   std::string ToString(const json& d, const SidePluginRepo& repo) const {
@@ -803,6 +804,11 @@ struct DynaMemTableFactory : public MemTableRepFactory {
   }
   bool CanHandleDuplicatedKey() const override {
     return real_fac->CanHandleDuplicatedKey();
+  }
+  Status RecoverCrashSafeMemTableToSST(
+      const std::string& leftover_path, struct FileMetaData* meta,
+      const struct TableBuilderOptions& tbo) override {
+    return real_fac->RecoverCrashSafeMemTableToSST(leftover_path, meta, tbo);
   }
   const char* Name() const override { return "Dyna"; }
 };
