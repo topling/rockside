@@ -776,7 +776,11 @@ struct DynaMemTableFactory : public MemTableRepFactory {
     return JsonToString(djs, d);
   }
   void BackPatch(const SidePluginRepo& repo) {
-    ROCKSDB_VERIFY(nullptr == real_fac);
+    if (real_fac != nullptr) {
+      // Import() back-patches every Dyna in the repo whenever a file mentions
+      // MemTableRepFactory, so an earlier Import may have patched us already.
+      return;
+    }
     json js = { {"real_fac", orig_name } };
     Update({}, js, repo);
   }
