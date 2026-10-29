@@ -956,7 +956,7 @@ const std::shared_ptr<SidePluginRepo>& GetEasyMigrateSidePluginRepo() {
 
 bool MaybeDBOptionsUpdateFrom(DBOptions* opt, const std::string& src_name) {
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
-    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    std::lock_guard lock(p_repo->m_impl->db_mtx);
     p_repo->DBOptionsUpdateFrom(opt, src_name);
     return true;
   }
@@ -964,7 +964,7 @@ bool MaybeDBOptionsUpdateFrom(DBOptions* opt, const std::string& src_name) {
 }
 bool MaybeCFOptionsUpdateFrom(CFOptions* opt, const std::string& src_name) {
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
-    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    std::lock_guard lock(p_repo->m_impl->db_mtx);
     if (!p_repo->CFOptionsUpdateFrom(opt, src_name)) {
       p_repo->CFOptionsUpdateFrom(opt, "default");
     }
@@ -974,7 +974,7 @@ bool MaybeCFOptionsUpdateFrom(CFOptions* opt, const std::string& src_name) {
 }
 bool MaybeOptionsUpdateFrom(Options* opt, const std::string& src_name) {
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
-    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    std::lock_guard lock(p_repo->m_impl->db_mtx);
     p_repo->DBOptionsUpdateFrom(opt, src_name);
     p_repo->CFOptionsUpdateFrom(opt, src_name);
     return true;
@@ -1024,7 +1024,7 @@ bool MaybeCFOptionsUpdateFrom(ColumnFamilyOptions* cfopt,
     if (!normpath.has_filename()) {
       ROCKSDB_DIE("FATAL: bad dbpath = %s", dbpath.c_str());
     }
-    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    std::lock_guard lock(p_repo->m_impl->db_mtx);
     DoCFOptionsUpdateFrom(cfopt, *p_repo, cfname, normpath);
     return true;
   }
@@ -1071,7 +1071,7 @@ bool MaybeOptionsUpdateFrom(DBOptions* db_opts,
     }
     std::filesystem::path p = normpath;
     std::string basename = p.filename().generic_string();
-    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    std::lock_guard lock(p_repo->m_impl->db_mtx);
     bool db_opt_done = false;
     while (p.has_filename()) {
       std::string db_opt_name = p.generic_string();
@@ -1137,7 +1137,7 @@ void MaybeRetainCF(DB* db, ColumnFamilyHandle* cfh) {
     return;
   }
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
-    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    std::lock_guard lock(p_repo->m_impl->db_mtx);
     auto& name2p = *p_repo->m_impl->db.name2p;
     auto iter = name2p.find(db->GetName());
     if (name2p.end() == iter) {
@@ -1151,7 +1151,7 @@ void MaybeRetainCF(DB* db, ColumnFamilyHandle* cfh) {
 void MaybeForgetCF(DB* db, ColumnFamilyHandle* cfh) {
   ROCKSDB_VERIFY(cfh != nullptr);
   if (auto& p_repo = GetEasyMigrateSidePluginRepo()) {
-    std::lock_guard<std::mutex> lock(p_repo->m_impl->db_mtx);
+    std::lock_guard lock(p_repo->m_impl->db_mtx);
     auto& name2p = *p_repo->m_impl->db.name2p;
     auto iter = name2p.find(db->GetName());
     if (name2p.end() == iter) {
@@ -4597,7 +4597,7 @@ Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
             StrDateTimeNow(), __FILE__, __LINE__, db, db->GetName().c_str());
   }
 
-  std::lock_guard<std::mutex> lock(m_impl->db_mtx);
+  std::lock_guard lock(m_impl->db_mtx);
 
   using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
   //using view_kv_ptr = const std::pair<const void* const, Impl::ObjInfo>*;

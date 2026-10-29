@@ -376,7 +376,7 @@ Status SidePluginRepo::Import(const json& main_js)
 {
 TOPLINGDB_TRY
 {
-  std::lock_guard<std::mutex> lock(m_impl->db_mtx);
+  std::lock_guard lock(m_impl->db_mtx);
 
   JS_setenv(main_js);
   MergeSubObject(&m_impl->db_js, main_js, "databases");
@@ -1010,7 +1010,7 @@ bool SidePluginRepo::Get(const std::string& name, DB_MultiCF** db, Status* s) co
 }
 
 bool SidePluginRepo::Get(const std::string& name, DB_Ptr* dbp) const {
-  std::lock_guard<std::mutex> lock(m_impl->db_mtx);
+  std::lock_guard lock(m_impl->db_mtx);
   return Impl_Get(name, m_impl->db, dbp);
 }
 
@@ -1151,7 +1151,7 @@ static void Impl_OpenDB_tpl(const std::string& dbname,
 
   assert(nullptr != db);
   // now insert db ptr into repo, need lock
-  std::lock_guard<std::mutex> lock(repo.m_impl->db_mtx);
+  std::lock_guard lock(repo.m_impl->db_mtx);
   auto& dbmap = repo.m_impl->db;
   auto ib = dbmap.name2p->emplace(dbname, DB_Ptr(db));
   if (!ib.second) {
