@@ -88,8 +88,13 @@ try {
     return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
   }
   auto cfh1 = m_create_cf(db, cfname, *cfo, js);
-//*cfh = cfh1->CloneHandle(); // return a clone
   *cfh = cfh1;
+  if (GetEasyMigrateSidePluginRepo().get() == m_repo) {
+    // MaybeRetainCF() has already cloned this CF into the easy registry;
+    // cloning again would register the same cfd twice.
+    return Status::OK();
+  }
+  cfh1 = cfh1->CloneHandle();
   {
     std::lock_guard<std::shared_mutex> lk(m_mtx);
     AddOneCF_ToMap(cfname, cfh1, js);
@@ -117,8 +122,13 @@ try {
     return Status::InvalidArgument(ROCKSDB_FUNC, "DataBase is read only");
   }
   auto cfh1 = m_create_cf_with_import(db, cfname, *cfo, import_options, metadatas, js);
-  //*cfh = cfh1->CloneHandle(); // return a clone
   *cfh = cfh1;
+  if (GetEasyMigrateSidePluginRepo().get() == m_repo) {
+    // MaybeRetainCF() has already cloned this CF into the easy registry;
+    // cloning again would register the same cfd twice.
+    return Status::OK();
+  }
+  cfh1 = cfh1->CloneHandle();
   {
     std::lock_guard<std::shared_mutex> lk(m_mtx);
     AddOneCF_ToMap(cfname, cfh1, js);

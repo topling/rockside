@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
       auto s = mcf->CreateColumnFamily("cf-" + std::to_string(i), cfjs, &cfh);
       if (s.ok()) {
         fprintf(stderr, "CreateColumnFamily(cf-%zd) success\n", i);
+        mcf->db->DestroyColumnFamilyHandle(cfh); // the caller owns this handle
       } else {
         fprintf(stderr, "CreateColumnFamily(cf-%zd) fail: %s\n", i, s.ToString().c_str());
       }
