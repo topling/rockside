@@ -33,6 +33,8 @@ DB_MultiCF_Impl::~DB_MultiCF_Impl() {
 }
 
 ColumnFamilyHandle* DB_MultiCF_Impl::Get(const std::string& cfname) const {
+  m_mtx.lock_shared();
+  ROCKSDB_SCOPE_EXIT(m_mtx.unlock());
   auto iter = m_cfhs.name2p->find(cfname);
   if (m_cfhs.name2p->end() != iter) {
     return iter->second;
