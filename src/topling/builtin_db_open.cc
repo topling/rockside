@@ -134,17 +134,7 @@ catch (const Status& st) {
   return st;
 }
 
-Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname, bool del_cfh) {
-  ColumnFamilyHandle* cfh = nullptr;
-  Status s = DropColumnFamilyImpl(cfname, &cfh);
-  if (del_cfh) {
-    db->DestroyColumnFamilyHandle(cfh); // check and delete
-  }
-  return s;
-}
-
-Status DB_MultiCF_Impl::DropColumnFamilyImpl(const std::string& cfname,
-                                             ColumnFamilyHandle** p_cfh)
+Status DB_MultiCF_Impl::DropColumnFamily(const std::string& cfname)
 try {
   ColumnFamilyHandle* cfh = nullptr;
   {
@@ -160,8 +150,13 @@ try {
     ROCKSDB_VERIFY(rm_iter + 1 == cf_handles.end());
     cf_handles.erase(rm_iter, cf_handles.end());
   }
-  db->DropColumnFamily(cfh);
-  *p_cfh = cfh;
+  Status s = db->DropColumnFamily(cfh);
+  if (!s.ok()) {
+    fprintf(stderr, "ERROR: DropColumnFamily(%s): %s\n",
+            cfname.c_str(), s.ToString().c_str());
+  }
+  RemoveCFPropertiesWebView(this, cfname, *m_repo);
+  db->DestroyColumnFamilyHandle(cfh); // check and delete
   return Status::OK();
 }
 catch (const std::exception& ex) {
@@ -171,17 +166,9 @@ catch (const Status& st) {
   return st;
 }
 
-///@param del_cfh: delete param cfh or internal cfh both or neither
-Status DB_MultiCF_Impl::DropColumnFamily(ColumnFamilyHandle* cfh, bool del_cfh) {
-  ColumnFamilyHandle* my_cfh = nullptr;
-  Status s = DropColumnFamilyImpl(cfh->GetName(), &my_cfh);
-  if (my_cfh && del_cfh) {
-    if (my_cfh != cfh) {
-      db->DestroyColumnFamilyHandle(my_cfh); // check and delete
-    }
-    db->DestroyColumnFamilyHandle(cfh); // check and delete
-  }
-  return s;
+///@param cfh: the CF to drop; only the registry's handle is destroyed
+Status DB_MultiCF_Impl::DropColumnFamily(ColumnFamilyHandle* cfh) {
+  return DropColumnFamily(cfh->GetName());
 }
 
 void DB_MultiCF_Impl::DoRegisterColumnFamily(ColumnFamilyHandle* cfh) {

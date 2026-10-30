@@ -76,8 +76,10 @@ struct DB_MultiCF {
                   const std::string& cfname, const ImportColumnFamilyOptions&,
                   const std::vector<const ExportImportFilesMetaData*>&,
                   const std::string& json_str, ColumnFamilyHandle**) = 0;
-  virtual Status DropColumnFamily(const std::string& cfname, bool del_cfh = false) = 0;
-  virtual Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh = false) = 0;
+  // the registry's handle is always destroyed by the repo
+  virtual Status DropColumnFamily(const std::string& cfname) = 0;
+  // only the registry's handle is destroyed, the caller's stays the caller's
+  virtual Status DropColumnFamily(ColumnFamilyHandle*) = 0;
   virtual std::vector<ColumnFamilyHandle*> get_cf_handles_view() const = 0;
   virtual void DoRegisterColumnFamily(ColumnFamilyHandle*) = 0;
   virtual void UnRegisterColumnFamily(ColumnFamilyHandle*) = 0;

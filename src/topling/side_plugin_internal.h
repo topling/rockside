@@ -14,9 +14,8 @@ struct DB_MultiCF_Impl : public DB_MultiCF {
                   const std::string& cfname, const ImportColumnFamilyOptions&,
                   const std::vector<const ExportImportFilesMetaData*>&,
                   const std::string& json_str, ColumnFamilyHandle**) override;
-  Status DropColumnFamilyImpl(const std::string& cfname, ColumnFamilyHandle**);
-  Status DropColumnFamily(const std::string& cfname, bool del_cfh) override;
-  Status DropColumnFamily(ColumnFamilyHandle*, bool del_cfh) override;
+  Status DropColumnFamily(const std::string& cfname) override;
+  Status DropColumnFamily(ColumnFamilyHandle*) override;
   std::vector<ColumnFamilyHandle*> get_cf_handles_view() const override;
   void DoRegisterColumnFamily(ColumnFamilyHandle*) override;
   void UnRegisterColumnFamily(ColumnFamilyHandle*) override;
