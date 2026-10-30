@@ -4559,6 +4559,7 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
   }
 #endif
 #if 1
+  std::shared_lock<std::shared_mutex> props_read_lock(m_impl->props_mtx);
   using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
   //using view_kv_ptr = const std::pair<const void* const, Impl::ObjInfo>*;
   std::map<const void*, view_kv_ptr> cfh_to_view;
@@ -4566,7 +4567,9 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
     auto view = (CFPropertiesWebView*)kv.first;
     cfh_to_view[view->cfh] = &kv;
   }
+  props_read_lock.unlock();
   auto del_view = [&](ColumnFamilyHandle* cfh) {
+    std::lock_guard<std::shared_mutex> write_lock(m_impl->props_mtx);
     auto iter = cfh_to_view.find(cfh);
     assert(cfh_to_view.end() != iter);
     ROCKSDB_VERIFY_F(cfh_to_view.end() != iter, "cfh must in cfh_to_view");
@@ -4625,6 +4628,7 @@ Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
 
   std::lock_guard lock(m_impl->db_mtx);
 
+  std::shared_lock<std::shared_mutex> props_read_lock(m_impl->props_mtx);
   using view_kv_ptr = decltype(&*m_impl->props.p2name.cbegin());
   //using view_kv_ptr = const std::pair<const void* const, Impl::ObjInfo>*;
   std::map<const void*, view_kv_ptr> cfh_to_view;
@@ -4632,7 +4636,9 @@ Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
     auto view = (CFPropertiesWebView*)kv.first;
     cfh_to_view[view->cfh] = &kv;
   }
+  props_read_lock.unlock();
   auto del_view = [&](ColumnFamilyHandle* cfh) {
+    std::lock_guard<std::shared_mutex> write_lock(m_impl->props_mtx);
     auto iter = cfh_to_view.find(cfh);
     assert(cfh_to_view.end() != iter);
     ROCKSDB_VERIFY_F(cfh_to_view.end() != iter, "cfh must in cfh_to_view");
