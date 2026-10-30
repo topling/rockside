@@ -161,6 +161,8 @@ class SidePluginRepo {
   void Put(const std::string& name, const std::shared_ptr<DBOptions>&);
   void Put(const std::string& name, const std::shared_ptr<ColumnFamilyOptions>&);
 
+  // Unlike the options above, a db is registered once: putting an already
+  // registered db name, or the same db under another name, is a fatal error.
   // The caller should ensure DB handle's life time is longer than SidePluginRepo
   void Put(const std::string& name, DB*);
   void Put(const std::string& name, DB*, const std::vector<ColumnFamilyHandle*>& cf_handles);

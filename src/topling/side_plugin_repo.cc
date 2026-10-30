@@ -641,10 +641,22 @@ Impl_Put(const std::string& name, json&& spec, Map& map, const Ptr& p,
 json DBOptionsToJson(const DBOptions&, const SidePluginRepo&);
 json CFOptionsToJson(const ColumnFamilyOptions&, const SidePluginRepo&);
 
+extern // defined in builtin_plugin_misc.cc
+void AddCFPropertiesWebView(DB_MultiCF*, ColumnFamilyHandle*,
+                            const std::string& cfname,
+                            const SidePluginRepo& repo);
+
+extern // defined in builtin_plugin_misc.cc, the plain DB overload
+void AddCFPropertiesWebView(DB*, const std::string& dbname,
+                            const SidePluginRepo& repo);
+
 template<class Map>
 static void
 Impl_Put(const std::string& name, json&& spec, Map& map, DB_Ptr p,
          const SidePluginRepo& repo) {
+  // CloseOneDB() walks props.p2name under db_mtx: a concurrent insert here can
+  // make that walk skip a node, which CloseOneDB reports as "cfh must in cfh_to_view".
+  std::lock_guard lock(repo.m_impl->db_mtx);
   ROCKSDB_VERIFY(nullptr != p.db);
   if (!spec.contains("class") && !spec.contains("method")) {
     spec["class"] = "DB::Open"; // default
@@ -695,7 +707,28 @@ Impl_Put(const std::string& name, json&& spec, Map& map, DB_Ptr p,
   if (params.contains("options") && params.contains("db_options")) {
     ROCKSDB_DIE("spec['params'] has both 'options' and 'db_options'");
   }
+  if (map.name2p->count(name)) {
+    // Overwriting a registered db leaves its cf_handles and views behind, and
+    // CloseOneDB() would then free whichever db won the race.
+    ROCKSDB_DIE("db name is already registered: %s", name.c_str());
+  }
+  if (map.p2name.count(GetRawPtr(p))) {
+    // CloseAllDB() walks name2p and would free the same db once per name.
+    ROCKSDB_DIE("db is already registered: %s", name.c_str());
+  }
   Impl_PutTpl(name, std::move(spec), map, p);
+  if (p.dbm) {
+    // The views are created once the db is registered, so that Json_dbname()
+    // below them can find it.
+    for (ColumnFamilyHandle* cfh : p.dbm->cf_handles) {
+      AddCFPropertiesWebView(p.dbm, cfh, cfh->GetName(), repo);
+    }
+  }
+  else {
+    // A plain DB has only its default CF; CloseOneDB()/CloseAllDB() look that
+    // handle up in keep_default_cf[], which this call records as well.
+    AddCFPropertiesWebView(p.db, name, repo);
+  }
 }
 
 template<class Map, class Ptr>

@@ -3186,6 +3186,11 @@ void AddCFPropertiesWebView(DB_MultiCF* mcf, ColumnFamilyHandle* cfh,
   std::lock_guard<std::shared_mutex> write_lock(repo.m_impl->props_mtx);
   SetCFPropertiesWebView(db, cfh, dbname, cfname, repo);
 }
+void AddCFPropertiesWebView(DB* db, const std::string& dbname,
+                            const SidePluginRepo& repo) {
+  std::lock_guard<std::shared_mutex> write_lock(repo.m_impl->props_mtx);
+  SetCFPropertiesWebView(db, dbname, repo);
+}
 
 static void
 JS_Add_CFPropertiesWebView_Link(json& djs, const DB& db, bool html,
@@ -4053,11 +4058,6 @@ DB_MultiCF_Impl::DB_MultiCF_Impl(const SidePluginRepo* repo,
   m_catch_up_delay_ms = catch_up_delay_ms;
   m_create_cf = &JS_CreateCF;
   m_create_cf_with_import = &JS_CreateCFWithImport;
-  std::vector<ColumnFamilyDescriptor> cfdvec(cf_handles.size());
-  for (size_t i = 0; i < cf_handles.size(); i++) {
-    cf_handles[i]->GetDescriptor(&cfdvec[i]);
-  }
-  SetCFPropertiesWebView(this, dbname, cfdvec, *repo);
   for (auto* cfh : cf_handles) {
     AddOneCF_ToMap(cfh->GetName(), cfh, json::object({}));
   }
