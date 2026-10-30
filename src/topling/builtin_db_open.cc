@@ -13,6 +13,7 @@
 #include "rocksdb/slice_transform.h"
 #include "rocksdb/sst_file_manager.h"
 #include "rocksdb/wal_filter.h"
+#include "db/column_family.h"
 #include "json.h"
 #include "side_plugin_factory.h"
 #include "side_plugin_internal.h"
@@ -46,6 +47,10 @@ extern // defined in builtin_pluin_misc.cc
 void AddCFPropertiesWebView(DB_MultiCF*, ColumnFamilyHandle*,
                             const std::string& cfname,
                             const SidePluginRepo& repo);
+
+extern // defined in builtin_plugin_misc.cc
+void RemoveCFPropertiesWebView(DB_MultiCF*, const std::string& cfname,
+                               const SidePluginRepo& repo);
 
 json JsonFromText(const std::string& text) {
   const char* beg = text.data();
@@ -193,15 +198,23 @@ void DB_MultiCF_Impl::DoRegisterColumnFamily(ColumnFamilyHandle* cfh) {
 
 void DB_MultiCF_Impl::UnRegisterColumnFamily(ColumnFamilyHandle* cfh) {
   // Used for easy migrate, never del cfh in SidePluginRepo
+  // cfh is the caller's, the handle deleted below is the registry's clone
   TERARK_VERIFY_EQ(GetEasyMigrateSidePluginRepo().get(), m_repo);
+  const std::string& cfname = cfh->GetName();
+  RemoveCFPropertiesWebView(this, cfname, *m_repo);
   {
     std::lock_guard<std::shared_mutex> write_lock(m_mtx);
-    const std::string& cfname = cfh->GetName();
     auto iter = m_cfhs.name2p->find(cfname);
     if (m_cfhs.name2p->end() == iter) {
-      fprintf(stderr, "WARN: UnRegisterColumnFamily: not found cfname = %s\n", cfname.c_str());
+      // DB_MultiCF_Impl::DropColumnFamily() removes the entry before calling
+      // the core drop, which comes back here through MaybeForgetCF(); a dropped
+      // CF is the normal sequence, so only warn if it is still alive.
+      if (!cfh->cfd()->IsDropped()) {
+        fprintf(stderr, "WARN: UnRegisterColumnFamily: not found cfname = %s\n", cfname.c_str());
+      }
       return;
     }
+    cfh = iter->second; // repo's cfh
     m_cfhs.name2p->erase(iter);
     m_cfhs.p2name.erase(cfh);
     auto rm_iter = std::remove_if(cf_handles.begin(), cf_handles.end(),
@@ -211,8 +224,7 @@ void DB_MultiCF_Impl::UnRegisterColumnFamily(ColumnFamilyHandle* cfh) {
     ROCKSDB_VERIFY(rm_iter + 1 == cf_handles.end());
     cf_handles.erase(rm_iter, cf_handles.end());
   }
-  // TODO:
-  // remove from CFPropertiesWebView
+  delete cfh;
 }
 
 std::vector<ColumnFamilyHandle*> DB_MultiCF_Impl::get_cf_handles_view() const {

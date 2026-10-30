@@ -117,7 +117,7 @@ struct SidePluginRepo::Impl {
   ObjRepo<CFPropertiesWebView> props;
   ObjMap<DB_Ptr> db;
   std::map<DB*, ColumnFamilyHandle*> keep_default_cf;
-  std::mutex db_mtx;
+  std::recursive_mutex db_mtx;
   std::shared_mutex props_mtx;
 
   json db_js; // not evaluated during import

@@ -1144,7 +1144,12 @@ void MaybeRetainCF(DB* db, ColumnFamilyHandle* cfh) {
       return;
     }
     DB_Ptr dbp = iter->second;
-    dbp.dbm->DoRegisterColumnFamily(cfh);
+    if (!dbp.dbm) { // a plain DB: the registry only knows its default CF
+      return;
+    }
+    // the caller may destroy its handle at any time: the registry keeps a clone
+    ColumnFamilyHandle* reg_cfh = cfh->CloneHandle();
+    dbp.dbm->DoRegisterColumnFamily(reg_cfh);
   }
 }
 
@@ -1158,6 +1163,9 @@ void MaybeForgetCF(DB* db, ColumnFamilyHandle* cfh) {
       return;
     }
     DB_Ptr dbp = iter->second;
+    if (!dbp.dbm) { // a plain DB: no CF is registered for it
+      return;
+    }
     dbp.dbm->UnRegisterColumnFamily(cfh);
   }
 }
@@ -3191,6 +3199,19 @@ void AddCFPropertiesWebView(DB* db, const std::string& dbname,
   std::lock_guard<std::shared_mutex> write_lock(repo.m_impl->props_mtx);
   SetCFPropertiesWebView(db, dbname, repo);
 }
+// the dropped CF's view must not outlive its handle
+void RemoveCFPropertiesWebView(DB_MultiCF* mcf, const std::string& cfname,
+                               const SidePluginRepo& repo) {
+  std::string varname = Json_dbname(mcf->db, repo) + "/" + cfname;
+  std::lock_guard<std::shared_mutex> write_lock(repo.m_impl->props_mtx);
+  auto& props = repo.m_impl->props;
+  auto iter = props.name2p->find(varname);
+  if (props.name2p->end() == iter) {
+    return;
+  }
+  props.p2name.erase(iter->second.get());
+  props.name2p->erase(iter);
+}
 
 static void
 JS_Add_CFPropertiesWebView_Link(json& djs, const DB& db, bool html,
@@ -4058,7 +4079,8 @@ DB_MultiCF_Impl::DB_MultiCF_Impl(const SidePluginRepo* repo,
   m_catch_up_delay_ms = catch_up_delay_ms;
   m_create_cf = &JS_CreateCF;
   m_create_cf_with_import = &JS_CreateCFWithImport;
-  for (auto* cfh : cf_handles) {
+  for (auto*& cfh : this->cf_handles) {
+    cfh = cfh->CloneHandle();
     AddOneCF_ToMap(cfh->GetName(), cfh, json::object({}));
   }
 }
@@ -4560,7 +4582,13 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
     if (del_rocksdb_objs)
       delete obj;
   };
-  for (const auto& kv : *m_impl->db.name2p) {
+  // Unregister all DBs before deleting any: ~DBImpl below calls MaybeForgetDB(),
+  // which must not re-enter here while the DB objects are being torn down.
+  std::vector<std::pair<std::string, DB_Ptr>> dbs;
+  dbs.assign(m_impl->db.name2p->begin(), m_impl->db.name2p->end());
+  m_impl->db.name2p->clear();
+  m_impl->db.p2name.clear();
+  for (const auto& kv : dbs) {
     assert(nullptr != kv.second.db);
     if (kv.second.dbm) {
       DB_MultiCF* dbm = kv.second.dbm;
@@ -4573,7 +4601,7 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
       }
       for (auto cfh : dbm->cf_handles) {
         del_view(cfh);
-        del_rocks(cfh);
+        delete cfh; // owned by the repo, never by the caller
       }
       del_rocks(dbm->db);
       delete dbm;
@@ -4586,8 +4614,6 @@ void SidePluginRepo::CloseAllDB(bool del_rocksdb_objs) {
     }
   }
   m_impl->keep_default_cf.clear();
-  m_impl->db.name2p->clear();
-  m_impl->db.p2name.clear();
 }
 
 Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
@@ -4628,11 +4654,15 @@ Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
   if (m_impl->db.name2p->end() == iter2) {
     return Status::InvalidArgument("SidePluginRepo::CloseOneDB not found name2p", db->GetName());
   }
-  const auto& kv = *iter2;
-  ROCKSDB_VERIFY_EQ(db, kv.second.db);
-  if (kv.second.dbm) {
-    DB_MultiCF* dbm = kv.second.dbm;
-    ROCKSDB_VERIFY_EQ(kv.second.db, dbm->db);
+  const DB_Ptr dbp = iter2->second; // must outlive the erase below
+  ROCKSDB_VERIFY_EQ(db, dbp.db);
+  // Unregister before deleting: ~DBImpl below calls MaybeForgetDB(), which must
+  // not find this DB.
+  m_impl->db.name2p->erase(iter2);
+  m_impl->db.p2name.erase(iter);
+  if (dbp.dbm) {
+    DB_MultiCF* dbm = dbp.dbm;
+    ROCKSDB_VERIFY_EQ(dbp.db, dbm->db);
     auto idbm = static_cast<DB_MultiCF_Impl*>(dbm);
     if (idbm->m_catch_up_thread) {
       idbm->m_catch_up_running = false; // notify stop
@@ -4641,13 +4671,13 @@ Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
     }
     for (auto cfh : dbm->cf_handles) {
       del_view(cfh);
-      del_rocks(cfh);
+      delete cfh; // owned by the repo, never by the caller
     }
-    del_rocks(dbm->db);
+    del_rocks(dbp.db);
     delete dbm;
   }
   else {
-    DB* db = kv.second.db;
+    DB* db = dbp.db;
     auto iter3 = m_impl->keep_default_cf.find(db);
     ROCKSDB_VERIFY(iter3 != m_impl->keep_default_cf.end());
     auto cfh = iter3->second;
@@ -4655,8 +4685,6 @@ Status SidePluginRepo::CloseOneDB(DB* db, bool del_rocksdb_objs)
     del_view(cfh);
     del_rocks(db);
   }
-  m_impl->db.name2p->erase(iter2);
-  m_impl->db.p2name.erase(iter);
   return Status::OK();
 }
 
